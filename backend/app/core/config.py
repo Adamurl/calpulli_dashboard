@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     app_env: Literal["development", "test", "production"] = "development"
     database_url: SecretStr
+    internal_api_token: SecretStr | None = Field(default=None, min_length=32)
     docs_enabled: bool | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_origins: list[str] = []
