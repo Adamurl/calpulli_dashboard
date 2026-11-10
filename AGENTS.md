@@ -4,7 +4,7 @@
 
 Calpulli Platform is a modular monolith built with Python, FastAPI, PostgreSQL, SQLAlchemy 2.x, and Alembic. Prefer straightforward, maintainable code. Add abstractions or dependencies only when a concrete requirement justifies them.
 
-Phase 1 implements infrastructure and health endpoints only. Do not implement future phases without explicit instruction. Do not add presentation, event, contact, communication, or integration placeholder modules. Do not create frontend code until requested. Phase 2 begins with review of the actual Wix presentation request form before business schema design.
+The current authorized scope includes the foundation, presentation requests, historical CSV import support, activity history, protected routes, and a prepared normalized Wix receiver. Do not add future Gmail, Events, shared contact, or frontend functionality without explicit instruction. Live Supabase writes, real imports, hosting, and Wix activation require the target review and authorization requested by the user. Do not add placeholder modules.
 
 ## Module boundaries
 
@@ -24,7 +24,7 @@ Validate external input at the boundary with Pydantic. Use typed settings for en
 
 Return consistent, safe API errors. Do not expose database URLs, driver error messages, or stack traces. Do not log authorization headers, cookies, payload bodies, email content, or personal information. Keep CORS restrictive and production documentation exposure intentional.
 
-Phase 1 does not provide authentication. Do not expose future business data before access controls are implemented and verified.
+Presentation routes use a bootstrap internal bearer token, and the Wix receiver uses an independent body secret and form ID. Missing settings must disable those routes. Do not expose personal data through Supabase browser roles or embed server credentials in frontend code. Individual user authentication and role policies are not implemented. Keep TEMP and its private CSV contents out of Git, Docker, logs, and public test fixtures.
 
 ## Verification
 
@@ -37,7 +37,7 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-Use the committed `uv.lock`. Explain new dependencies and update the lockfile through `uv`. Add tests for new behavior and important failures. Run PostgreSQL integration tests against a dedicated database ending in `_test`, separate from development and production. Never run destructive tests against application data.
+Generate and review the still-pending `uv.lock` through uv before claiming locked checks pass. Once present, use the committed lockfile. Explain new dependencies and update the lockfile through `uv`. Add tests for new behavior and important failures. Run PostgreSQL integration tests against a dedicated database ending in `_test`, separate from development and production. Never run destructive tests against application data.
 
 Run Compose commands from the repository root. Validate migrations and Compose configuration when supported by the environment. Report checks that were not run and their reasons. Do not claim CI passed without observing the actual run.
 
