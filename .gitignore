@@ -19,3 +19,5 @@ token*.json
 *.sql
 *.p12
 .aws/
+
+TEMP/
