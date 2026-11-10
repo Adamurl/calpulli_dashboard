@@ -1,0 +1,32 @@
+[project]
+name = "calpulli-platform"
+version = "0.1.0"
+description = "Calpulli Tonalehqueh internal platform API foundation"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.34,<1",
+  "sqlalchemy>=2.0.38,<2.1",
+  "alembic>=1.14,<2",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "psycopg[binary]>=3.2,<4",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: requires TEST_DATABASE_URL pointing to isolated PostgreSQL"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
