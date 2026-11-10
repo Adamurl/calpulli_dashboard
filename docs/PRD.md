@@ -15,15 +15,15 @@ Presentation inquiries currently need a consistent record of who requested a pre
 
 Access policies and specific roles require organizational review before implementation.
 
-## Implemented scope in Phase 1
+## Implemented scope
 
-Phase 1 provides the backend repository foundation. It includes FastAPI health endpoints, typed settings, PostgreSQL access, Alembic, structured logging, request IDs, Docker development configuration, tests, and CI configuration. There are no business records, integration clients, user accounts, or frontend screens.
+Phase 1 provides the backend repository foundation. It includes FastAPI health endpoints, typed settings, PostgreSQL access, Alembic, structured logging, request IDs, Docker development configuration, tests, and CI configuration. The current authorized extension adds presentation request models, protected backend routes, import batches, activity history, and a prepared normalized Wix receiver. User accounts, Gmail clients, Events functionality, and frontend screens remain unimplemented. Presentation tables are live in the verified Supabase project and 883 historical requests have been imported and reconciled with the private source CSV.
 
 Operational verification depends on the environment. The repository's final implementation report identifies checks actually executed.
 
-## Planned Presentations requirements
+## Presentations requirements
 
-The first business module will track presentation requests through inquiry, proposal, booking, and completion. Exact statuses and transitions require coordinator review.
+The module stores historical and current requests with status labels and activity history. The reviewed form screenshots define the new request fields. Historical answers remain nullable with their originals preserved. Coordinator assignment, proposal delivery, scheduling conflict rules, and full booking workflows remain planned.
 
 Planned capabilities include:
 
@@ -35,7 +35,7 @@ Planned capabilities include:
 - Send messages and associate replies with the correct request through Gmail threads.
 - Provide an internal dashboard for request review and follow-up.
 
-Phase 2 must inspect the actual Wix presentation form before selecting fields, required values, validation rules, or database relationships.
+The initial field mapping is documented in [Presentation data reference](PRESENTATIONS.md). The actual fictional Wix payload preview must still be reviewed before connecting the automation.
 
 ## Planned Events requirements
 
@@ -51,7 +51,7 @@ The planned MVP provides reviewed request fields, contact records, status transi
 
 ## Non-goals
 
-Phase 1 excludes business schemas, Wix and Gmail implementations, Events functionality, background workers, frontend code, and production deployment. The product does not currently target a public customer portal, payments, accounting, a general-purpose CRM, or independent microservices.
+The current scope excludes Gmail clients, Events functionality, background workers, frontend code, and production deployment. A prepared Wix receiver does not imply live integration or automation activation. The product does not currently target a public customer portal, payments, accounting, a general-purpose CRM, or independent microservices.
 
 ## Acceptance criteria
 
@@ -64,9 +64,9 @@ Phase 1 acceptance is measurable through repository checks:
 - Ruff lint, Ruff formatting, and pytest pass using the committed lockfile.
 - Integration tests use a separate test database.
 - Docker Compose defines a database health check, persistent volume, and API readiness dependency.
-- No business tables, frontend, real secrets, or third-party integration clients exist.
+- No frontend, real secrets, Gmail clients, or Events tables exist. Presentation tables are defined through Alembic and require live migration verification.
 
-Planned MVP acceptance requires a reviewed form-to-schema mapping, tested status transitions, duplicate webhook protection, linked email threads, and tested access boundaries. Response-time and follow-up targets require a baseline and agreement with coordinators.
+Current domain acceptance requires nullable historical values, preserved originals, idempotent imports, strict new submissions, authenticated record access, status activity, and duplicate webhook protection. Planned MVP acceptance also requires linked email threads and individual user access policies. Response-time and follow-up targets require a baseline and agreement with coordinators.
 
 ## Future considerations
 

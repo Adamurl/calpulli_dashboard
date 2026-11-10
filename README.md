@@ -1,12 +1,12 @@
 # Calpulli Platform
 
-An internal management platform for Calpulli Tonalehqueh. This repository contains the Phase 1 backend foundation. Presentations will be the first business module; Events will follow later. No business schemas, Wix or Gmail clients, authentication flows, or frontend are implemented.
+An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Gmail, Events, user-login flows, and a frontend remain unimplemented.
 
 ## Current verification status
 
-The API foundation, tests, migration environment, Compose definition, CI workflow, and documentation are implemented. Phase 1 is **not yet fully verified**. This authoring environment cannot install uv, create Git metadata in the source folder, run Docker, or initialize PostgreSQL. The generated `backend/uv.lock` is still required before the locked CI and Docker builds can run. Do not treat this checkout as release ready until the remaining checks below pass.
+The foundation and presentation code are implemented locally. `backend/uv.lock` still needs generation before locked CI and Docker builds can run. The Supabase migrations and historical import were verified through MCP. Isolated PostgreSQL integration tests, Docker execution, and deployed Wix delivery remain unverified. See [verification record](docs/VERIFICATION.md) for observed checks and remaining work.
 
-Observed checks using preinstalled Python 3.14 packages: 20 tests passed, one PostgreSQL integration test skipped; Ruff lint and formatting passed. The initial integration run failed because PostgreSQL was unavailable. See [verification record](docs/VERIFICATION.md) for remaining work.
+The historical CSV dry run retains 883 nonblank records from 896 data rows and skips 13 blank rows. Missing or ambiguous legacy answers remain nullable while their original text is retained. The authorized MCP import created 883 requests, 883 creation activities, and one import batch; every normalized and original field was compared against the source.
 
 ## Architecture and layout
 
@@ -19,6 +19,9 @@ backend/
     core/                  # Settings, JSON logging, errors, request context
     db/                    # Typed declarative base, engine, session dependency
     modules/health/        # Liveness and PostgreSQL readiness
+    modules/presentations/ # Models, schemas, services, and protected routes
+    imports/               # Historical CSV adapter and dry-run import CLI
+    integrations/          # Prepared normalized Wix receiver
     main.py                # Application factory and lifespan
   alembic/                 # Metadata registration and empty baseline revision
   tests/                   # API, configuration, errors, connectivity
@@ -110,6 +113,9 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | --- | --- |
 | `DATABASE_URL` | Required `postgresql+psycopg://` URL with host and database; never logged. |
 | `APP_ENV` | `development`, `test`, or `production`; default `development`. |
+| `INTERNAL_API_TOKEN` | Optional secret, at least 32 characters; unset disables presentation routes. |
+| `WIX_WEBHOOK_TOKEN` | Separate optional secret, at least 32 characters; unset disables Wix ingestion. |
+| `WIX_FORM_ID` | Expected form ID; required with the webhook secret to enable the receiver. |
 | `DOCS_ENABLED` | Optional boolean; defaults to enabled only in development. |
 | `LOG_LEVEL` | `INFO`; supports DEBUG, INFO, WARNING, ERROR, CRITICAL. |
 | `CORS_ORIGINS` | JSON array, default `[]`; exact HTTP(S) origins only. |
@@ -121,7 +127,7 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | `POSTGRES_PORT` | Host port `5432`. |
 | `TEST_DATABASE_URL` | Optional for local tests; distinct database ending in `_test`. Required for integration verification. |
 
-The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Gmail OAuth, Wix verification, application authentication, background processing, and synchronization settings will be defined when those phases are authorized; none is required now.
+The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random internal and Wix secrets locally; do not reuse a documented example or put them in frontend code. Gmail OAuth, individual user authentication, background processing, and synchronization remain future work.
 
 ## Migrations
 
@@ -134,7 +140,7 @@ uv run alembic check
 uv run alembic revision --autogenerate -m "Describe schema change"
 ```
 
-The baseline has no business tables. Review generated migrations before applying or committing them. Import future SQLAlchemy models explicitly in `alembic/env.py` before metadata is used. See [database conventions](docs/DATABASE.md).
+Revision `0001` is an empty baseline. Revision `0002` creates the three presentation tables with RLS enabled. Revision `0003` protects Alembic metadata. Autogeneration checks only registered application tables, preserving unrelated tables in the shared database. Review generated migrations before applying or committing them. Inspect existing tables and migration history before targeting Supabase. Import future SQLAlchemy models explicitly in `alembic/env.py` before metadata is used. See [database conventions](docs/DATABASE.md).
 
 ## Tests and quality checks
 
@@ -147,7 +153,7 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-The unit suite needs no live database. Without `TEST_DATABASE_URL`, the connectivity integration test is skipped. A configured but unavailable test database fails the integration test.
+The unit suite needs no live database. Without `TEST_DATABASE_URL`, PostgreSQL integration tests are skipped. A configured but unavailable test database fails the integration test.
 
 Create a separate local test database from the repository root:
 
@@ -183,8 +189,13 @@ Container tests skip PostgreSQL integration unless `TEST_DATABASE_URL` is explic
 - [Architecture](docs/ARCHITECTURE.md).
 - [Database](docs/DATABASE.md).
 - [API conventions](docs/API.md).
-- [Planned integrations](docs/INTEGRATIONS.md).
+- [Presentation data and historical import](docs/PRESENTATIONS.md).
+- [Wix contract and planned Gmail integration](docs/INTEGRATIONS.md).
 - [Roadmap](docs/ROADMAP.md).
 - [Security](docs/SECURITY.md).
 
-Phase 2 starts with the actual Wix presentation request form. Its fields, consent requirements, statuses, and workflows must be reviewed before implementing contacts or presentation schemas.
+The request schema supports both historical CSV answers and the new form. List, detail, create, status or note patch, and activity routes are under `/api/v1/presentations`. They require a server-side bearer credential matching `INTERNAL_API_TOKEN`; unset configuration disables access. See [API reference](docs/API.md).
+
+The presentation schema is applied to the verified Calpulli Tonalehqueh Supabase project. Store server connection settings only in ignored environment files; see [database conventions](docs/DATABASE.md). The historical import defaults to a dry run; `--apply` is an explicit write operation. `TEMP/` stays out of Git and Docker.
+
+The future Wix target is `https://<your-api-host>/api/v1/integrations/wix/presentations`. This is not a deployed URL. Review a fictional request preview and map **Choose fields** before activation. Hosting, Gmail, Events, shared contact identity, and a frontend remain separate work.

@@ -1,57 +1,45 @@
 # Security requirements
 
-## Current boundary
+## Current access boundary
 
-Phase 1 exposes health endpoints only. There is no application authentication, authorization, user management, business data API, or production deployment. Restrictive defaults reduce accidental exposure but do not make the foundation ready to host personal records.
+Health endpoints are public. Presentation list, detail, create, update, and activity routes require a bearer credential matching `INTERNAL_API_TOKEN`. The Wix receiver uses its own body credential and configured form ID. Missing configuration disables the corresponding routes with HTTP 503. Credential comparisons use constant-time comparison.
 
-The local Docker environment is intended for development. Production access requires the controls below and an environment-specific review.
+These are bootstrap server credentials. They do not identify individual coordinators or provide role-based access. There is no frontend or user-login flow. Keep the internal API token out of browser bundles and do not treat the shared token as a production user-management solution.
 
 ## Secrets and environments
 
-Use environment variables or a secret manager for sensitive values. Keep `.env`, tokens, private keys, database dumps, and local credential files out of Git and container build contexts. `.env.example` contains development configuration only. Its example values must not be reused in production.
+Use environment variables or a secret manager. Keep `.env`, private keys, tokens, database dumps, source exports, and local credentials out of Git and container contexts. `TEMP/` contains private historical source data and must remain excluded. The public repository must contain only synthetic test and example data.
 
-Use separate databases, credentials, OAuth applications, and external configuration for development, tests, and production. Never point tests at an application database. Limit database credentials to the actions each environment needs. Production migration credentials may need different privileges from the API account.
+Use separate random values for `INTERNAL_API_TOKEN` and `WIX_WEBHOOK_TOKEN`, each at least 32 characters. Generate them locally and store them securely. Leave settings unset until they are needed. Never put webhook secrets in URLs, commit messages, logs, or shared screenshots.
 
-Rotate an exposed credential and remove it from active use. Removing a file from the latest commit does not revoke a secret already present in Git history.
+Separate development, test, and production databases and credentials. Database owner credentials belong only in trusted server or migration environments. Rotate exposed credentials; removing a secret from the latest commit does not revoke it.
 
-## Authentication and authorization plans
+## Supabase row security
 
-Select an organization-controlled identity provider during internal security planning. Verify token issuer, audience, signature, expiry, and permitted algorithms. Define account access and offboarding procedures.
+Revision `0002` enables RLS on the three presentation tables. It grants no browser policies and revokes table access from PUBLIC, `anon`, and `authenticated` when those roles exist. Revision `0003` also protects the Alembic metadata table. Live checks confirmed RLS on these tables and no read/write privileges for the `anon` and `authenticated` browser roles. Recheck privileges when access policies change.
 
-Future role-based access must reflect actual coordinator and leadership responsibilities. Enforce authorization in the backend for every protected operation. Do not rely on frontend visibility, client-supplied role values, or request IDs. Test both permitted and forbidden operations, including access to records owned by another area.
+A table owner can bypass RLS. The FastAPI authorization boundary therefore remains mandatory for owner connections. Do not fix access failures by granting public table access or placing service credentials in a browser. A dedicated production database role and tested policies require an environment-specific design.
 
-No particular identity provider or token library is selected in Phase 1.
+## Webhook handling
 
-## Webhook verification plans
+The prepared Wix receiver checks a separate secret, validates the form ID, limits the JSON body to 64 KiB, and validates normalized fields before persistence. It removes the secret before building a presentation snapshot. A database uniqueness constraint protects provider identity, and changed content under an existing submission ID produces a conflict.
 
-Verify Wix requests using the authentication mechanism supported by the configured Automation. Validate payload size, shape, and required fields before processing. Use durable idempotency and uniqueness constraints. Restrict webhook privileges and rate-limit public receivers. Verify Google Pub/Sub delivery identity when that endpoint is introduced.
+The real Wix Automation preview remains unverified. Configure the receiver only after confirming mapping, stable submission IDs, and authentication behavior. Hosting must provide HTTPS, request controls, and safe upstream logs. Rate limiting and operational alerts are deployment requirements, not controls claimed by the current code.
 
-## OAuth token protection plans
+## Personal information and logs
 
-Use least-privilege Gmail scopes. Encrypt refresh tokens at rest and manage encryption keys separately. Restrict decryption access and record safe operational audit events. Define revocation, rotation, reconnect, and incident response procedures before using a real mailbox.
+Historical records contain personal contact details and notes. Define retention, correction, export, and deletion policies with organizational owners. The importer preserves source answers for historical review; that increases the need to restrict backups and administrative access.
 
-## Personal data and logging
+Do not log authorization headers, cookies, body secrets, full form bodies, contact details, or message contents. Use safe event names, status codes, and UUID request IDs. Database exceptions and validation errors must not disclose input values or connection details. Apply the same restrictions to hosting and proxy logs.
 
-Collect only information needed for approved workflows. Define retention, correction, export, and deletion policies with organizational owners. Consider communication contents and vendor applications sensitive even when no formal classification exists yet.
+## Future identity and Gmail controls
 
-Application logs must not contain credentials, authorization headers, cookies, form bodies, contact details, or email contents. Database exception text can include connection information and must not reach API clients or general request logs. Log safe event names, status codes, and correlation IDs. Configure upstream proxies and platform logs with the same restrictions.
+Choose an organization-controlled identity provider before a multiuser frontend. Verify token issuer, audience, signature, expiry, and algorithms. Define coordinator roles and offboarding, enforce access in the backend, and test forbidden operations. Do not infer identity from request IDs or client-supplied roles.
 
-Treat user-provided request IDs as untrusted input. The application accepts UUID values only. Request IDs identify a request, not a person or trusted caller.
+Gmail remains planned. Use least-privilege scopes, encrypt refresh tokens with separately managed keys, restrict decryption, and document revocation and reconnect procedures. Verify Pub/Sub identity and reconcile mailbox history before relying on notifications.
 
-## Production requirements
+## Production and recovery
 
-Before exposing business functionality:
+Before handling real records in a deployed service, verify HTTPS, trusted proxies, exact CORS rules, database TLS, restricted credentials, authentication, migration recovery, request limits, alerts, and backup ownership. API documentation defaults off outside development.
 
-- Enable HTTPS and validate trusted proxy configuration.
-- Configure exact CORS origins and confirm the authentication transport's CSRF requirements.
-- Keep API documentation disabled unless access is intentional and controlled.
-- Use restricted network access and TLS for PostgreSQL where required by the hosting environment.
-- Use nondevelopment credentials and a least-privilege application database role.
-- Apply migrations through a controlled release process.
-- Test authorization and failure behavior.
-- Configure request limits, operational alerting, and dependency update procedures.
-- Document recovery and credential revocation procedures.
-
-## Backups and recovery
-
-A Docker named volume is persistent local storage, not a backup. Production needs scheduled encrypted backups, restricted backup access, retention rules, and restore tests. Agree on recovery point and recovery time targets before launch. Test recovery in a separate environment and include external synchronization state and token key recovery in the plan.
+A Docker volume is not a backup. Review the actual Supabase plan's backup facilities, retention, and restore process before importing data. Test restores in a separate environment. Agree on acceptable recovery point and recovery time. No backup service or recovery test is provisioned by this repository.

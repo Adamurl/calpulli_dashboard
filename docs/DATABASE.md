@@ -2,53 +2,55 @@
 
 ## Current schema
 
-Phase 1 has no business tables. The initial Alembic revision establishes a migration baseline without creating presentation, event, contact, or communication records. Alembic creates its own version table when migrations run.
+PostgreSQL is the supported database. SQLAlchemy 2.x typed models use synchronous sessions and psycopg 3. SQLite does not substitute for PostgreSQL connectivity, JSONB, uniqueness, or row-security tests.
 
-PostgreSQL is the supported database. SQLite is not a substitute for connectivity or migration integration tests.
+Revision `0001` establishes an empty baseline. Revision `0002` defines `presentation_import_batches`, `presentation_requests`, and `presentation_activities`. Revision `0003` protects the Alembic version table. Both revisions are applied to the verified Calpulli Tonalehqueh Supabase project, with Alembic reporting `0003`. The authorized MCP import created 883 historical requests, 883 creation activities, and one batch from 896 CSV rows; 13 blank rows were skipped.
 
-## SQLAlchemy models
+[Presentation data reference](PRESENTATIONS.md) describes fields and source mappings. Contact data is a snapshot on each request. There are no shared contacts, organizations, Events, or Communications tables yet.
 
-Future models inherit from the declarative base in `backend/app/db/base.py`. Use SQLAlchemy 2.x `Mapped[T]` annotations and `mapped_column`. Put models in the module that owns their data.
+## Model and naming conventions
 
-Use explicit foreign keys, nullability, and database constraints. Keep table and column names in `snake_case`. Name tables consistently with the domain vocabulary. Use the base metadata naming convention for indexes and constraints so migrations can address them reliably.
+Models inherit from `backend/app/db/base.py`. Use `Mapped[T]` and `mapped_column`. Put models in the module that owns their records. Table and column names use `snake_case`; metadata defines explicit names for constraints and indexes.
 
-Store timestamps with timezone information. Define ID types, status representations, and delete behavior during Phase 2 design rather than selecting business schemas now.
+The presentation tables use UUID primary keys. Timestamps such as receipt, creation, and activity time include timezone information. Event date and local times are separate from the IANA `event_timezone` field. Imported unknown values remain nullable and retain their original text.
+
+PostgreSQL constraints enforce allowed source, form version, status, event access, event setting, and audience-distance values. Guest counts cannot be negative. JSONB columns preserve selections and source fields. Uniqueness on source, source key, and external ID prevents duplicate provider ingestion.
 
 ## Model registration
 
-Alembic reads `Base.metadata` in `backend/alembic/env.py`. A model enters that metadata only after Python imports its declaration. When adding a model, import its module into the migration environment before assigning or using `target_metadata`. Keep that registration explicit and review it alongside the migration. Merely creating a model file does not register it.
+`backend/alembic/env.py` imports presentation models before using `Base.metadata`. A model enters metadata only after its declaration is imported. Register future models explicitly and review that import with the migration. Creating a Python model file alone does not register it.
 
 ## Migration workflow
 
-Run commands from `backend/` with the target environment's `DATABASE_URL` set. For local environment setup and Compose commands, see the [README](../README.md).
+Run commands from `backend/` with the intended `DATABASE_URL` loaded:
 
 ```bash
-uv run alembic upgrade head
-uv run alembic revision --autogenerate -m "Describe the schema change"
+uv run alembic current
 uv run alembic upgrade head
 uv run alembic check
+uv run alembic revision --autogenerate -m "Describe schema change"
 ```
 
-Review every generated revision. Autogeneration cannot infer safe renames or data transformations. Commit model changes and the reviewed migration together. Test upgrades against a fresh isolated PostgreSQL database. Plan rollback or forward recovery for changes that can lose data. Never edit an applied migration to change a shared environment's history.
+Review each generated revision. Autogeneration cannot infer safe renames or data transformations. Commit the reviewed migration with its model changes. Test a fresh PostgreSQL upgrade and check schema drift. Never alter an applied revision to rewrite a shared environment's history.
 
-The migration environment reads the URL from typed application settings. Do not place credentials in `alembic.ini` or revision files.
+Migration settings read the database URL from typed application configuration. Do not place credentials in `alembic.ini`, migration files, or generated SQL committed to Git. Application startup does not create tables.
+
+Before targeting an existing Supabase project, inspect its tables, policies, and Alembic history. Do not stamp or recreate an existing schema to make migration errors disappear. The configured project is shared with existing vendor tables. Autogeneration uses `include_owned_name` to reflect only registered application tables, so unrelated tables are not proposed for removal. Keep direct or session-pooler PostgreSQL credentials in ignored environment configuration; do not expose them to a browser.
 
 ## Session and transaction ownership
 
-A request obtains a session through the database dependency. The dependency closes the session after use. Session cleanup rolls back unfinished transactions and returns the connection to the pool. Readiness executes `SELECT 1` without changing schema or data.
+The application lifespan owns the engine. A request obtains a dependency-managed session that closes after use and returns connections to the pool. Unfinished work rolls back during cleanup.
 
-Future writes use an explicit transaction around the complete business operation. Do not commit independently in helpers when a caller needs atomic changes. Do not share a session between requests or background tasks. A background task must obtain and close its own session.
+The presentation services commit a request and its creation activity together. Status changes lock the request, check the expected status, and persist the activity in the same operation. The direct legacy importer owns one transaction for its batch and records. A failure rolls back that batch. The authorized MCP import used resumable chunks, each atomically inserting requests, activities, and updating batch counters; duplicate source identities are skipped. No session is shared by concurrent requests or background workers.
 
-## Integration test isolation
+## Supabase access
 
-Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose name ends in `_test`. It must differ from the development database. Tests must reject unsafe targets before database work. Fixtures manage session cleanup without dropping development schemas or resetting application data. CI must migrate the test database before running connectivity tests.
+Revision `0002` enables row-level security on each new table, creates no browser-access policies, and revokes table privileges from PUBLIC. It also revokes privileges from `anon` and `authenticated` when those roles exist. Revision `0003` applies the same protection to `alembic_version`. Live checks confirmed RLS is enabled and both browser roles lack SELECT, INSERT, UPDATE, and DELETE on all four tables. No public policies were added.
 
-Use separate credentials and databases for development, tests, and production. A database name convention is an additional guard, not a replacement for restricted credentials.
+The backend uses a trusted server-side PostgreSQL connection with suitable privileges. Table owners normally bypass RLS, so the protected FastAPI routes remain an essential access boundary. The migration does not grant a general application role or implement individual user policies. Never expose owner credentials in a browser or grant broad public privileges to bypass an access error.
 
-## Planned shared entities and business boundaries
+## Integration tests
 
-Contacts may own people and organizations used by several modules. Communications may own message identity and thread associations. Presentation requests and their activity history belong to Presentations. Events owns event-specific applications, logistics, and participation records.
+`TEST_DATABASE_URL` must name a separate database ending in `_test` and must differ from the development database. Apply migrations before running database tests. Use separate credentials for development, tests, and production. A name check is an additional guard, not a substitute for restricted credentials.
 
-Cross-module foreign keys may be appropriate within one PostgreSQL database, but ownership and deletion behavior require explicit review. Avoid copying mutable contact details into multiple modules unless preserving a historical snapshot is intentional.
-
-The actual Wix presentation form must be reviewed before Phase 2 finalizes fields, required values, uniqueness rules, statuses, or relationships.
+Test fixtures use isolated transactions for their records. They must not drop application schemas, truncate real tables, or reset development data. Live migration, import integrity, duplicate protection, and browser-role privileges were checked on the authorized Supabase project. The isolated Python database integration suite still requires a separate `_test` database; never run it against the real project.

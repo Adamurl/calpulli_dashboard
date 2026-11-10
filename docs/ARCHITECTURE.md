@@ -2,55 +2,48 @@
 
 ## Modular monolith
 
-Calpulli Platform uses one FastAPI application, one deployable backend, and PostgreSQL. Business capabilities will live in separate Python modules within the same application. This keeps transactions, development, and deployment manageable for the initial internal platform.
+Calpulli Platform has one FastAPI application and one PostgreSQL database. Business capabilities live in modules in the same backend. This keeps transactions and deployment manageable while the organization establishes its workflows.
 
-Microservices would add network failures, distributed transactions, separate deployments, and more operational work before the project has an established need for them. A module can become a separate service later if measured load or ownership requires that change.
+Microservices would add network failures, distributed transactions, and separate operations without an observed requirement. A module can move later if measured load or ownership makes that useful.
 
-## Current application layout
+## Implemented ownership
 
-- `backend/app/main.py` owns application construction and lifespan.
-- `backend/app/api/router.py` assembles versioned routes.
-- `backend/app/core/` owns settings, logging, and common HTTP behavior.
-- `backend/app/db/` owns SQLAlchemy metadata, engine configuration, and session dependencies.
-- `backend/app/modules/health/` owns liveness and database readiness routes.
-- `backend/alembic/` owns schema history.
-- `backend/tests/` owns application and database checks.
-
-Only the health module exists in Phase 1. There are no placeholder business modules.
-
-## Planned module ownership
-
-| Module | Intended responsibility |
+| Path | Responsibility |
 | --- | --- |
-| Presentations | Presentation requests, request statuses, proposals, bookings, and activity history. |
-| Events | Cultural events, vendors, applications, participants, and logistics. |
-| Contacts | Shared person and organization identity and contact details. |
-| Communications | Messages, thread associations, delivery state, and communication history. |
-| Authentication | User identity and access decisions, with roles defined through organizational review. |
-| Integrations | Provider-specific adapters and external payload translation. |
+| `backend/app/main.py` | Application factory, lifespan, and shared error handling. |
+| `backend/app/api/router.py` | Central `/api/v1` route registration. |
+| `backend/app/core/` | Settings, structured logs, request correlation, errors, and internal token verification. |
+| `backend/app/db/` | Typed declarative base, engine, and request sessions. |
+| `backend/app/modules/health/` | Liveness and PostgreSQL readiness. |
+| `backend/app/modules/presentations/` | Request models, schemas, services, and protected routes. |
+| `backend/app/imports/legacy_presentations.py` | Historical CSV translation, dry-run analysis, and explicit import. |
+| `backend/app/integrations/wix.py` | Prepared normalized Wix Automation receiver. |
+| `backend/alembic/` | Versioned schema changes. |
 
-These names describe planned boundaries. They are not implemented packages or finalized schemas.
+## Data ownership
+
+A presentation request stores its submitted contact details and organization name as a snapshot. This preserves historical meaning without guessing that two records with a shared mailbox represent the same person. Shared contact identity remains future work.
+
+Import batches own provenance and import counts. Activities own creation, status, and note history. Missing legacy fields remain unknown. The new-submission boundary requires the current form's required values. The database can hold both shapes without forcing old rows through new-form validation.
+
+The form's event date and venue belong to a requested presentation. They do not introduce the future Events module. Events will own cultural-event operations such as vendors, applications, participants, and logistics. Communications and Gmail threading remain unimplemented.
 
 ## Dependency boundaries
 
-Routes validate HTTP input and call the module that owns the operation. Add a service or repository abstraction only when behavior justifies it. Business rules must not import Wix or Gmail clients. Integration adapters translate provider payloads into internal operations through explicit interfaces.
+Routes parse HTTP inputs and translate expected service errors. Presentation services own persistence and transaction decisions. The module's SQLAlchemy models define its records. There is no generic repository framework or dependency container.
 
-Modules should use another module's public functions rather than reaching into its routes or changing its tables directly. Shared infrastructure must remain independent of business modules. Avoid a generic shared module that accumulates unrelated business rules.
+The Wix adapter validates its provider-facing contract and calls presentation services. Presentation services do not import Wix APIs. The historical adapter translates CSV cells without embedding legacy assumptions in new-form validation. Shared infrastructure stays independent of business rules.
 
-## Database approach
+## Runtime and access
 
-The application uses SQLAlchemy 2.x typed ORM patterns and synchronous sessions with psycopg 3. Synchronous route functions allow FastAPI to run database operations outside the event loop. Alembic owns all schema changes. Application startup does not create tables.
+The application uses synchronous SQLAlchemy. Synchronous routes run database work outside the event loop. The asynchronous Wix receiver limits and parses its body, then dispatches persistence to a worker thread. Sessions remain local to each request.
 
-The engine belongs to the application lifecycle and releases pooled connections on shutdown. Each dependency-managed session closes at the end of its request. Future write operations own an explicit transaction and commit only after the whole operation succeeds.
+`INTERNAL_API_TOKEN` protects internal presentation routes. `WIX_WEBHOOK_TOKEN` separately protects the ingestion contract. Unset secrets disable their corresponding routes. These are bootstrap server credentials, not user identity, role-based access, or frontend authentication.
 
-## API conventions
+The migration enables RLS and removes browser-facing table grants. API authentication still matters when the database connection owns the tables. See [security](SECURITY.md) and [database conventions](DATABASE.md).
 
-The central router exposes `/api/v1`. Success payloads use endpoint-specific Pydantic response models. Errors share an envelope with a stable code, safe message, and request ID. The API returns a correlation ID in `X-Request-ID`.
+## Integration and deployment state
 
-CORS denies cross-origin access by default. Interactive documentation is available by default only in development. Settings control production documentation exposure.
+The normalized Wix contract is implemented locally. Real Automation payload validation, live delivery, retry behavior, and activation are pending a fictional **Preview request body** and a deployed HTTPS endpoint. Gmail OAuth, background processing, and external message clients are not implemented.
 
-## Planned integrations and background work
-
-Wix ingestion will validate and authenticate submissions before recording them. Gmail operations will associate messages through provider IDs and internal records. Durable processing, retries, and reconciliation belong in future integration phases. No queue or worker framework is selected in Phase 1.
-
-See [Integration requirements](INTEGRATIONS.md) for delivery and recovery expectations and [Database conventions](DATABASE.md) for model registration.
+The Supabase target was reviewed and the presentation migrations and historical import were completed. Existing vendor tables remain outside this application's migration ownership. Hosting is a later step requiring explicit authorization. No Vercel deployment, production URL, or free-plan suitability is claimed.
