@@ -18,3 +18,5 @@
 **/*.dump
 **/*.sql
 .aws
+TEMP
+**/TEMP
