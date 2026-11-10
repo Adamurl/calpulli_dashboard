@@ -1,0 +1,190 @@
+# Calpulli Platform
+
+An internal management platform for Calpulli Tonalehqueh. This repository contains the Phase 1 backend foundation. Presentations will be the first business module; Events will follow later. No business schemas, Wix or Gmail clients, authentication flows, or frontend are implemented.
+
+## Current verification status
+
+The API foundation, tests, migration environment, Compose definition, CI workflow, and documentation are implemented. Phase 1 is **not yet fully verified**. This authoring environment cannot install uv, create Git metadata in the source folder, run Docker, or initialize PostgreSQL. The generated `backend/uv.lock` is still required before the locked CI and Docker builds can run. Do not treat this checkout as release ready until the remaining checks below pass.
+
+Observed checks using preinstalled Python 3.14 packages: 20 tests passed, one PostgreSQL integration test skipped; Ruff lint and formatting passed. The initial integration run failed because PostgreSQL was unavailable. See [verification record](docs/VERIFICATION.md) for remaining work.
+
+## Architecture and layout
+
+A modular monolith keeps one FastAPI application and one PostgreSQL database. Synchronous SQLAlchemy runs in synchronous endpoints and request dependencies. Application startup creates a connection pool without opening a database connection; shutdown disposes it. Alembic owns schema changes.
+
+```text
+backend/
+  app/
+    api/router.py          # Central /api/v1 router
+    core/                  # Settings, JSON logging, errors, request context
+    db/                    # Typed declarative base, engine, session dependency
+    modules/health/        # Liveness and PostgreSQL readiness
+    main.py                # Application factory and lifespan
+  alembic/                 # Metadata registration and empty baseline revision
+  tests/                   # API, configuration, errors, connectivity
+  pyproject.toml           # Dependencies, pytest and Ruff configuration
+  Dockerfile
+.github/workflows/ci.yml
+docs/                      # Product, architecture, API, security and roadmap
+infra/README.md
+compose.yaml
+```
+
+The shared infrastructure contains no business rules. Future modules own their models and rules; provider adapters translate Wix and Gmail inputs at explicit boundaries. See [architecture](docs/ARCHITECTURE.md) and [roadmap](docs/ROADMAP.md).
+
+## Prerequisites
+
+- Python 3.12 or newer; CI and Docker use Python 3.12.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/).
+- Docker Engine or Docker Desktop with Docker Compose v2.
+- Git and access to `https://github.com/Adamurl/calpulli_dashboard`.
+
+## First checkout setup
+
+From the repository root:
+
+```bash
+cp .env.example .env
+cd backend
+uv lock
+uv sync --locked
+```
+
+The `uv lock` step is required only while completing this initial foundation. Review and commit the generated `backend/uv.lock`. After it is committed, ordinary checkouts use `uv sync --locked`; use `uv sync` during intentional dependency updates and review lockfile changes.
+
+The root `.env` is used by Compose. For host Python commands, load it into the current shell from `backend/`:
+
+```bash
+set -a
+source ../.env
+set +a
+```
+
+Alternatively, create an ignored `backend/.env` for host-only overrides. Typed settings load `.env` from the working directory. Never commit either file. Root environment variables take precedence over dotenv values.
+
+## Local development with Docker
+
+Run these commands from the repository root, after generating the lockfile:
+
+```bash
+docker compose config --quiet
+docker compose up --build -d
+docker compose logs -f api db
+docker compose exec api alembic upgrade head
+curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/v1/health/ready
+docker compose down
+```
+
+The API waits for PostgreSQL's health check and reloads when application source changes. No startup sleeps or automatic schema creation are used. Normal shutdown preserves the named database volume. Ports bind to loopback only. Docker starts uvicorn from the application virtual environment; access logs are disabled to avoid exposing request URLs.
+
+Open `http://localhost:8000/docs` for development OpenAPI UI. `http://localhost:8000/openapi.json` provides the schema. Production documentation defaults to disabled; set `DOCS_ENABLED` explicitly to override.
+
+Connect to PostgreSQL:
+
+```bash
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+To reset **disposable local data only**, deliberately run the following. This deletes the project's database volume permanently. Back up anything needed first.
+
+```bash
+docker compose down --volumes
+```
+
+## Run the API on the host
+
+Start PostgreSQL with `docker compose up -d db` from the repository root. From `backend/`, load the root environment as above, then:
+
+```bash
+uv sync --locked
+uv run alembic upgrade head
+uv run uvicorn app.main:create_app --factory --reload --no-access-log
+```
+
+Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `localhost` for host commands. URL-encode reserved characters in host connection credentials. Compose's development URL interpolation expects URL-safe user, database, and password values; use a separately supplied URL and secret management when designing production deployment.
+
+## Configuration
+
+| Variable | Default / requirement |
+| --- | --- |
+| `DATABASE_URL` | Required `postgresql+psycopg://` URL with host and database; never logged. |
+| `APP_ENV` | `development`, `test`, or `production`; default `development`. |
+| `DOCS_ENABLED` | Optional boolean; defaults to enabled only in development. |
+| `LOG_LEVEL` | `INFO`; supports DEBUG, INFO, WARNING, ERROR, CRITICAL. |
+| `CORS_ORIGINS` | JSON array, default `[]`; exact HTTP(S) origins only. |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `5` / `5` per process. |
+| `DB_POOL_TIMEOUT` | `5` seconds waiting for a pooled connection. |
+| `DB_CONNECT_TIMEOUT` | `3` seconds per PostgreSQL connection attempt. |
+| `DB_STATEMENT_TIMEOUT_MS` | `3000` milliseconds per database statement. |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Required by Compose; development values in `.env.example`. |
+| `POSTGRES_PORT` | Host port `5432`. |
+| `TEST_DATABASE_URL` | Optional for local tests; distinct database ending in `_test`. Required for integration verification. |
+
+The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Gmail OAuth, Wix verification, application authentication, background processing, and synchronization settings will be defined when those phases are authorized; none is required now.
+
+## Migrations
+
+From `backend/`, with the intended environment loaded:
+
+```bash
+uv run alembic upgrade head
+uv run alembic current
+uv run alembic check
+uv run alembic revision --autogenerate -m "Describe schema change"
+```
+
+The baseline has no business tables. Review generated migrations before applying or committing them. Import future SQLAlchemy models explicitly in `alembic/env.py` before metadata is used. See [database conventions](docs/DATABASE.md).
+
+## Tests and quality checks
+
+From `backend/`:
+
+```bash
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
+```
+
+The unit suite needs no live database. Without `TEST_DATABASE_URL`, the connectivity integration test is skipped. A configured but unavailable test database fails the integration test.
+
+Create a separate local test database from the repository root:
+
+```bash
+docker compose exec db sh -c 'createdb -U "$POSTGRES_USER" calpulli_test'
+```
+
+Then, from `backend/`, after loading `.env`:
+
+```bash
+export TEST_DATABASE_URL='postgresql+psycopg://calpulli:calpulli_dev_only@localhost:5432/calpulli_test'
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic upgrade head
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic check
+uv run pytest
+```
+
+Adjust the test URL if development credentials differ. Tests reject database names without `_test` and databases matching the development database name. Fixtures close request sessions; they do not drop schemas, truncate tables, or reset application data. CI provisions and migrates a dedicated PostgreSQL test database before running all tests.
+
+To run checks inside the development API container, from the repository root:
+
+```bash
+docker compose exec api uv sync --locked --group dev
+docker compose exec api uv run ruff check .
+docker compose exec api uv run ruff format --check .
+docker compose exec api uv run pytest
+```
+
+Container tests skip PostgreSQL integration unless `TEST_DATABASE_URL` is explicitly supplied with hostname `db`. Installed development dependencies survive container restarts but are recreated after a rebuild.
+
+## Documentation and next phase
+
+- [Product requirements](docs/PRD.md).
+- [Architecture](docs/ARCHITECTURE.md).
+- [Database](docs/DATABASE.md).
+- [API conventions](docs/API.md).
+- [Planned integrations](docs/INTEGRATIONS.md).
+- [Roadmap](docs/ROADMAP.md).
+- [Security](docs/SECURITY.md).
+
+Phase 2 starts with the actual Wix presentation request form. Its fields, consent requirements, statuses, and workflows must be reviewed before implementing contacts or presentation schemas.
