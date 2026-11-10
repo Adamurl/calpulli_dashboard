@@ -1,9 +1,11 @@
 from alembic import context
 from app.core.config import Settings
 from app.db.base import Base
+from app.db.migrations import include_owned_name
 from app.db.session import build_engine
+from app.modules.presentations import models  # noqa: F401
 
-# Import future module models here before accessing Base.metadata.
+# Import additional module models here before accessing Base.metadata.
 target_metadata = Base.metadata
 settings = Settings()
 
@@ -11,6 +13,7 @@ if context.is_offline_mode():
     context.configure(
         url=settings.database_url.get_secret_value(),
         target_metadata=target_metadata,
+        include_name=include_owned_name,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -20,7 +23,11 @@ else:
     engine = build_engine(settings)
     try:
         with engine.connect() as connection:
-            context.configure(connection=connection, target_metadata=target_metadata)
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                include_name=include_owned_name,
+            )
             with context.begin_transaction():
                 context.run_migrations()
     finally:
