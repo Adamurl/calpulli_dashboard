@@ -45,9 +45,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
-        code = "database_unavailable" if exc.status_code == 503 else f"http_{exc.status_code}"
+        code = (
+            "database_unavailable"
+            if exc.status_code == 503 and exc.detail == "Database unavailable"
+            else f"http_{exc.status_code}"
+        )
         message = (
-            "Database unavailable" if exc.status_code == 503 else HTTPStatus(exc.status_code).phrase
+            "Database unavailable"
+            if code == "database_unavailable"
+            else HTTPStatus(exc.status_code).phrase
         )
         response = error_response(exc.status_code, code, message, request.state.request_id)
         if exc.headers:
