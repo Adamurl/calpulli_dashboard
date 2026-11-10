@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "production"] = "development"
     database_url: SecretStr
     internal_api_token: SecretStr | None = Field(default=None, min_length=32)
+    wix_webhook_token: SecretStr | None = Field(default=None, min_length=32)
+    wix_form_id: str | None = Field(default=None, min_length=1, max_length=200)
     docs_enabled: bool | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_origins: list[str] = []

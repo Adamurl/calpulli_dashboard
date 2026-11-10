@@ -1,45 +1,79 @@
-# Planned integrations
+# Integration contracts and setup
 
-All capabilities in this document are future requirements. Phase 1 has no integration clients, webhook routes, OAuth flows, tokens, or background workers. No Google or Wix configuration is required to start the foundation.
+## Current state
 
-## Wix presentation requests
+A normalized Wix receiver is implemented locally. Its real Automation mapping and delivery have not been verified. Gmail, Google Workspace OAuth, Pub/Sub, and background synchronization remain planned. No integration has been activated and no hosted receiver URL exists yet.
 
-The intended flow is Wix Forms, then a Wix Automation webhook, then a FastAPI webhook receiver. Phase 2 must inspect the actual form fields and example payloads before defining the domain schema. Phase 3 implements the receiver.
+## Wix Automation target
 
-The receiver must:
+The intended flow is Wix Forms, then **Send HTTP request**, then FastAPI, then PostgreSQL. The target is the hosted backend route:
 
-1. Authenticate the sender using a mechanism supported by the actual Wix configuration.
-2. Enforce body-size and content-type limits.
-3. Validate the external payload through a provider-specific Pydantic model.
-4. Translate validated fields into presentation operations.
-5. Persist the submission and its stable external identity atomically.
-6. Return a documented acknowledgement after durable acceptance.
+```text
+https://<your-api-host>/api/v1/integrations/wix/presentations
+```
 
-Confirm Wix's authentication capabilities during implementation. Do not assume Wix signs every Automation payload. If the configured webhook supports a shared secret, keep it outside source control and verify it before persistence. Avoid secrets in URLs because proxies and access logs can record them.
+This is a deployment placeholder, not a live URL. Do not send the form to a Supabase REST table or include database credentials in Wix.
 
-Use a durable idempotency key and a database uniqueness constraint. Prefer a stable provider submission identifier once payload review confirms it exists. Define duplicate behavior, retry handling, and recovery for failed submissions. A repeated delivery must not create a second request.
+[Wix's HTTP request documentation](https://support.wix.com/en/article/the-new-automation-builder-sending-data-via-webhook) describes **Choose fields**, custom key mapping, body nesting, and **Preview request body**. The current adapter accepts the explicit contract below. It does not guess the format of **All automation data**.
 
-Log safe delivery identifiers and outcomes. Do not log full form bodies or personal contact details. Store only fields needed for the approved workflow and retention policy.
+## Configure the request after preview review
 
-## Google Workspace and Gmail
+1. Set the method to **POST**.
+2. Choose **Choose fields** and map exact API key names to form values.
+3. Enable **Nest request body under data**.
+4. Add the stable provider `submission_id` and the form's `form_id`.
+5. Add `webhook_token` as a private static value matching `WIX_WEBHOOK_TOKEN`. Do not map it from a requester-editable form field.
+6. Map the required and optional presentation fields in [the data reference](PRESENTATIONS.md).
+7. Preview a fictional test submission and confirm its actual JSON before activating the automation.
 
-The intended integration uses an organizational Google Workspace mailbox with OAuth authorization. Confirm mailbox ownership, administrator policies, consent requirements, and allowed scopes before implementation. Scope access to the operations the product needs.
+The backend also requires `WIX_FORM_ID`. It rejects a different form with HTTP 403. The form ID is an identifier, not a secret. Keep `WIX_WEBHOOK_TOKEN` separate from `INTERNAL_API_TOKEN`.
 
-Planned behavior includes:
+The body has a flat field map inside `data`. This fictional example deliberately leaves the credential blank and cannot authenticate:
 
-- Send presentation messages through the connected mailbox.
-- Store Gmail message IDs and thread IDs alongside internal communication records.
-- Associate replies with the correct request using persisted identifiers and reviewed matching rules.
-- Receive mailbox change notifications through Google Cloud Pub/Sub.
-- Synchronize mailbox changes in background work.
-- Renew subscriptions and handle revoked credentials.
+```json
+{
+  "data": {
+    "webhook_token": "",
+    "form_id": "fictional-form",
+    "submission_id": "fictional-submission",
+    "event_date": "2027-03-20",
+    "start_time": "14:00",
+    "end_time": "15:00",
+    "event_timezone": "America/Los_Angeles",
+    "event_types": ["cultural_organization"],
+    "event_purpose": "Fictional cultural education event",
+    "venue_address": "Fictional venue, San Jose, CA",
+    "estimated_guests": 100,
+    "audience_distance_12ft": "yes",
+    "unavailable_logistics": "None",
+    "contact_first_name": "Sample",
+    "contact_last_name": "Coordinator",
+    "contact_email": "sample@example.org",
+    "contact_phone": "+1 555 010 0200"
+  }
+}
+```
 
-Notifications indicate that mailbox state changed. They are not the sole source of message history. Persist synchronization progress, process changes idempotently, and retry transient errors with bounded backoff. Reconcile periodically to recover from delayed or missed notifications. Define a full resynchronization path when incremental history is no longer available.
+Dates use ISO format. Times are local values; timezone is a separate field. Checkbox values must become arrays of the documented tokens, not display labels or comma-separated text. `estimated_guests` must be a JSON integer. Confirm these conversions using Wix's preview rather than assuming the form emits the required types. If Wix cannot produce this contract, adapt the provider boundary only after inspecting a real fictional payload.
 
-Encrypt refresh tokens at rest with keys managed separately from the database. Restrict token access to the integration process. Never include tokens, authorization codes, message bodies, or mailbox credentials in logs. Define revocation and reconnect procedures before connecting a real mailbox.
+## Persistence and recovery
 
-## Integration boundaries
+A first accepted submission returns HTTP 201 with its internal UUID and `status=created`. A retry with the same form ID, submission ID, and normalized content returns HTTP 200 with `status=duplicate`. Changed content under the same identity returns HTTP 409. The receiver acknowledges after the request and its activity commit.
 
-Provider-specific payloads and API calls belong in integration adapters. Presentations and Communications own internal operations and data rules. Keep provider IDs explicit instead of using them as internal authorization decisions.
+The body limit is 64 KiB. Errors never echo the credential or requester details. The source snapshot excludes `webhook_token`. Keep an operational record of failed deliveries without copying personal data into general logs.
 
-Choose durable background processing when delivery requirements are known. Do not rely on in-process background tasks for work that must survive an API restart. No background processing dependency is selected in Phase 1.
+End-to-end delivery, Wix retry timing, rate controls, alerting, and reconciliation remain deployment acceptance checks. No durable queue or worker is implemented.
+
+## Google Workspace and Gmail plans
+
+Use an approved organizational mailbox and OAuth with least-privilege scopes. Sending, reply handling, Gmail message IDs, thread IDs, Pub/Sub notifications, and background synchronization are future work.
+
+Persist synchronization progress and make message processing idempotent. Notifications indicate a mailbox change; they are not the message-history source. Reconcile periodically, retry transient failures with bounded backoff, and define full resynchronization when incremental history expires.
+
+Encrypt refresh tokens with separately managed keys. Restrict token access and define revocation, rotation, and reconnect procedures. Never log authorization codes, tokens, or email contents.
+
+## Hosting decision
+
+The receiver needs a reachable HTTPS backend before Wix can call it. [Vercel supports FastAPI](https://vercel.com/docs/frameworks/backend/fastapi), but a deployment still needs a plan review, database connection choice, dependency lockfile, secret setup, and request-limit checks. Do not assume a free plan is suitable for the organization's use.
+
+Hosting is a later, separately authorized step. The current Docker and engine configuration is not claimed to be configured for a serverless transaction pooler. Verify prepared-statement support, connection options, and connection limits for the chosen Supabase endpoint before deployment.

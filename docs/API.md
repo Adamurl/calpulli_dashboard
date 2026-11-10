@@ -1,23 +1,54 @@
 # API reference
 
-## Versioning
+## Versioning and documentation
 
-Current application endpoints use `/api/v1`. A future incompatible public contract requires an explicit versioning decision. Internal refactors do not require a new API version.
+Application routes use `/api/v1`. Swagger UI is at `/docs` and the OpenAPI schema is at `/openapi.json` when documentation is enabled. Documentation defaults to enabled only in development. `DOCS_ENABLED` overrides that setting. ReDoc is disabled.
 
-## Success responses
+## Health
 
-Endpoints return typed JSON objects. Phase 1 has only health operations and no list or write endpoints.
+| Method | Path | Success |
+| --- | --- | --- |
+| GET | `/api/v1/health` | HTTP 200 with `{"status":"ok"}` without connecting to PostgreSQL. |
+| GET | `/api/v1/health/ready` | HTTP 200 with `{"status":"ready"}` after a lightweight PostgreSQL query. |
 
-| Method | Path | Success | Purpose |
-| --- | --- | --- | --- |
-| GET | `/api/v1/health` | `200`, `{"status":"ok"}` | Confirms that the application can respond without a database connection. |
-| GET | `/api/v1/health/ready` | `200`, `{"status":"ready"}` | Confirms that PostgreSQL responds to a lightweight query. |
+Readiness returns HTTP 503 when the database is unavailable. It never returns connection strings or driver exception messages.
 
-Readiness returns HTTP 503 when PostgreSQL is unavailable. Database failures do not reveal connection strings, credentials, or driver exception messages. Liveness remains independent of database readiness.
+## Presentation routes
+
+All presentation routes require `Authorization: Bearer <INTERNAL_API_TOKEN>`. An unset token disables the routes with HTTP 503. An absent or incorrect credential returns HTTP 401. This is a bootstrap internal credential, not individual user login or role-based authorization.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/api/v1/presentations` | Paginated summaries, including historical records with nullable fields. |
+| POST | `/api/v1/presentations` | Validate a complete new form and create a manual request, HTTP 201. |
+| GET | `/api/v1/presentations/{id}` | Detail including original fields and internal notes; HTTP 404 when absent. |
+| PATCH | `/api/v1/presentations/{id}` | Change status or internal notes and record activity. |
+| GET | `/api/v1/presentations/{id}/activities` | Paginated request activity. |
+
+List parameters are `limit` with default 25 and maximum 100, and nonnegative `offset` with default 0. Requests also accept `source` and `status` filters. Sources are `legacy_csv`, `manual`, and `wix`. Request ordering is descending creation time, then descending UUID. Activity ordering follows the same rule. Responses contain `items`, `limit`, and `offset`; there is no total count.
+
+Summary responses omit `original_fields` and `internal_notes`. Detail responses contain historical originals only after authentication. [Presentation data reference](PRESENTATIONS.md) defines fields, validation, and status values.
+
+A status change includes the current value to detect a concurrent update:
+
+```json
+{
+  "status": "reviewing",
+  "expected_current_status": "new"
+}
+```
+
+A stale value returns HTTP 409. A note patch supplies nonblank `internal_notes`. There is no delete route or general request-answer editing route.
+
+## Wix receiver
+
+`POST /api/v1/integrations/wix/presentations` accepts the explicit normalized **Choose fields** contract in [Wix setup](INTEGRATIONS.md). It uses a separate body secret and checks the configured form ID. An unset secret or form ID disables the receiver with HTTP 503.
+
+Successful first ingestion returns HTTP 201 with `{"id":"<uuid>","status":"created"}`. An identical retry returns HTTP 200 with `status=duplicate`. Reusing a form and submission ID with different normalized content returns HTTP 409. Payloads larger than 64 KiB return HTTP 413. The real Wix preview and live delivery remain unverified.
 
 ## Error responses
 
-Application errors use this envelope:
+Errors use this envelope:
 
 ```json
 {
@@ -29,22 +60,12 @@ Application errors use this envelope:
 }
 ```
 
-The code is machine-readable. The message is safe for clients. The request ID associates a response with application logs. Error messages and codes for each condition are defined in the implementation. Clients must use status and code instead of parsing message text.
+Other HTTP errors use codes such as `http_401`, `http_404`, `http_409`, or `http_503`. Request validation uses `validation_error`; malformed webhook payloads use their HTTP error code. Unexpected failures use `internal_error`. Disabled authentication or webhook settings are service-unavailable conditions, not a database failure.
 
-HTTP 422 indicates invalid request input. HTTP 404 indicates an unknown route. Unexpected failures return HTTP 500 with a generic message. Validation responses do not echo submitted values. Stack traces and internal database errors are not part of the API contract.
+Messages are safe for clients. Validation responses do not echo submitted values. Clients use status and code rather than parsing message text.
 
-## Request correlation
+## Correlation and CORS
 
-Responses include `X-Request-ID`. A valid UUID supplied through `X-Request-ID` is accepted. Invalid values are replaced with a generated UUID. Treat this identifier as diagnostic metadata, not authentication or proof of identity.
+Responses include `X-Request-ID`. Valid client-supplied UUIDs are accepted; other values are replaced. A request ID is diagnostic metadata, not identity or authentication.
 
-## Documentation and browser access
-
-In development, Swagger UI is at `/docs` and the OpenAPI document is at `/openapi.json`. ReDoc is disabled. `DOCS_ENABLED` controls exposure explicitly. Outside development, documentation defaults to disabled.
-
-`CORS_ORIGINS` is a JSON array of allowed origins and defaults to an empty array. Add only the exact browser origins needed by an authorized client. Phase 1 has no frontend.
-
-## Planned pagination
-
-Future list endpoints should use a consistent, documented pagination contract. The initial convention is a bounded `limit`, a nonnegative `offset`, deterministic ordering, and an `items` collection. Define defaults and maximum limits with the first real list endpoint. A total count is optional if its cost is justified. Consider cursor pagination when records change frequently or offsets become expensive.
-
-Pagination is a planned convention. No pagination parameters or response models are implemented in Phase 1.
+`CORS_ORIGINS` defaults to `[]` and accepts exact HTTP(S) origins. The current CORS methods allow GET only. No frontend exists. Review CORS and user authentication before adding a browser client; never embed the bootstrap API token in public frontend code.
