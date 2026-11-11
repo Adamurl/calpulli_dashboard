@@ -25,9 +25,9 @@ The frontend does not expose the backend's `INTERNAL_API_TOKEN`. Before connecti
 
 ## Features to review
 
-- Desktop sidebar, mobile drawer, bottom account menu, logout, search with Cmd/Ctrl+K, notifications.
+- Desktop sidebar with a persistent collapsed icon rail, mobile drawer, bottom account menu, logout, search with Cmd/Ctrl+K, notifications.
 - Home overview, attention list, upcoming presentations, and derived sample counts.
-- Presentation list with status tabs, search, date sorting, selection, CSV export, and details.
+- Presentation table with status tabs, search, date sorting, page selection, column visibility, page-size controls, pagination, CSV export, and details.
 - Client conversations, personal email composer, editable saved drafts, review queue, and internal notes.
 - Sample templates, clients, activity, and connection settings.
 - Draft review saves the message for review. No messages are sent or synchronized.
@@ -42,7 +42,7 @@ npm test
 
 Playwright uses locally installed Google Chrome. The test server starts on port 5173 if no existing preview is running. Tests cover the login boundary, invalid-login error, request search and detail, status changes, notes, persisted and edited drafts, review queue, templates, mobile navigation, and logout. External auth responses are intercepted in the invalid-login test; a real account login requires an existing user's credentials and is not claimed by this test.
 
-The observed verification for this task is a successful production build and 22 browser-run checks in Safari. Headless Playwright could not launch Chrome in this host sandbox, so those four tests are provided but did not execute their assertions here. The additional browser runner at http://127.0.0.1:5173/tests/browser-check.html runs the app in an iframe at desktop and 390px widths and reports each check. It resets only this origin's fictional workspace when you click Run browser checks. This development-only HTML is excluded from the production build. Real account login was not tested with user credentials.
+The observed verification for this task is a successful production build and 41 browser-run checks in Safari. Headless Playwright could not launch Chrome in this host sandbox, so the Playwright tests are provided but did not execute their assertions here. The additional browser runner at http://127.0.0.1:5173/tests/browser-check.html runs the app in an iframe at desktop and 390px widths and reports each check. It resets only this origin's fictional workspace when you click Run browser checks. This development-only HTML is excluded from the production build. Real account login was not tested with user credentials.
 
 ## Vercel preparation
 
@@ -52,4 +52,8 @@ The frontend can be deployed as a fictional-data preview independently. A produc
 
 ## Design
 
-See [style guide](../docs/dashboard/style-guide.md) and [UX and integration plan](../docs/dashboard/ux.md). Components live in `src/components`, domain schemas in `src/domain.ts`, sample fixtures in `src/data.ts`, Supabase client in `src/auth.ts`, and shared visual tokens in `src/styles.css`.
+See [style guide](../docs/dashboard/style-guide.md) and [UX and integration plan](../docs/dashboard/ux.md). The interface uses black, white, and gray, with color reserved for request status badges. Login uses the provided Calpulli logo and name above a form on the left half, with the supplied full-color photograph on the right. Mobile shows only the form. Forgot password is a visual-only control; it sends no reset request. Page headers contain one title and its icon.
+
+The login and table adapt the [shadcn login reference](https://ui.shadcn.com/blocks/login) and [dashboard reference](https://ui.shadcn.com/blocks#dashboard-01) to the existing CSS setup. Shared table elements live in `src/components/table.tsx`; no Tailwind, TanStack, chart, or drag-and-drop dependencies were added. Table state stays with the existing `Inquiry` model in `Requests.tsx`. `RequestStats.tsx` provides Today (default), Last 7 days, and Last 30 days. Counts and monochrome lines use event dates and current request statuses, comparing equal calendar-day periods ending today. Today has one daily bucket, not hourly history. This control changes statistics, not table filters. The index has no maximum width. The package registry was unreachable during this change.
+
+Components live in `src/components`, domain schemas in `src/domain.ts`, sample fixtures in `src/data.ts`, Supabase client in `src/auth.ts`, and shared visual tokens in `src/styles.css`.

@@ -6,6 +6,7 @@ import {
   Settings,
   Search,
   PanelLeftClose,
+  PanelLeftOpen,
   ChevronDown,
   LogOut,
   Mail,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Page } from "../domain";
+import logo from "../assets/Calpulli_Logo.png";
 import { Avatar } from "./ui";
 const primary = [
   { name: "Home", icon: Home },
@@ -36,6 +38,7 @@ export function Sidebar({
   drafts,
   open,
   close,
+  collapsed,
 }: {
   page: Page;
   navigate: (p: Page) => void;
@@ -47,6 +50,7 @@ export function Sidebar({
   drafts: number;
   open: boolean;
   close: () => void;
+  collapsed: boolean;
 }) {
   const [account, setAccount] = useState(false);
   return (
@@ -58,14 +62,19 @@ export function Sidebar({
       />
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="sidebar-brand">
-          <span className="brand-symbol">c</span>
+          <img className="sidebar-logo" src={logo} alt="Calpulli" />
           <b>calpulli</b>
           <button
             className="icon-button collapse"
             onClick={close}
-            aria-label="Close sidebar"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
           >
-            <PanelLeftClose size={16} />
+            {collapsed ? (
+              <PanelLeftOpen size={16} />
+            ) : (
+              <PanelLeftClose size={16} />
+            )}
           </button>
           <button
             className="icon-button mobile-close"
@@ -75,7 +84,12 @@ export function Sidebar({
             <X size={18} />
           </button>
         </div>
-        <button className="sidebar-search" onClick={search}>
+        <button
+          className="sidebar-search"
+          onClick={search}
+          aria-label="Search navigation"
+          title="Search"
+        >
           <Search size={14} />
           <span>Search</span>
           <kbd>⌘ K</kbd>
@@ -84,6 +98,8 @@ export function Sidebar({
           {primary.map(({ name, icon: Icon }) => (
             <button
               key={name}
+              aria-label={name}
+              title={name}
               className={`nav-item ${page === name ? "active" : ""}`}
               aria-current={page === name ? "page" : undefined}
               onClick={() => navigate(name)}
@@ -103,6 +119,8 @@ export function Sidebar({
           ].map(({ name, icon: Icon }) => (
             <button
               key={name}
+              aria-label={name}
+              title={name}
               className={`nav-item ${page === name ? "active" : ""}`}
               onClick={() =>
                 navigate(name === "Templates" ? "Templates" : "Activity")
@@ -112,29 +130,21 @@ export function Sidebar({
               <span>{name}</span>
             </button>
           ))}
-          <div className="nav-section">
-            Channels <ChevronDown size={11} />
-          </div>
-          <button className="nav-item" onClick={() => navigate("Settings")}>
-            <Mail size={16} />
-            <span>Email</span>
-            <span className="tiny-dot" />
-          </button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="workspace-tip">
-            <span className="tiny-dot" /> A space for your community
-            <p>Every conversation is a connection.</p>
-          </div>
           <button
             className={`nav-item ${page === "Settings" ? "active" : ""}`}
             onClick={() => navigate("Settings")}
+            aria-label="Settings"
+            title="Settings"
           >
             <Settings size={16} />
             <span>Settings</span>
           </button>
           <a
             className="nav-item"
+            aria-label="Visit Calpulli"
+            title="Visit Calpulli"
             href="https://www.calpullitonalehqueh.org"
             target="_blank"
             rel="noreferrer"
@@ -163,6 +173,8 @@ export function Sidebar({
           <button
             className="account-button"
             onClick={() => setAccount(!account)}
+            aria-label={`${name} Calpulli Tonalehqueh`}
+            title="Account"
             aria-expanded={account}
           >
             <Avatar name={name} small />

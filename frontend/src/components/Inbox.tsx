@@ -36,14 +36,6 @@ export function Inbox({
   return (
     <div className="list-page">
       <div className="page-heading">
-        <div>
-          <h1>{mode === "Inbox" ? "Inbox" : "Email drafts"}</h1>
-          <p>
-            {mode === "Inbox"
-              ? "Every conversation is a chance to connect."
-              : "A little care before you press send."}
-          </p>
-        </div>
         <button className="button primary" onClick={compose}>
           <Plus size={15} />
           New email

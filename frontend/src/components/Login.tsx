@@ -1,12 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  ArrowUpRight,
-} from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import background from "../assets/Calpulli_Login_Background.jpg";
+import logo from "../assets/Calpulli_Logo.png";
 import { supabase, demoEnabled } from "../auth";
 export function Login({ onDemo }: { onDemo: () => void }) {
   const [show, setShow] = useState(false),
@@ -34,110 +30,90 @@ export function Login({ onDemo }: { onDemo: () => void }) {
     }
   }
   return (
-    <div className="login-page">
-      <div className="login-brand">
-        <span className="brand-symbol">c</span>
-        <strong>calpulli</strong>
-        <span>WORKSPACE</span>
-      </div>
-      <main className="login-layout">
-        <section className="login-story">
-          <span className="eyebrow">
-            ROOTED IN CULTURE. CONNECTED BY COMMUNITY.
-          </span>
-          <h1>
-            Good things happen
-            <br />
-            when we come
-            <br />
-            <em>together.</em>
-          </h1>
-          <p>
-            A little less administration.
-            <br />A little more connection.
-          </p>
-          <div className="woven-art" aria-hidden="true">
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
-          <small>Calpulli Tonalehqueh · San José, California</small>
-        </section>
-        <section className="login-card">
-          <span className="brand-symbol dark">c</span>
-          <h2>Welcome back.</h2>
-          <p>Log in to your Calpulli workspace.</p>
-          <form onSubmit={login}>
-            <label>
-              Email address
-              <input
-                name="email"
-                type="email"
-                autoComplete="username"
-                placeholder="you@calpulli.org"
-                required
-              />
-            </label>
-            <label>
-              Password
-              <div className="password-wrap">
+    <main className="login-page">
+      <div className="login-panel">
+        <div className="login-identity">
+          <img src={logo} alt="" />
+          <span>Calpulli Tonalehqueh</span>
+        </div>
+        <div className="login-layout">
+          <section className="login-card" aria-labelledby="login-title">
+            <h1 id="login-title">Welcome back.</h1>
+            <p>Log in to your workspace.</p>
+            <form onSubmit={login}>
+              <label>
+                Email address
                 <input
-                  name="password"
-                  aria-label="Password"
-                  type={show ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="you@calpulli.org"
                   required
                 />
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => setShow(!show)}
-                  aria-label={show ? "Hide password" : "Show password"}
-                >
-                  {show ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
+              </label>
+              <div className="login-password">
+                <div className="password-label-row">
+                  <label htmlFor="login-password">Password</label>
+                  <button
+                    type="button"
+                    className="forgot-password"
+                    aria-disabled="true"
+                    title="Password reset is not available yet"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="password-wrap">
+                  <input
+                    id="login-password"
+                    name="password"
+                    aria-label="Password"
+                    type={show ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setShow(!show)}
+                    aria-label={show ? "Hide password" : "Show password"}
+                  >
+                    {show ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
               </div>
-            </label>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              {!supabase && (
+                <p className="notice">
+                  Sign-in is unavailable. Please contact your administrator.
+                </p>
+              )}
+              <button
+                className="button primary full"
+                disabled={busy || !supabase}
+              >
+                {busy ? "Logging in…" : "Log in"}
+              </button>
+            </form>
+            {demoEnabled && (
+              <>
+                <div className="login-separator">or</div>
+                <button className="button full" onClick={onDemo}>
+                  Explore demo workspace
+                </button>
+              </>
             )}
-            {!supabase && (
-              <p className="notice">
-                Supabase sign-in needs the public environment settings. You can
-                explore the sample workspace below.
-              </p>
-            )}
-            <button
-              className="button primary full"
-              disabled={busy || !supabase}
-            >
-              {busy ? "Logging in…" : "Log in"}
-              <ArrowRight size={15} />
-            </button>
-          </form>
-          <div className="login-separator">or take a look around</div>
-          {demoEnabled && (
-            <button className="button full" onClick={onDemo}>
-              Explore demo workspace
-              <ArrowUpRight size={15} />
-            </button>
-          )}
-          <div className="login-secure">
-            <ShieldCheck size={15} /> Staff access · Secured by Supabase
-          </div>
-          <p className="login-help">
-            Need access? Contact your workspace administrator.
-          </p>
-        </section>
-      </main>
-      <footer>
-        © {new Date().getFullYear()} Calpulli Tonalehqueh{" "}
-        <span>Culture. Community. Connection.</span>
-      </footer>
-    </div>
+          </section>
+        </div>
+      </div>
+      <div className="login-background" aria-hidden="true">
+        <img src={background} alt="" />
+      </div>
+    </main>
   );
 }

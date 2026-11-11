@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Bell, Menu, Search, X, ArrowUpRight, Flower2 } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  Search,
+  X,
+  ArrowUpRight,
+  Home as HomeIcon,
+  FileText,
+  Inbox as InboxIcon,
+  Mail,
+  Users,
+  LayoutTemplate,
+  Activity,
+  Settings,
+} from "lucide-react";
 import { supabase, demoEnabled } from "./auth";
 import { inquiries } from "./data";
 import { emptyWorkspace, workspaceSchema } from "./domain";
@@ -18,6 +32,7 @@ import {
   ActivityPage,
   SettingsPage,
 } from "./components/WorkspacePages";
+import logo from "./assets/Calpulli_Logo.png";
 import { Modal } from "./components/ui";
 function loadWorkspace(): Workspace {
   try {
@@ -27,6 +42,16 @@ function loadWorkspace(): Workspace {
     return emptyWorkspace;
   }
 }
+const pageIcons = {
+  Home: HomeIcon,
+  Presentations: FileText,
+  Inbox: InboxIcon,
+  Drafts: Mail,
+  Clients: Users,
+  Templates: LayoutTemplate,
+  Activity,
+  Settings,
+} satisfies Record<Page, typeof HomeIcon>;
 const pages: Page[] = [
   "Home",
   "Presentations",
@@ -161,7 +186,7 @@ export function App() {
   if (loading)
     return (
       <div className="loading">
-        <Flower2 size={30} />
+        <img className="loading-logo" src={logo} alt="Calpulli" />
         <p>Opening your workspace…</p>
       </div>
     );
@@ -173,6 +198,7 @@ export function App() {
         }}
       />
     );
+  const PageIcon = pageIcons[detail ? "Presentations" : page];
   const selected = items.find((i) => i.id === detail);
   const composing = composition
     ? composition.kind === "edit"
@@ -193,6 +219,7 @@ export function App() {
         unread={activeItems.filter((i) => i.unread).length}
         drafts={workspace.drafts.length}
         open={mobile}
+        collapsed={sidebarHidden}
         close={() => {
           if (innerWidth < 760) setMobile(false);
           else setSidebarHidden(!sidebarHidden);
@@ -211,19 +238,12 @@ export function App() {
             >
               <Menu size={18} />
             </button>
-            <span className="breadcrumb">
-              <span className="breadcrumb-symbol">c</span>
-              {selected ? "Presentations" : page}
-              <span className="breadcrumb-slash">/</span>
-              <span className="muted">
-                {selected ? `#${selected.id}` : "Workspace"}
-              </span>
-            </span>
+            <h1 className="page-title">
+              <PageIcon size={17} aria-hidden="true" />
+              {selected ? `Presentation #${selected.id}` : page}
+            </h1>
           </div>
           <div>
-            <span className="preview-label">
-              <span className="tiny-dot" /> Sample workspace
-            </span>
             <button
               className="icon-button"
               onClick={() => setSearch(true)}
@@ -302,7 +322,6 @@ export function App() {
             navigate={navigate}
             open={open}
             compose={() => compose()}
-            name={name}
             search={() => setSearch(true)}
           />
         ) : page === "Presentations" ? (

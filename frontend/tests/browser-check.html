@@ -123,7 +123,7 @@
     async function enter() {
       await click("Explore demo workspace");
       await until(
-        () => text().includes("Let’s make meaningful connections."),
+        () => doc().querySelector(".page-title")?.textContent === "Home",
         "home",
       );
     }
@@ -150,6 +150,25 @@
           text().includes("Welcome back.") && !doc().querySelector("nav"),
           "Malformed URL safely shows login; dashboard stays gated",
         );
+        check(
+          Math.abs(
+            doc().querySelector(".login-panel").getBoundingClientRect().width -
+              640,
+          ) < 2,
+          "Desktop login uses half the screen",
+        );
+        check(
+          doc().querySelector(".login-background img").complete &&
+            doc().querySelector(".login-background img").naturalWidth > 0,
+          "Provided login background loads",
+        );
+        check(
+          doc()
+            .querySelector(".forgot-password")
+            .getAttribute("aria-disabled") === "true" &&
+            !doc().querySelector(".login-card form > button svg"),
+          "Forgot password is visual only and login has no arrow",
+        );
         await click("Show password");
         check(
           doc().querySelector("input[name=password]").type === "text",
@@ -157,10 +176,147 @@
         );
         await enter();
         check(
-          text().includes("Sample workspace") && text().includes("Alex"),
+          text().includes("fictional data") && text().includes("Alex"),
           "Demo shell has identity and sample-data disclosure",
         );
+        check(
+          !doc().querySelector(".brand-symbol"),
+          "Provided logo replaces placeholder marks",
+        );
+        await click("Collapse sidebar");
+        check(
+          doc().querySelector(".sidebar").getBoundingClientRect().width ===
+            63 &&
+            doc()
+              .querySelector('nav button[aria-label="Presentations"]')
+              .getClientRects().length,
+          "Collapsed sidebar retains navigation icons",
+        );
         await nav("Presentations");
+        check(
+          doc().querySelectorAll("h1").length === 1 &&
+            doc().querySelector("h1").textContent === "Presentations",
+          "Single page title with icon",
+        );
+        check(
+          doc().querySelector(".period-menu summary").textContent === "Today",
+          "Statistics default to Today",
+        );
+        doc().querySelector(".period-menu summary").click();
+        doc().querySelector('input[name="stats-period"][value="7"]').click();
+        await wait(100);
+        check(
+          doc().querySelector(".period-menu summary").textContent ===
+            "7 days" &&
+            doc().querySelectorAll(".request-stat svg").length === 4 &&
+            !doc().querySelector(".period-menu").open,
+          "Seven-day selection updates statistics and closes menu",
+        );
+        const { inquiries: sample } = await import("/src/data.ts");
+        const now = new Date();
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 6,
+        );
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() + 1,
+        );
+        const expected = sample.filter(
+          (item) =>
+            new Date(item.date + "T12:00:00") >= start &&
+            new Date(item.date + "T12:00:00") < end,
+        ).length;
+        check(
+          Number(doc().querySelector(".stat-value strong").textContent) ===
+            expected,
+          "Statistics count actual sample event dates",
+        );
+        doc().querySelector(".period-menu summary").click();
+        doc().querySelector('input[name="stats-period"][value="30"]').click();
+        await wait(100);
+        check(
+          doc().querySelector(".period-menu summary").textContent ===
+            "30 days" &&
+            doc()
+              .querySelector(".request-stat svg")
+              .getAttribute("aria-label")
+              .includes("last 30 days"),
+          "Thirty-day selection updates chart period",
+        );
+        frame.style.width = "1800px";
+        await wait(100);
+        check(
+          doc().querySelector(".list-page").getBoundingClientRect().width >
+            1700,
+          "Table and stats expand across wide screens",
+        );
+        frame.style.width = "1280px";
+        check(
+          parseFloat(
+            frame.contentWindow.getComputedStyle(
+              doc().querySelector('input[type="checkbox"]'),
+            ).borderRadius,
+          ) > 0,
+          "Selection checkboxes have rounded corners",
+        );
+        await field("Rows per page", "5");
+        check(
+          doc().querySelectorAll("tbody tr").length === 5,
+          "Table respects page size",
+        );
+        const firstPage = doc().querySelector("tbody tr").textContent;
+        await click("Next page");
+        check(
+          doc().querySelector("tbody tr").textContent !== firstPage,
+          "Next page shows different requests",
+        );
+        await click("First page");
+        doc().querySelector("thead input").click();
+        await wait(100);
+        check(
+          /5\s+of\s+\d+\s+row\(s\) selected/.test(text()),
+          "Select all applies to current page",
+        );
+        doc().querySelector("tbody input").click();
+        await wait(100);
+        check(
+          doc().querySelector("thead input").indeterminate,
+          "Partial selection is indicated",
+        );
+        doc().querySelector(".column-menu summary").click();
+        const organization = [
+          ...doc().querySelectorAll(".column-menu label"),
+        ].find((label) => label.textContent === "Organization");
+        organization.querySelector("input").click();
+        await wait(100);
+        check(
+          ![...doc().querySelectorAll("th")].some(
+            (th) => th.textContent === "Organization",
+          ),
+          "Column visibility updates table",
+        );
+        organization.querySelector("input").click();
+        doc().querySelector(".column-menu summary").click();
+        await field("Rows per page", "10");
+        await field("Search presentations", "no matching presentation");
+        check(
+          text().includes("No presentations found.") &&
+            /Page\s+0\s+of\s+0/.test(text()),
+          "Empty results have a consistent pagination state",
+        );
+        await field("Search presentations", "");
+        frame.style.width = "390px";
+        await wait(150);
+        check(
+          doc().documentElement.scrollWidth <= 390,
+          "Mobile presentation table scrolls inside the workspace",
+        );
+        frame.style.width = "1280px";
+        await wait(150);
+        await click("Expand sidebar");
         await field("Search presentations", "Oak Valley");
         check(
           text().includes("#1048") && !text().includes("#1047"),
@@ -176,7 +332,7 @@
           ),
           "Date descending sorts event dates",
         );
-        await click("Date ↓");
+        await click("Sort by event date ascending");
         const ascending = [...doc().querySelectorAll("tbody tr")].map((tr) =>
           new Date(tr.children[2].textContent).getTime(),
         );
@@ -194,7 +350,9 @@
         );
         await field("Request status", "reviewing");
         check(
-          doc().querySelector("h1").textContent.includes("In review"),
+          doc()
+            .querySelector(".detail-title h2")
+            .textContent.includes("In review"),
           "Sample status changes update the detail heading",
         );
         await field("Internal note", "Check the indoor performance space.");
@@ -235,7 +393,10 @@
         await click("Save for review");
         await load("/#drafts");
         await click("Explore demo workspace");
-        await until(() => text().includes("Email drafts"), "drafts restore");
+        await until(
+          () => doc().querySelector(".page-title")?.textContent === "Drafts",
+          "drafts restore",
+        );
         await click("Needs review");
         check(
           text().includes("A presentation just for your community"),

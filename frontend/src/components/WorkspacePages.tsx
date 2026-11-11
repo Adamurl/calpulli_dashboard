@@ -23,10 +23,6 @@ export function Clients({
   return (
     <div className="list-page">
       <div className="page-heading">
-        <div>
-          <h1>Clients</h1>
-          <p>The people at the heart of your work.</p>
-        </div>
         <span className="pill">{items.length} sample clients</span>
       </div>
       <section className="card">
@@ -79,10 +75,6 @@ export function Templates({
   return (
     <div className="list-page">
       <div className="page-heading">
-        <div>
-          <h1>Email templates</h1>
-          <p>A thoughtful starting point. Always make it personal.</p>
-        </div>
         <span className="pill">Reference copy · Not activated</span>
       </div>
       <div className="template-grid">
@@ -185,12 +177,6 @@ export function ActivityPage({
 }) {
   return (
     <div className="list-page narrow-page">
-      <div className="page-heading">
-        <div>
-          <h1>Activity</h1>
-          <p>A shared history of the little things that move us forward.</p>
-        </div>
-      </div>
       <section className="card activity-feed">
         <h2>This workspace</h2>
         {workspace.drafts.map((d) => (
@@ -251,12 +237,6 @@ export function SettingsPage({
   const [reset, setReset] = useState(false);
   return (
     <div className="list-page settings-page">
-      <div className="page-heading">
-        <div>
-          <h1>Settings</h1>
-          <p>A workspace that feels like yours.</p>
-        </div>
-      </div>
       <section className="settings-section">
         <div>
           <h2>Your account</h2>

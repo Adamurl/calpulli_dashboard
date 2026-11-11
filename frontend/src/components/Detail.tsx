@@ -60,9 +60,9 @@ export function Detail({
         <div className="detail-main">
           <div className="detail-title">
             <div>
-              <h1>
+              <h2>
                 #{item.id} <Badge status={item.status} />
-              </h1>
+              </h2>
               <p>
                 {item.title} · {item.organization}
               </p>
@@ -158,14 +158,6 @@ export function Detail({
                 <dd>{item.location}</dd>
                 <dt>Estimated guests</dt>
                 <dd>{item.guests}</dd>
-                <dt>Source</dt>
-                <dd>
-                  {item.source === "wix"
-                    ? "Wix form"
-                    : item.source === "manual"
-                      ? "Manual entry"
-                      : "Historical import"}
-                </dd>
               </dl>
               <p className="notice">
                 These fictional details are for interface review. Production

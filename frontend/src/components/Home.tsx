@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Plus,
   Sparkles,
-  Flower2,
   MessageSquare,
   Check,
   Inbox,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Draft, Inquiry, Page } from "../domain";
 import { dateLabel } from "../data";
+import logo from "../assets/Calpulli_Logo.png";
 import { Badge, Avatar } from "./ui";
 export function Home({
   items,
@@ -22,7 +22,6 @@ export function Home({
   navigate,
   open,
   compose,
-  name,
   search,
 }: {
   items: Inquiry[];
@@ -30,13 +29,9 @@ export function Home({
   navigate: (page: Page) => void;
   open: (id: string) => void;
   compose: () => void;
-  name: string;
   search: () => void;
 }) {
   const newCount = items.filter((i) => i.status === "new").length;
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   return (
     <div className="home-content">
       <div className="home-period">
@@ -46,12 +41,6 @@ export function Home({
         </span>
       </div>
       <div className="hero">
-        <span className="eyebrow">YOUR COMMUNITY, IN GOOD HANDS</span>
-        <h1>
-          {greeting}, {name.split(" ")[0]}.<br />
-          <span>Let’s make meaningful connections.</span>
-        </h1>
-        <p>One place for your presentations, people, and conversations.</p>
         <button className="home-search-card" onClick={search}>
           <span>Find a client, presentation, or conversation…</span>
           <span>
@@ -160,13 +149,12 @@ export function Home({
           </div>
         </section>
         <section className="community-card">
-          <div className="community-art" aria-hidden="true">
-            <div className="sun" />
-            <div className="arch a1" />
-            <div className="arch a2" />
-            <div className="arch a3" />
-            <Flower2 className="flower" size={92} strokeWidth={1} />
-            <span className="art-label">CULTURE CONNECTS US</span>
+          <div className="community-art">
+            <img
+              className="community-logo"
+              src={logo}
+              alt="Calpulli Tonalehqueh"
+            />
           </div>
           <div className="community-copy">
             <span className="eyebrow">A LITTLE MORE HUMAN</span>
@@ -246,7 +234,8 @@ export function Home({
         </section>
       </div>
       <div className="home-bottom">
-        <Flower2 size={14} /> Made for the work that brings us together.
+        <img className="footer-logo" src={logo} alt="Calpulli" /> Made for the
+        work that brings us together.
         <span>Sample workspace · {dateLabel("2026-11-10")}</span>
       </div>
     </div>

@@ -1,5 +1,25 @@
 # Dashboard verification
 
+## Login and statistics follow-up, November 11, 2026
+
+Safari reported **41 checks passed**, including the two-column login dimensions, loaded background photograph, visual-only password reset control, arrow-free submit button, Today default, 7-day and 30-day changes, event-date totals, wide-screen expansion, rounded checkboxes, and existing desktop/mobile workflows. The login was visually inspected at desktop size. Build and formatting checks passed.
+
+Statistics use local calendar days and current request statuses. No creation timestamps or historical status transitions exist in the sample model. Today displays a flat single-day line rather than invented hourly values. No charting dependency was added. Chrome's previously observed startup failure remains unresolved; the new Playwright coverage has not run assertions in Chrome. Real sign-in and password recovery were not tested; password recovery is intentionally visual only.
+
+## Frontend refresh, November 11, 2026
+
+- `npm run build` passed TypeScript checking and the production Vite build.
+- `npm run format:check` passed. `git diff --check` passed.
+- Safari displayed **32 checks passed** in `tests/browser-check.html`. This includes the collapsed icon rail, a single page title, page size, next-page navigation, page selection, mixed selection, column visibility, empty results, mobile table overflow, search, date sorting, request detail, status changes, notes, draft persistence, templates, mobile navigation, and logout.
+- The centered login and desktop presentation table with the collapsed sidebar were visually inspected in Safari. The supplied logo renders correctly on both light and dark backgrounds.
+- `npm test` failed before assertions because Chrome aborted at launch. Retrying outside the shell sandbox had the same result. The five Playwright tests remain unverified in Chrome.
+- The npm registry could not resolve. No dependency or lockfile changes were made. The shadcn table elements and login layout were adapted to the existing CSS setup; table state uses the existing `Inquiry` model.
+- Real-user authentication, live backend data, and CSV download contents were not reverified. Authentication logic is unchanged. Backend checks were not rerun because no backend files changed. No push or deployment was performed.
+
+The Model the Domain principle kept the existing request model and explicit pagination state. Prove It Works required the live Safari workflow checks in addition to the build.
+
+## Earlier verification
+
 Observed November 10, 2026. Scope is the new frontend; ongoing backend work was preserved.
 
 ## Passed

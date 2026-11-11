@@ -1,6 +1,6 @@
 # Calpulli dashboard style guide
 
-Design reference and component specification. Researched November 10, 2026.
+Design reference and component specification. Researched November 10, 2026. Visual direction updated November 11, 2026.
 
 This guide defines a Shopify-inspired staff workspace for presentation requests and client email. The supplied screenshots are the visual reference. Calpulli keeps its own name, content, and organizational identity.
 
@@ -54,22 +54,22 @@ These are Calpulli design values. They approximate the screenshots and can chang
 | `sidebar-active` | `#303030` | Current page. |
 | `sidebar-text` | `#d4d4d4` | Navigation labels. |
 | `sidebar-muted` | `#a3a3a3` | Group labels and secondary copy. |
-| `canvas` | `#f7f7f5` | Quiet background around sections. |
+| `canvas` | `#fafafa` | Quiet background around sections. |
 | `surface` | `#ffffff` | Main workspace and cards. |
 | `surface-subdued` | `#f5f5f5` | Table headers and secondary areas. |
-| `text` | `#202223` | Primary copy. |
+| `text` | `#171717` | Primary copy. |
 | `text-muted` | `#616161` | Descriptions and metadata. |
 | `border` | `#e7e7e7` | Cards, dividers, and inputs. |
-| `primary` | `#303030` | Primary buttons. |
-| `link` | `#005bd3` | Client links and secondary navigation. |
+| `primary` | `#171717` | Primary buttons. |
+| `link` | `#171717` | Client links and secondary navigation. |
 | `success-bg` / `success-text` | `#cdf5d6` / `#0c5132` | Confirmed and completed states. |
 | `attention-bg` / `attention-text` | `#fff0a8` / `#684900` | Waiting for approval or missing information. |
-| `info-bg` / `info-text` | `#d8efff` / `#00527c` | Reviewing and informational notices. |
-| `danger-bg` / `danger-text` | `#fee9e8` / `#8e1f0b` | Failures and destructive actions. |
-| `focus` | `#005bd3` | Visible keyboard focus. |
-| `accent` | Muted forest green | Calpulli identity in small illustrations and avatars. |
+| `info-bg` / `info-text` | `#d8efff` / `#00527c` | Proposal status badges. |
+| `danger-bg` / `danger-text` | `#eeeeee` / `#333333` | Error messages and destructive actions. |
+| `focus` | `#737373` | Visible keyboard focus. |
+| `accent` | `#171717` | Monochrome Calpulli logo, controls, and avatars. |
 
-Use color with a written state. A yellow badge says **Needs approval**. A green badge says **Booked**. A colored dot alone cannot communicate a critical state.
+Use only black, white, and gray outside request status badges. Inputs, focus rings, links, notices, avatars, and illustrations remain neutral. Use color with a written state. A yellow badge says **Needs approval**. A green badge says **Booked**. A colored dot alone cannot communicate a critical state.
 
 ### Typography and spacing
 
@@ -77,8 +77,7 @@ Use a system sans-serif stack such as `Inter, -apple-system, BlinkMacSystemFont,
 
 | Element | Size | Weight | Notes |
 | --- | --- | --- | --- |
-| Page title | 22px | 650 | Compact operational pages. |
-| Home greeting | 28px | 600 | Centered with restrained line length. |
+| Page title | 13px | 600 | One title and page icon in the top-left header. |
 | Card title | 14px | 600 | One line where practical. |
 | Body and controls | 13px | 400 to 500 | Default working density. |
 | Table body | 12px to 13px | 400 | Important identifiers use 550. |
@@ -103,7 +102,7 @@ A suitable card shadow is `0 1px 3px rgb(0 0 0 / 4%), 0 5px 16px rgb(0 0 0 / 3%)
 
 ## Shell and navigation
 
-Desktop sidebar target width is 216 to 232px at normal browser zoom. The user's capture appears narrower because of its display scale. The sidebar fills the viewport and has its own scroll region if necessary. The content column fills the remaining space without forcing the page wider than the viewport.
+The expanded desktop sidebar is 223px wide. Collapsing keeps a 63px icon rail with labeled navigation controls, hover titles, and an expand button. The user's capture appears narrower because of its display scale. The sidebar fills the viewport and has its own scroll region if necessary. The content column fills the remaining space without forcing the page wider than the viewport.
 
 Navigation order follows the staff's work:
 
@@ -164,15 +163,15 @@ Use native controls where possible. A component earns a separate module when mul
 
 ## Screen composition
 
-Home is calm and centered, like Image 1. An operational metric strip sits above the greeting. A large command/search card points to real navigation and tasks. Below it, action chips lead to approvals and follow-ups. Cards show upcoming presentations, recent inquiries, and the email workflow. Avoid invented revenue, growth percentages, or live visitor counts.
+Home has a command card, quick actions, and an operational metric strip. The large greeting is removed. A large command/search card points to real navigation and tasks. Below it, action chips lead to approvals and follow-ups. Cards show upcoming presentations, recent inquiries, and the email workflow. Avoid invented revenue, growth percentages, or live visitor counts.
 
-The presentation index follows Image 2. Keep its title and primary action small. Place views, search, and filters directly above the table. Use light dividers and a subdued header. Show status badges at a consistent size. Avoid wrapping every row in a separate rounded card on desktop.
+The presentation index fills the available workspace width. A Today, Last 7 days, or Last 30 days selector controls event-date statistics with minimal solid current-period and dashed previous-period lines. Checkboxes have 4px corners. The presentation index follows Image 2. Keep its title and primary action small. Place views, search, and filters directly above the table. Use light dividers and a subdued header. Show status badges at a consistent size. Avoid wrapping every row in a separate rounded card on desktop.
 
 Request detail follows Image 3. Its main column contains event details, email work, internal notes, and the activity timeline. Its right column contains the client, contact details, request source, and event summary. The detail column remains readable at about 660 to 760px. The context column is about 260 to 300px.
 
 Inbox uses a conversation list and a selected thread. Client context appears in a right column when space permits. The email body uses normal paragraph spacing and selectable text. Staff replies are email cards, rather than consumer chat bubbles.
 
-Login uses a centered, restrained form with the Calpulli workspace identity. A secondary panel may show a quiet geometric motif and one sentence about the staff workspace. Keep this page visually related to the app, with no marketing carousel or fake testimonials.
+Login follows the two-column login-02 layout. The left half has the supplied logo and Calpulli Tonalehqueh name at the top, with the form centered below. The right half shows the supplied photograph in full color. Mobile hides the photograph. The form has email and password fields, a password visibility control, a visual-only Forgot password control, and sign-in. Demo entry appears only when enabled. The promotional panel, geometric artwork, tagline, and footer copy are removed. The form adapts the shadcn login reference to the existing CSS setup.
 
 ## Responsive and accessible behavior
 
@@ -180,7 +179,7 @@ Login uses a centered, restrained form with the Calpulli workspace identity. A s
 | --- | --- |
 | At least 1280px | Full sidebar, wide tables, detail context beside content, inbox context when available. |
 | 900px to 1279px | Full or compact sidebar; detail context can move below content; inbox uses two columns. |
-| Below 900px | Drawer navigation, full-width workspace, single-column cards. |
+| Below 760px | Drawer navigation, full-width workspace, single-column cards. |
 | Below 640px | Show conversation list or thread at one time, with an explicit back control. Tables scroll inside a labeled region or use equivalent compact rows. |
 
 Keyboard users can reach all navigation, filters, row links, menus, editors, and actions. Dialogs trap focus, close with Escape, and return focus to their trigger. The first content heading receives focus after full-page navigation when appropriate. Focus rings remain visible on dark and light backgrounds.

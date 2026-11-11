@@ -3,7 +3,7 @@ async function enter(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Explore demo workspace" }).click();
   await expect(
-    page.getByRole("heading", { name: /Let’s make meaningful connections/ }),
+    page.getByRole("heading", { name: "Home", exact: true }),
   ).toBeVisible();
 }
 test("login boundary, shell, request filters and client detail", async ({
@@ -44,9 +44,7 @@ test("login boundary, shell, request filters and client detail", async ({
   await page
     .getByRole("combobox", { name: "Request status" })
     .selectOption("reviewing");
-  await expect(page.getByRole("heading", { name: /#1048/ })).toContainText(
-    "In review",
-  );
+  await expect(page.locator(".detail-title h2")).toContainText("In review");
   await page
     .getByRole("textbox", { name: "Internal note" })
     .fill("Check the indoor performance space.");
@@ -180,4 +178,81 @@ test("supabase auth rejects invalid credentials without exposing errors", async 
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();
+});
+
+test("collapsed navigation and data table controls", async ({ page }) => {
+  await enter(page);
+  await page
+    .getByRole("button", { name: "Collapse sidebar", exact: true })
+    .click();
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(
+    navigation.getByRole("button", { name: "Presentations", exact: true }),
+  ).toBeVisible();
+  await navigation
+    .getByRole("button", { name: "Presentations", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Presentations",
+  );
+  await page.getByRole("combobox", { name: "Rows per page" }).selectOption("5");
+  await expect(page.locator("tbody tr")).toHaveCount(5);
+  const first = await page.locator("tbody tr").first().innerText();
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator("tbody tr").first()).not.toHaveText(first);
+  await page.getByRole("button", { name: "First page", exact: true }).click();
+  await page
+    .getByRole("checkbox", { name: "Select all presentations on this page" })
+    .check();
+  await expect(page.getByText(/5 of .*row\(s\) selected/)).toBeVisible();
+  await page.locator("summary").filter({ hasText: "Columns" }).click();
+  await page
+    .getByRole("checkbox", { name: "Organization", exact: true })
+    .uncheck();
+  await expect(
+    page.getByRole("columnheader", { name: "Organization", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("checkbox", { name: "Organization", exact: true })
+    .check();
+  await page.locator("summary").filter({ hasText: "Columns" }).click();
+  await page
+    .getByRole("textbox", { name: "Search presentations" })
+    .fill("no matching presentation");
+  await expect(
+    page.getByText("No presentations found. Try another search or status."),
+  ).toBeVisible();
+  await expect(page.getByText("Page 0 of 0", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Expand sidebar", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Collapse sidebar", exact: true }),
+  ).toBeVisible();
+});
+
+test("split login and statistics period controls", async ({ page }) => {
+  await page.setViewportSize({ width: 1900, height: 1000 });
+  await page.goto("/");
+  await expect(page.locator(".login-background img")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Forgot password?" }),
+  ).toHaveAttribute("aria-disabled", "true");
+  await expect(page.locator(".login-card form > button svg")).toHaveCount(0);
+  await enter(page);
+  await page
+    .getByRole("button", { name: "Presentations", exact: true })
+    .click();
+  await expect(page.locator(".period-menu summary")).toHaveText("Today");
+  await page.locator(".period-menu summary").click();
+  await page.getByRole("radio", { name: /Last 7 days/ }).check();
+  await expect(page.locator(".period-menu summary")).toHaveText("7 days");
+  await expect(page.locator(".request-stat svg")).toHaveCount(4);
+  await page.locator(".period-menu summary").click();
+  await page.getByRole("radio", { name: /Last 30 days/ }).check();
+  await expect(page.locator(".period-menu summary")).toHaveText("30 days");
+  expect(
+    (await page.locator(".list-page").boundingBox())?.width,
+  ).toBeGreaterThan(1600);
 });
