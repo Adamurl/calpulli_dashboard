@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_session
+from app.modules.presentations.email_service import dispatch_automatic
 from app.modules.presentations.schemas import NewPresentation
 from app.modules.presentations.services import PresentationConflict, create_presentation
 
@@ -74,5 +75,9 @@ async def receive_presentation(
         raise HTTPException(409, "Submission ID already has different content") from None
     except SQLAlchemyError:
         raise HTTPException(503, "Database unavailable") from None
+    if created:
+        await run_in_threadpool(
+            dispatch_automatic, session, request_id, request.app.state.email_provider
+        )
     response.status_code = 201 if created else 200
     return {"id": request_id, "status": "created" if created else "duplicate"}

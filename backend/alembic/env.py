@@ -3,7 +3,7 @@ from app.core.config import Settings
 from app.db.base import Base
 from app.db.migrations import include_owned_name
 from app.db.session import build_engine
-from app.modules.presentations import models  # noqa: F401
+from app.modules.presentations import email_models, models  # noqa: F401
 
 # Import additional module models here before accessing Base.metadata.
 target_metadata = Base.metadata

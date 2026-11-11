@@ -1,0 +1,86 @@
+[
+  {
+    "key": "inquiry_received",
+    "subject": "We received your presentation inquiry",
+    "body_text": "Hello [Name],\n\nThank you for contacting Calpulli Tonalehqueh. We received your presentation inquiry and our team will review it.\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "more_information_needed",
+    "subject": "More information for your presentation inquiry",
+    "body_text": "Hello [Name],\n\nTo continue reviewing your inquiry, please share: [Presentation Details]. You can use this form: [Details Form Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "schedule_call",
+    "subject": "Schedule a conversation with Calpulli",
+    "body_text": "Hello [Name],\n\nWe would like to learn more about your request. Please choose a time here: [Booking Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "meeting_confirmation",
+    "subject": "Your conversation with Calpulli is scheduled",
+    "body_text": "Hello [Name],\n\nYour call is scheduled for [Requested Date] at [Time] [Time Zone]. Join here: [Google Meet Link]. To reschedule: [Reschedule Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "meeting_reminder",
+    "subject": "Reminder: your conversation with Calpulli",
+    "body_text": "Hello [Name],\n\nYour call is coming up on [Requested Date] at [Time] [Time Zone]. Join here: [Google Meet Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "conversation_follow_up",
+    "subject": "Following up on our conversation",
+    "body_text": "Hello [Name],\n\nThank you for speaking with us. Here are the details for your review: [Presentation Details].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "contract_and_payment",
+    "subject": "Your presentation contract and deposit",
+    "body_text": "Hello [Name],\n\nPlease review your contract: [Contract Link]. Deposit: [Deposit Amount]. Due date: [Due Date]. Payment instructions: [Payment Instructions].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "booking_confirmed",
+    "subject": "Your Calpulli presentation booking is confirmed",
+    "body_text": "Hello [Name],\n\nWe have received the signed contract and payment. Your presentation on [Requested Date] at [Location] is confirmed.\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "final_logistics_request",
+    "subject": "Final logistics for your Calpulli presentation",
+    "body_text": "Hello [Name],\n\nPlease complete the logistics form by [Due Date]: [Logistics Form Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "final_confirmation",
+    "subject": "Final details for your Calpulli presentation",
+    "body_text": "Hello [Name],\n\nPlease review the final details. Date: [Requested Date]. Time: [Time] [Time Zone]. Location: [Location]. Arrival: [Arrival Time]. Parking: [Parking Instructions]. Changing room: [Changing Room Information]. Day-of contact: [Day-of Contact]. Calpulli contact: [Calpulli Contact], [Calpulli Phone].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "thank_you_feedback",
+    "subject": "Thank you for welcoming Calpulli",
+    "body_text": "Hello [Name],\n\nThank you for welcoming Calpulli Tonalehqueh. We invite you to share feedback here: [Feedback Form Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "payment_reminder",
+    "subject": "Presentation balance reminder",
+    "body_text": "Hello [Name],\n\nOur records show an outstanding balance of [Balance Amount], due [Due Date]. Payment instructions: [Payment Instructions]. Please contact us if your records differ.\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "decline_or_referral",
+    "subject": "An update on your presentation inquiry",
+    "body_text": "Hello [Name],\n\nThank you for considering Calpulli Tonalehqueh. We are unable to accept this inquiry. Please contact us if you would like to discuss other options.\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "custom_follow_up",
+    "subject": "Following up on your presentation inquiry",
+    "body_text": "Hello [Name],\n\n[Presentation Details]\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  }
+]

@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+
+const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const browser = await chromium.launch({headless:true, channel:'chrome'});
+const page = await browser.newPage();
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+try {
+  await page.goto((process.env.EMAIL_BROWSER_TEST_URL || 'http://127.0.0.1:8768') +
+    '/staff/presentations/11111111-1111-4111-8111-111111111111');
+  await page.locator('#token').fill('incorrect-token');
+  await page.getByRole('button',{name:'Open inquiry',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Request failed (401)'}).waitFor();
+  await page.locator('#token').fill('fictional-browser-staff-token-32-characters');
+  await page.locator('#resend-token').fill('fictional-browser-resend-token-32-characters');
+  await page.getByRole('button',{name:'Open inquiry',exact:true}).click();
+  await page.getByText('Current inquiry state: new',{exact:true}).waitFor();
+  await page.getByText('Mock delivery: no real email is sent',{exact:true}).waitFor();
+  await page.locator('#template-key').selectOption('inquiry_received');
+  assert.equal(await page.locator('#template-ready').isChecked(), false);
+  await page.locator('#template-subject').fill('Thanks for your inquiry, [Name]');
+  await page.locator('#template-body').fill('Hello [Name],\nWe received your inquiry.');
+  await page.locator('#template-ready').check();
+  await page.getByRole('button',{name:'Save template',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Template saved'}).waitFor();
+  await page.locator('#event').selectOption('inquiry_created');
+  await page.getByRole('button',{name:'Prepare recommended email',exact:true}).click();
+  await page.locator('#messages article').filter({hasText:'inquiry received'}).getByText('SENT',{exact:true}).waitFor();
+  assert.equal(await page.locator('#messages article').count(),1);
+  assert.equal(await page.getByRole('button',{name:'Send again',exact:true}).count(),1);
+  await page.getByRole('button',{name:'Prepare recommended email',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Workflow event recorded'}).waitFor();
+  assert.equal(await page.locator('#messages article').count(),1);
+  await page.locator('#event').selectOption('inquiry_declined');
+  await page.getByRole('button',{name:'Prepare recommended email',exact:true}).click();
+  const decline = page.locator('#messages article').filter({hasText:'decline or referral'});
+  await decline.getByText('DRAFT',{exact:true}).waitFor();
+  assert.match(await decline.textContent(),/Template ready for use/);
+  assert.equal(await decline.getByRole('button',{name:'Send',exact:true}).isDisabled(),true);
+  await page.locator('#template-key').selectOption('decline_or_referral');
+  await page.locator('#template-ready').check();
+  await page.getByRole('button',{name:'Save template',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Template saved'}).waitFor();
+  await decline.getByRole('button',{name:'Refresh from template',exact:true}).click();
+  await decline.getByText('Needs approval',{exact:true}).waitFor();
+  assert.equal(await decline.getByRole('button',{name:'Send',exact:true}).isDisabled(),true);
+  await decline.getByRole('button',{name:'Approve',exact:true}).click();
+  await decline.getByText('APPROVED',{exact:true}).waitFor();
+  await decline.getByRole('button',{name:'Send',exact:true}).click();
+  await decline.getByText('SENT',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Send again',exact:true}).first().click();
+  await page.getByText('Needs approval',{exact:true}).waitFor();
+  const draft = page.locator('#messages article').filter({has:page.getByText('Needs approval',{exact:true})});
+  await draft.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.locator('#messages').getByText('CANCELLED',{exact:true}).waitFor();
+  assert.equal(errors.length,0,errors.join('\n'));
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+  console.log('Browser workflow passed: authorization, template editing, automatic once, missing copy, approval/send, authorized resend/cancel, mobile layout, no script errors.');
+} finally {
+  await browser.close();
+}

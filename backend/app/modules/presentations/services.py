@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.modules.presentations.email_service import recommend_state
 from app.modules.presentations.models import PresentationActivity, PresentationRequest
 from app.modules.presentations.schemas import NewPresentation, PresentationPatch
 
@@ -86,6 +87,7 @@ def create_presentation(
             session.commit()
             return existing, False
         session.add(PresentationActivity(request_id=created_id, kind="created", new_status="new"))
+        recommend_state(session, get_presentation(session, created_id))
         session.commit()
         return get_presentation(session, created_id), True
     except Exception:
@@ -117,6 +119,7 @@ def update_presentation(
                     )
                 )
                 request.status = payload.status
+                recommend_state(session, request)
         if payload.internal_notes is not None:
             request.internal_notes = payload.internal_notes
             session.add(
