@@ -122,7 +122,7 @@ def upgrade() -> None:
         ondelete="RESTRICT",
     )
     op.drop_constraint(
-        "ck_presentation_activities_kind_allowed", "presentation_activities", type_="check"
+        op.f("ck_presentation_activities_kind_allowed"), "presentation_activities", type_="check"
     )
     op.create_check_constraint(
         "kind_allowed",
@@ -164,7 +164,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("DELETE FROM presentation_activities WHERE email_message_id IS NOT NULL")
     op.drop_constraint(
-        "ck_presentation_activities_kind_allowed", "presentation_activities", type_="check"
+        op.f("ck_presentation_activities_kind_allowed"), "presentation_activities", type_="check"
     )
     op.create_check_constraint(
         "kind_allowed",
