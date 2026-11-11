@@ -35,7 +35,7 @@ Planned capabilities include:
 - Send messages and associate replies with the correct request through Gmail threads.
 - Provide an internal dashboard for request review and follow-up.
 
-The initial field mapping is documented in [Presentation data reference](PRESENTATIONS.md). The actual fictional Wix payload preview must still be reviewed before connecting the automation.
+The initial field mapping is documented in [Presentation data reference](presentations/README.md). The actual fictional Wix payload preview must still be reviewed before connecting the automation.
 
 ## Planned Events requirements
 

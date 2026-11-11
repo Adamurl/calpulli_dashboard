@@ -1,5 +1,7 @@
 # Presentation request data reference
 
+[Documentation index](../README.md) · [API](api.md) · [Activity](activity.md) · [Historical import](legacy-import.md) · [Wix webhook](wix-webhook.md)
+
 ## Historical and current submissions
 
 The same `presentation_requests` table holds historical CSV records and submissions from the new presentation form. Typed columns support filtering. `original_fields` preserves the historical source cells or the normalized new submission snapshot.
@@ -14,7 +16,10 @@ The inspected export contains 896 data rows. The dry run retains 883 nonblank re
 | --- | --- |
 | `presentation_requests` | Contact snapshot, request answers, status, source identity, source row, and original fields. |
 | `presentation_import_batches` | Stable dataset key, file digest, row counts, import counts, and import time. |
-| `presentation_activities` | Creation, status changes, and internal note history for a request. |
+| `presentation_activities` | Creation, status changes, internal notes, and email timeline entries for a request. |
+| `presentation_email_templates` | Editable email copy and readiness. |
+| `presentation_email_messages` | Draft, approval, delivery, and provider identity records. |
+| `presentation_email_staff_tasks` | Missing-data and failed-delivery staff tasks. |
 
 Each request has a UUID. An imported request references its first import batch. Activities reference their request. Foreign keys restrict deletion. There is no delete route.
 
@@ -76,7 +81,7 @@ New input rejects unknown keys, blank required text, duplicate selections, inval
 
 ## Status and activity
 
-Allowed statuses are `unknown`, `new`, `reviewing`, `proposal_sent`, `booked`, `completed`, `declined`, and `cancelled`. These are record labels; scheduling, proposal delivery, and booking workflows are not implemented.
+Allowed statuses are `unknown`, `new`, `reviewing`, `proposal_sent`, `booked`, `completed`, `declined`, and `cancelled`. These are record labels. The email workflow maps selected labels to recommendations; scheduling, contract signing, and payment verification are not implemented by the state model. See the [presentations API](api.md) and [email API](../email/api.md).
 
 A status patch includes both `status` and `expected_current_status`. The service locks the row and rejects a stale expected status with HTTP 409. A successful change records the previous and new status. Internal note changes update the current note and append an activity. There is no user identity attribution yet because the bootstrap token does not identify individual coordinators.
 
@@ -98,3 +103,7 @@ The direct database import is atomic. The completed MCP import used atomic, resu
 Reuse the same dataset key across exports. A later export skips known row identities and imports new rows. Administrative note or marker edits do not overwrite the imported original. Editing a submitted form field changes row identity and can create a new historical record. The importer does not reconcile spreadsheet edits automatically. Corrections require an explicit future correction process. Changing the dataset key treats the file as a different source and can duplicate requests.
 
 `TEMP/` is ignored by Git and excluded from Docker builds. Keep source files and any local import reports out of the public repository.
+
+## HTTP contracts
+
+The [presentations API reference](api.md) defines request and response fields, filters, pagination, status updates, and errors. [Activity](activity.md), [email workflow](../email/api.md), and [historical import](legacy-import.md) have separate technical contracts.
