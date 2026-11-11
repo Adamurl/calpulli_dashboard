@@ -1,6 +1,6 @@
 # Calpulli Platform
 
-An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Gmail, Events, user-login flows, and a frontend remain unimplemented.
+An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Events, and per-user API authorization remain unimplemented. The standalone frontend now includes Supabase sign-in support and a fictional-data preview.
 
 ## Current verification status
 
@@ -198,4 +198,10 @@ The request schema supports both historical CSV answers and the new form. List, 
 
 The presentation schema is applied to the verified Calpulli Tonalehqueh Supabase project. Store server connection settings only in ignored environment files; see [database conventions](docs/DATABASE.md). The historical import defaults to a dry run; `--apply` is an explicit write operation. `TEMP/` stays out of Git and Docker.
 
-The future Wix target is `https://<your-api-host>/api/v1/integrations/wix/presentations`. This is not a deployed URL. Review a fictional request preview and map **Choose fields** before activation. Hosting, Gmail, Events, shared contact identity, and a frontend remain separate work.
+The future Wix target is `https://<your-api-host>/api/v1/integrations/wix/presentations`. This is not a deployed URL. Review a fictional request preview and map **Choose fields** before activation. Hosting, live Gmail activation, Events, shared contact identity, and production API authorization remain separate work. The frontend preview is documented below.
+
+## Dashboard preview
+
+The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes an email/password login and a fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
+
+Read the [dashboard style guide](docs/DASHBOARD_STYLE_GUIDE.md) and [UX wireframes and integration plan](docs/DASHBOARD_UX.md). The frontend README documents Vercel configuration and observed verification.
