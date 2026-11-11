@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calpulli · Inquiry emails</title>
+<style>
+:root {
+  font-family:system-ui,sans-serif;
+  color:#25352e;
+  background:#f4f5f1;
+  line-height:1.5;
+}
+body {
+  margin:0 auto;
+  max-width:1050px;
+  padding:32px 20px;
+}
+h1 {
+  margin:0;
+  font-size:2rem;
+}
+h2 {
+  font-size:1.3rem;
+}
+header {
+  border-bottom:2px solid #366448;
+  padding-bottom:20px;
+  margin-bottom:24px;
+}
+section,article {
+  background:white;
+  border:1px solid #d3dbd5;
+  border-radius:10px;
+  padding:22px;
+  margin:20px 0;
+}
+label {
+  display:block;
+  font-weight:600;
+  margin:14px 0 5px;
+}
+input,textarea,select {
+  box-sizing:border-box;
+  width:100%;
+  font:inherit;
+  padding:10px;
+  border:1px solid #85958b;
+  border-radius:5px;
+}
+textarea {
+  min-height:150px;
+}
+button {
+  font:inherit;
+  padding:9px 15px;
+  border:1px solid #366448;
+  border-radius:5px;
+  background:#fff;
+  color:#24482f;
+  margin:10px 8px 0 0;
+  cursor:pointer;
+}
+button.primary {
+  background:#28563a;
+  color:white;
+}
+button:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible {
+  outline:3px solid #c78e2c;
+  outline-offset:2px;
+}
+.muted {
+  color:#526257;
+}
+.badge {
+  display:inline-block;
+  padding:3px 10px;
+  border-radius:20px;
+  background:#fff2cf;
+  color:#644909;
+}
+.preview {
+  white-space:pre-wrap;
+  background:#f7f8f5;
+  padding:15px;
+  border-left:3px solid #68856f;
+}
+.error {
+  color:#922b25;
+}
+#notice {
+  position:sticky;
+  top:0;
+  background:#f4f5f1;
+  padding:10px;
+  font-weight:600;
+}
+.row {
+  display:flex;
+  gap:15px;
+}
+.row>* {
+  flex:1;
+}
+details {
+  margin:15px 0;
+}
+summary {
+  cursor:pointer;
+  font-weight:600;
+}
+small {
+  display:block;
+}
+input[type=checkbox] {
+  width:auto;
+}
+ol {
+  padding-left:22px;
+}
+@media(max-width:600px) {
+  .row {
+    display:block;
+  }
+  body {
+    padding:20px 12px;
+  }
+}
+</style>
+</head>
+<body>
+<header><p class="muted">Calpulli Tonalehqueh</p><h1>Inquiry emails</h1><p>Review the recommended email, prepare drafts, and manage templates.</p></header>
+<div id="notice" role="status" aria-live="polite"></div>
+<section id="access"><h2>Staff access</h2><form id="login"><label for="token">Internal staff token</label><input id="token" type="password" autocomplete="off" required><label for="resend-token">Send-again token (optional)</label><input id="resend-token" type="password" autocomplete="off"><small>Tokens stay in memory for this page session.</small><button class="primary">Open inquiry</button></form></section>
+<main hidden id="workspace">
+<section><h2 id="inquiry-heading">Presentation inquiry</h2><p id="state"></p><p id="recommendation"></p><p id="reason" class="muted"></p><p id="delivery-mode" class="badge"></p><button id="reload">Refresh inquiry</button></section>
+<section><h2>Record a workflow event</h2><p>Use this for milestones that the existing inquiry states do not represent. Repeated events return the original email.</p><form id="event-form"><label for="event">Event</label><select id="event"></select><label for="event-variables">Template variables (JSON object)</label><textarea id="event-variables" spellcheck="false">{}</textarea><label for="call-at">Call date and time with time zone (for call booking or reminder)</label><input id="call-at" placeholder="2027-03-20T14:00:00-07:00"><label><input type="checkbox" id="signed"> Contract signature verified</label><label><input type="checkbox" id="paid"> Payment receipt verified</label><button class="primary">Prepare recommended email</button></form></section>
+<section><h2>Email drafts and sent messages</h2><div id="messages"></div></section>
+<section><h2>Staff tasks</h2><ul id="tasks"></ul></section>
+<section><h2>Presentation timeline</h2><ol id="timeline"></ol></section>
+<section><h2>Email templates</h2><p>These start as temporary reference copy. Replace the copy and mark it ready for use after review. Template changes do not silently replace existing drafts; use “Refresh from template” on a draft.</p><label for="template-key">Template</label><select id="template-key"></select><form id="template-form"><label for="template-subject">Template subject</label><input id="template-subject" required maxlength="998"><label for="template-body">Template body</label><textarea id="template-body" required></textarea><label><input type="checkbox" id="template-ready"> Reviewed and ready for use</label><p class="muted">Use named variables such as [Name], [Requested Date], and [Booking Link]. Unknown variables are rejected.</p><button class="primary">Save template</button></form></section>
+</main>
+<script>
+'use strict';
+
+const inquiryId = location.pathname.split('/').pop();
+const base = '/api/v1/presentations';
+let token = '',
+  resendToken = '',
+  templateList = [];
+const el = id => document.getElementById(id);
+function node(tag, text, cls) {
+  const n = document.createElement(tag);
+  if (text !== undefined) n.textContent = text;
+  if (cls) n.className = cls;
+  return n;
+}
+function notice(text, error = false) {
+  el('notice').textContent = text;
+  el('notice').className = error ? 'error' : '';
+}
+async function api(path, method = 'GET', body) {
+  const headers = {
+    'Authorization': 'Bearer ' + token
+  };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (resendToken) headers['X-Email-Resend-Token'] = resendToken;
+  const response = await fetch(base + path, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: 'no-store'
+  });
+  if (!response.ok) throw Error(response.status === 409 ? 'This action is blocked. Check missing fields, approval, or delivery status.' : response.status === 422 ? 'Check the field values and template variable names.' : 'Request failed (' + response.status + ').');
+  return response.json();
+}
+function button(text, fn, disabled = false) {
+  const b = node('button', text);
+  b.type = 'button';
+  b.disabled = disabled;
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      await fn();
+      notice(text + ' completed.');
+      await load();
+    } catch (e) {
+      notice(e.message, true);
+    } finally {
+      b.disabled = disabled;
+    }
+  };
+  return b;
+}
+function field(container, label, value, multiline = false) {
+  const id = 'field-' + crypto.randomUUID();
+  const l = node('label', label);
+  l.htmlFor = id;
+  const input = node(multiline ? 'textarea' : 'input');
+  input.id = id;
+  input.value = value || '';
+  container.append(l, input);
+  return input;
+}
+function renderMessage(m) {
+  const card = node('article');
+  card.append(node('h3', m.template_key.replaceAll('_', ' ')), node('span', m.status === 'PENDING_APPROVAL' ? 'Needs approval' : m.status, 'badge'), node('p', 'Recipient: ' + (m.recipient_email || 'Missing recipient')), node('p', 'Subject: ' + m.subject), node('p', 'Selected because: ' + m.reason));
+  if (m.missing_variables.length) card.append(node('p', 'Missing: ' + m.missing_variables.join(', '), 'error'));
+  card.append(node('div', m.body_text, 'preview'));
+  if (m.error_message) card.append(node('p', m.error_message + (m.delivery_unknown ? ' Delivery is uncertain. Reconcile in Gmail before any further send.' : ''), 'error'));
+  if (['DRAFT', 'PENDING_APPROVAL', 'APPROVED'].includes(m.status)) {
+    const details = node('details');
+    details.append(node('summary', 'Edit draft'));
+    const recipient = field(details, 'Recipient email', m.recipient_email);
+    const subject = field(details, 'Subject', m.source_subject || m.subject);
+    const body = field(details, 'Body', m.source_body || m.body_text, true);
+    const variables = field(details, 'Template variables (JSON object)', JSON.stringify(m.variables, null, 2), true);
+    const reply = field(details, 'Reply to sent message ID (optional)', m.reply_to_id || '');
+    details.append(button('Save draft', () => api('/' + inquiryId + '/emails/' + m.id, 'PATCH', {
+      recipient_email: recipient.value,
+      subject: subject.value,
+      body_text: body.value,
+      variables: JSON.parse(variables.value),
+      ...(reply.value ? {
+        reply_to_id: reply.value
+      } : {})
+    })));
+    card.append(details, button('Refresh from template', () => api('/' + inquiryId + '/emails/' + m.id + '/refresh', 'POST')));
+  }
+  const path = '/' + inquiryId + '/emails/' + m.id;
+  card.append(button('Approve', () => api(path + '/approve', 'POST'), m.status !== 'PENDING_APPROVAL'), button('Send', () => api(path + '/send', 'POST'), m.status !== 'APPROVED'), button('Cancel', () => api(path + '/cancel', 'POST'), ['SENT', 'SENDING', 'CANCELLED'].includes(m.status) || m.delivery_unknown));
+  if (m.status === 'FAILED') card.append(button('Retry send', () => api(path + '/retry', 'POST'), !m.retryable || m.delivery_unknown || m.attempts >= 3));
+  if (m.status === 'SENT' && resendToken) card.append(button('Send again', () => api(path + '/send-again', 'POST')));
+  return card;
+}
+function showTemplate() {
+  const t = templateList.find(t => t.key === el('template-key').value);
+  if (!t) return;
+  el('template-subject').value = t.subject;
+  el('template-body').value = t.body_text;
+  el('template-ready').checked = t.ready_for_use;
+}
+async function load() {
+  const [data, templates, timeline, capabilities] = await Promise.all([api('/' + inquiryId + '/emails'), api('/email-templates'), api('/' + inquiryId + '/activities?limit=100'), api('/email-capabilities')]);
+  if (!capabilities.can_send_again) resendToken = '';
+  el('state').textContent = 'Current inquiry state: ' + data.state;
+  el('recommendation').textContent = 'Recommended email: ' + (data.recommended_email || 'None');
+  el('reason').textContent = data.reason;
+  el('delivery-mode').textContent = capabilities.delivery_mode;
+  el('event').replaceChildren(...data.events.map(e => {
+    const o = node('option', e.event.replaceAll('_', ' ') + ' · ' + e.sending_rule);
+    o.value = e.event;
+    return o;
+  }));
+  el('messages').replaceChildren(...data.messages.map(renderMessage));
+  if (!data.messages.length) el('messages').append(node('p', 'No email has been prepared.'));
+  el('tasks').replaceChildren(...data.tasks.map(t => node('li', t.summary)));
+  el('timeline').replaceChildren(...timeline.items.map(a => node('li', new Date(a.created_at).toLocaleString() + ' · ' + (a.summary || a.kind) + (a.actor_id ? ' · ' + a.actor_id : ''))));
+  const selected = el('template-key').value;
+  templateList = templates;
+  el('template-key').replaceChildren(...templates.map(t => {
+    const o = node('option', t.key + (t.ready_for_use ? '' : ' · Reference copy'));
+    o.value = t.key;
+    return o;
+  }));
+  if (selected) el('template-key').value = selected;
+  showTemplate();
+  el('workspace').hidden = false;
+}
+el('login').onsubmit = async e => {
+  e.preventDefault();
+  token = el('token').value;
+  resendToken = el('resend-token').value;
+  try {
+    await load();
+    el('token').value = '';
+    el('resend-token').value = '';
+    el('access').hidden = true;
+    notice('Inquiry loaded.');
+  } catch (e) {
+    notice(e.message, true);
+  }
+};
+el('reload').onclick = () => load().catch(e => notice(e.message, true));
+el('template-key').onchange = showTemplate;
+el('template-form').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api('/email-templates/' + el('template-key').value, 'PUT', {
+      subject: el('template-subject').value,
+      body_text: el('template-body').value,
+      ready_for_use: el('template-ready').checked
+    });
+    notice('Template saved. Refresh existing drafts to use this copy.');
+    await load();
+  } catch (e) {
+    notice(e.message, true);
+  }
+};
+el('event-form').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api('/' + inquiryId + '/email-events', 'POST', {
+      event: el('event').value,
+      variables: JSON.parse(el('event-variables').value),
+      contract_signed: el('signed').checked,
+      payment_received: el('paid').checked,
+      ...(el('call-at').value ? {
+        call_at: el('call-at').value
+      } : {})
+    });
+    notice('Workflow event recorded.');
+    await load();
+  } catch (e) {
+    notice(e.message, true);
+  }
+};
+</script></body></html>

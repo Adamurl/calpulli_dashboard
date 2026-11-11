@@ -15,6 +15,8 @@ from app.core.errors import ErrorResponse, error_response
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.session import build_engine
+from app.integrations.gmail import make_provider
+from app.modules.presentations.email_ui import router as email_ui_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -42,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         responses={422: {"model": ErrorResponse}},
     )
     app.state.settings = config
+    app.state.email_provider = make_provider(config)
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
@@ -65,6 +68,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return error_response(422, "validation_error", "Invalid request", request.state.request_id)
 
     app.include_router(router)
+    app.include_router(email_ui_router)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.cors_origins,

@@ -179,7 +179,11 @@ class ActivityRead(BaseModel):
 
     id: UUID
     request_id: UUID
+    inquiry_id: UUID = Field(validation_alias="request_id")
     kind: str
+    email_message_id: UUID | None
+    actor_id: str | None
+    summary: str | None
     previous_status: str | None
     new_status: str | None
     note: str | None

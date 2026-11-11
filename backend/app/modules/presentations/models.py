@@ -117,7 +117,12 @@ class PresentationRequest(Base):
 class PresentationActivity(Base):
     __tablename__ = "presentation_activities"
     __table_args__ = (
-        CheckConstraint("kind IN ('created','status_changed','note_added')", name="kind_allowed"),
+        CheckConstraint(
+            "kind IN ('created','status_changed','note_added','email_recommended','email_blocked',"
+            "'email_draft_created','email_approved','email_cancelled','email_send_started',"
+            "'email_sent','email_send_failed','email_send_retried')",
+            name="kind_allowed",
+        ),
         Index("ix_presentation_activities_request_created", "request_id", "created_at", "id"),
     )
 
@@ -126,6 +131,11 @@ class PresentationActivity(Base):
         ForeignKey("presentation_requests.id", ondelete="RESTRICT")
     )
     kind: Mapped[str] = mapped_column(String(30))
+    email_message_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("presentation_email_messages.id", ondelete="RESTRICT")
+    )
+    actor_id: Mapped[str | None] = mapped_column(String(100))
+    summary: Mapped[str | None] = mapped_column(Text)
     previous_status: Mapped[str | None] = mapped_column(String(30))
     new_status: Mapped[str | None] = mapped_column(String(30))
     note: Mapped[str | None] = mapped_column(Text)

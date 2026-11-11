@@ -119,6 +119,9 @@ def test_postgres_create_replay_and_status_audit(
     )
     assert sorted(activity.kind for activity in activities) == [
         "created",
+        "email_blocked",
+        "email_draft_created",
+        "email_recommended",
         "note_added",
         "status_changed",
     ]
@@ -182,6 +185,9 @@ def test_presentation_tables_have_rls_and_no_browser_policies(pg_session: Sessio
         "presentation_import_batches",
         "presentation_requests",
         "presentation_activities",
+        "presentation_email_templates",
+        "presentation_email_messages",
+        "presentation_email_staff_tasks",
     ]
     for name in names:
         enabled = pg_session.scalar(
