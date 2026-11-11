@@ -213,4 +213,4 @@ The [documentation index](docs/README.md) groups presentations, email, health, a
 
 The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
 
-Read the [dashboard style guide](docs/DASHBOARD_STYLE_GUIDE.md) and [UX wireframes and integration plan](docs/DASHBOARD_UX.md). The frontend README documents Vercel configuration and observed verification.
+Read the [dashboard style guide](docs/dashboard/style-guide.md) and [UX wireframes and integration plan](docs/dashboard/ux.md). The frontend README documents Vercel configuration and observed verification.

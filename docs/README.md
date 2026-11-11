@@ -9,7 +9,7 @@ Feature documentation lives in a folder named for the feature. Each folder group
 | Presentations | [Request data and domain](presentations/README.md) | [API](presentations/api.md), [activity](presentations/activity.md), [historical import](presentations/legacy-import.md), [Wix webhook](presentations/wix-webhook.md) |
 | Email | [Workflow and setup](email/README.md) | [API](email/api.md), [templates](email/templates.md), [Gmail provider](email/gmail-provider.md) |
 | Health | [Liveness and readiness API](health/README.md) | Public health responses and database readiness |
-| Dashboard | [UX and style guide](dashboard/README.md) | [UX plan](DASHBOARD_UX.md), [style guide](DASHBOARD_STYLE_GUIDE.md) |
+| Dashboard | [UX and style guide](dashboard/README.md) | [UX plan](dashboard/ux.md), [style guide](dashboard/style-guide.md) |
 
 ## Shared documentation
 

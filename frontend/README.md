@@ -21,7 +21,7 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an e
 
 All business records are fictional in both authenticated and demo views. No production API or database queries are made. The demo stores drafts, notes, archived conversations, read state, and request status changes under `calpulli-demo-v1` in this browser's local storage. It is a shared sample store for this browser, not a per-user server store. Reset it in Settings. It must never be repurposed to store real client data. Reloading exits demo mode; drafts persist.
 
-The frontend does not expose the backend's `INTERNAL_API_TOKEN`. Before connecting real records, implement server-side Supabase JWT verification and staff authorization, per-user data isolation, authorized API calls, audit identities, conflict handling, and email delivery configuration. Existing backend email endpoints and incoming-email gaps are mapped in [the UX plan](../docs/DASHBOARD_UX.md). Supabase sign-in alone is not authorization to read Calpulli records.
+The frontend does not expose the backend's `INTERNAL_API_TOKEN`. Before connecting real records, implement server-side Supabase JWT verification and staff authorization, per-user data isolation, authorized API calls, audit identities, conflict handling, and email delivery configuration. Existing backend email endpoints and incoming-email gaps are mapped in [the UX plan](../docs/dashboard/ux.md). Supabase sign-in alone is not authorization to read Calpulli records.
 
 ## Features to review
 
@@ -52,4 +52,4 @@ The frontend can be deployed as a fictional-data preview independently. A produc
 
 ## Design
 
-See [style guide](../docs/DASHBOARD_STYLE_GUIDE.md) and [UX and integration plan](../docs/DASHBOARD_UX.md). Components live in `src/components`, domain schemas in `src/domain.ts`, sample fixtures in `src/data.ts`, Supabase client in `src/auth.ts`, and shared visual tokens in `src/styles.css`.
+See [style guide](../docs/dashboard/style-guide.md) and [UX and integration plan](../docs/dashboard/ux.md). Components live in `src/components`, domain schemas in `src/domain.ts`, sample fixtures in `src/data.ts`, Supabase client in `src/auth.ts`, and shared visual tokens in `src/styles.css`.
