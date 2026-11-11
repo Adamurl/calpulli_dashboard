@@ -13,6 +13,16 @@ class Settings(BaseSettings):
     internal_api_token: SecretStr | None = Field(default=None, min_length=32)
     wix_webhook_token: SecretStr | None = Field(default=None, min_length=32)
     wix_form_id: str | None = Field(default=None, min_length=1, max_length=200)
+    email_provider: Literal["mock", "gmail"] = "mock"
+    email_test_mode: bool = True
+    email_test_recipient: str | None = None
+    email_send_again_token: SecretStr | None = Field(default=None, min_length=32)
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
+    google_redirect_uri: str | None = None
+    google_refresh_token: SecretStr | None = None
+    gmail_sender_email: str | None = None
+    gmail_sender_name: str = "Calpulli Tonalehqueh"
     docs_enabled: bool | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_origins: list[str] = []
