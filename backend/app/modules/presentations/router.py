@@ -1,12 +1,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.security import require_internal_access
 from app.db.session import get_session
 from app.modules.presentations import services
+from app.modules.presentations.email_router import router as email_router
+from app.modules.presentations.email_service import dispatch_automatic
 from app.modules.presentations.schemas import (
     ActivityList,
     ActivityRead,
@@ -22,6 +24,7 @@ from app.modules.presentations.schemas import (
 router = APIRouter(
     prefix="/presentations", tags=["presentations"], dependencies=[Depends(require_internal_access)]
 )
+router.include_router(email_router)
 DbSession = Annotated[Session, Depends(get_session)]
 PageLimit = Annotated[int, Query(ge=1, le=100)]
 PageOffset = Annotated[int, Query(ge=0)]
@@ -46,8 +49,11 @@ def list_requests(
 
 
 @router.post("", response_model=PresentationRead, status_code=201)
-def create_request(payload: NewPresentation, session: DbSession) -> PresentationRead:
+def create_request(
+    payload: NewPresentation, session: DbSession, http_request: Request
+) -> PresentationRead:
     request, _ = services.create_presentation(session, payload)
+    dispatch_automatic(session, request.id, http_request.app.state.email_provider)
     return PresentationRead.model_validate(request)
 
 
@@ -61,12 +67,12 @@ def get_request(request_id: UUID, session: DbSession) -> PresentationRead:
 
 @router.patch("/{request_id}", response_model=PresentationRead)
 def update_request(
-    request_id: UUID, payload: PresentationPatch, session: DbSession
+    request_id: UUID, payload: PresentationPatch, session: DbSession, http_request: Request
 ) -> PresentationRead:
     try:
-        return PresentationRead.model_validate(
-            services.update_presentation(session, request_id, payload)
-        )
+        record = services.update_presentation(session, request_id, payload)
+        dispatch_automatic(session, request_id, http_request.app.state.email_provider)
+        return PresentationRead.model_validate(record)
     except services.PresentationNotFound:
         raise HTTPException(404, "Presentation not found") from None
     except services.PresentationConflict:

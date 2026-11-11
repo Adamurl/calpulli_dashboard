@@ -43,3 +43,22 @@ The four new RLS-without-policy informational notices are intentional. Browser a
 - Review hosting, database pool mode, secrets, and the selected plan before any deployment.
 
 No Vercel deployment, Wix activation, Gmail integration, Events module, or frontend is part of this delivery. Local Git metadata writes and shell network access are restricted; the GitHub connector also returned HTTP 403 for repository writes during packaging. Prepared commits and a Git bundle preserve the work if publishing remains blocked.
+
+
+## Email workflow local verification
+
+The email workflow was implemented on `feature/presentations-history`, the existing presentations branch, rather than the foundation-only `main`. No remote code, production database, mailbox, Wix configuration, or credentials were changed.
+
+Observed checks for this change:
+
+- Ruff lint and formatting pass.
+- The final pytest run reports **128 passed, 5 skipped** with `TEST_DATABASE_URL` unset. The skipped tests require PostgreSQL. This includes 67 workflow and Gmail adapter tests.
+- Focused mypy inspection of the seven new email Python modules passes. Whole-app mypy reports six existing errors in the legacy importer and environment-loaded Settings construction. A clean archive of the branch baseline reproduces the same six errors. Mypy is not a configured CI dependency.
+- Alembic offline upgrade SQL generation through 0004 passes. This does not prove migration execution or metadata parity on PostgreSQL.
+- JavaScript syntax checks pass for the staff panel and browser runner.
+- Fresh PostgreSQL execution is unavailable: local `initdb` cannot resolve effective user ID 501, including after escalation. No application or external database was used as a substitute.
+- `uv sync --locked` is unavailable because uv is absent. A temporary uv installation attempt failed because package DNS resolution is unavailable. The branch still has no `backend/uv.lock`; locked CI and Docker builds remain blocked.
+- Docker/Compose is unavailable because Docker is not installed.
+- Browser execution was attempted. The Playwright connector reports its Chrome extension missing. Direct Playwright launch of local Chrome exits with SIGABRT, including after escalation. Computer use reports no available browser. The repeatable runner is `backend/tests/browser/email_workflow.mjs`; it has not passed in this environment.
+
+Tests ran under the available Python 3.14 runtime. CI targets Python 3.12. Gmail provider tests mock all HTTP and do not send real mail. Workflow service tests use SQLite and do not verify PostgreSQL row locking or migration execution. Live Gmail OAuth and redirected delivery still require an authorized smoke test.

@@ -4,7 +4,7 @@
 
 Health endpoints are public. Presentation list, detail, create, update, and activity routes require a bearer credential matching `INTERNAL_API_TOKEN`. The Wix receiver uses its own body credential and configured form ID. Missing configuration disables the corresponding routes with HTTP 503. Credential comparisons use constant-time comparison.
 
-These are bootstrap server credentials. They do not identify individual coordinators or provide role-based access. There is no frontend or user-login flow. Keep the internal API token out of browser bundles and do not treat the shared token as a production user-management solution.
+These are bootstrap server credentials. They do not identify individual coordinators or provide role-based access. The email staff page uses the same bootstrap API credential, entered at runtime and held only in memory. There is no individual user-login flow. Keep the internal API token out of browser bundles and do not treat the shared token as a production user-management solution.
 
 ## Secrets and environments
 
@@ -43,3 +43,7 @@ Gmail remains planned. Use least-privilege scopes, encrypt refresh tokens with s
 Before handling real records in a deployed service, verify HTTPS, trusted proxies, exact CORS rules, database TLS, restricted credentials, authentication, migration recovery, request limits, alerts, and backup ownership. API documentation defaults off outside development.
 
 A Docker volume is not a backup. Review the actual Supabase plan's backup facilities, retention, and restore process before importing data. Test restores in a separate environment. Agree on acceptable recovery point and recovery time. No backup service or recovery test is provisioned by this repository.
+
+## Email sending boundary
+
+Email APIs require internal access. Preparing send-again drafts additionally requires a separate `EMAIL_SEND_AGAIN_TOKEN`. Gmail credentials remain server-only. Reference templates start unready, approvals reset on draft edits, test mode redirects recipients, and uncertain deliveries block retries. See [Email workflow](email/README.md) for the shared-actor limitation and production requirements.

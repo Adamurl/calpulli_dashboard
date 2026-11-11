@@ -6,7 +6,7 @@ PostgreSQL is the supported database. SQLAlchemy 2.x typed models use synchronou
 
 Revision `0001` establishes an empty baseline. Revision `0002` defines `presentation_import_batches`, `presentation_requests`, and `presentation_activities`. Revision `0003` protects the Alembic version table. Both revisions are applied to the verified Calpulli Tonalehqueh Supabase project, with Alembic reporting `0003`. The authorized MCP import created 883 historical requests, 883 creation activities, and one batch from 896 CSV rows; 13 blank rows were skipped.
 
-[Presentation data reference](PRESENTATIONS.md) describes fields and source mappings. Contact data is a snapshot on each request. There are no shared contacts, organizations, Events, or Communications tables yet.
+[Presentation data reference](presentations/README.md) describes fields and source mappings. Contact data is a snapshot on each request. There are no shared contacts, organizations, Events, or Communications tables yet.
 
 ## Model and naming conventions
 

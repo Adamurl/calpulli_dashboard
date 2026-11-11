@@ -87,6 +87,7 @@ def test_new_and_duplicate_acknowledgements(
         return request_id, len(calls) == 1
 
     monkeypatch.setattr(wix, "persist_submission", store)
+    monkeypatch.setattr(wix, "dispatch_automatic", lambda *args: None)
     first = webhook_client.post("/api/v1/integrations/wix/presentations", json={"data": fields()})
     second = webhook_client.post("/api/v1/integrations/wix/presentations", json={"data": fields()})
     assert first.status_code == 201
