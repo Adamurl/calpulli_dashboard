@@ -4,7 +4,7 @@
 
 PostgreSQL is the supported database. SQLAlchemy 2.x typed models use synchronous sessions and psycopg 3. SQLite does not substitute for PostgreSQL connectivity, JSONB, uniqueness, or row-security tests.
 
-Revision `0001` establishes an empty baseline. Revision `0002` defines `presentation_import_batches`, `presentation_requests`, and `presentation_activities`. Revision `0003` protects the Alembic version table. Both revisions are applied to the verified Calpulli Tonalehqueh Supabase project, with Alembic reporting `0003`. The authorized MCP import created 883 historical requests, 883 creation activities, and one batch from 896 CSV rows; 13 blank rows were skipped.
+Revision `0001` establishes an empty baseline. Revision `0002` defines `presentation_import_batches`, `presentation_requests`, and `presentation_activities`. Revision `0003` protects the Alembic version table. Both revisions are applied to the verified Calpulli Tonalehqueh Supabase project, with Alembic initially reporting `0003`. The authorized connector applied revisions `0004` and `0005` on November 11, 2026; the live revision is now `0005`. The authorized MCP import created 883 historical requests, 883 creation activities, and one batch from 896 CSV rows; 13 blank rows were skipped.
 
 [Presentation data reference](presentations/README.md) describes fields and source mappings. Contact data is a snapshot on each request. There are no shared contacts, organizations, Events, or Communications tables yet.
 
@@ -54,3 +54,7 @@ The backend uses a trusted server-side PostgreSQL connection with suitable privi
 `TEST_DATABASE_URL` must name a separate database ending in `_test` and must differ from the development database. Apply migrations before running database tests. Use separate credentials for development, tests, and production. A name check is an additional guard, not a substitute for restricted credentials.
 
 Test fixtures use isolated transactions for their records. They must not drop application schemas, truncate real tables, or reset development data. Live migration, import integrity, duplicate protection, and browser-role privileges were checked on the authorized Supabase project. The isolated Python database integration suite still requires a separate `_test` database; never run it against the real project.
+
+## Historical operations migration
+
+Revision 0005 adds private operational details and import evidence. See [operational import setup](presentations/operations-import.md) for the explicit Supabase project guard, local env file, and observed verification limits. This revision and its prerequisite `0004` were applied live through the authorized Supabase connector on November 11, 2026. Read-back verified the new tables, RLS, denied browser-role privileges, and unchanged historical/account counts. Full schema-drift and isolated PostgreSQL integration checks remain pending.

@@ -1,6 +1,6 @@
 # Presentation request data reference
 
-[Documentation index](../README.md) · [API](api.md) · [Activity](activity.md) · [Historical import](legacy-import.md) · [Wix webhook](wix-webhook.md)
+[Documentation index](../README.md) · [API](api.md) · [Activity](activity.md) · [Historical import](legacy-import.md) · [Operational follow-ups](operations-import.md) · [Wix webhook](wix-webhook.md)
 
 ## Historical and current submissions
 
@@ -15,6 +15,8 @@ The inspected export contains 896 data rows. The dry run retains 883 nonblank re
 | Table | Responsibility |
 | --- | --- |
 | `presentation_requests` | Contact snapshot, request answers, status, source identity, source row, and original fields. |
+| `presentation_operations` | Post-request financial and operational details, including inference basis. |
+| `presentation_import_rows` | Restricted positional source evidence and reconciliation state. |
 | `presentation_import_batches` | Stable dataset key, file digest, row counts, import counts, and import time. |
 | `presentation_activities` | Creation, status changes, internal notes, and email timeline entries for a request. |
 | `presentation_email_templates` | Editable email copy and readiness. |

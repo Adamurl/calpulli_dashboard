@@ -30,7 +30,11 @@ from app.modules.presentations.email_registry import (
     render_template,
 )
 from app.modules.presentations.email_schemas import DraftEdit, EventInput, TemplateEdit
-from app.modules.presentations.models import PresentationActivity, PresentationRequest
+from app.modules.presentations.models import (
+    PresentationActivity,
+    PresentationImportBatch,
+    PresentationRequest,
+)
 from app.modules.presentations.schemas import NewPresentation, PresentationPatch
 from app.modules.presentations.services import create_presentation, update_presentation
 
@@ -57,7 +61,17 @@ def engine():
         )
         connection.execute("PRAGMA foreign_keys=ON")
 
-    Base.metadata.create_all(db)
+    Base.metadata.create_all(
+        db,
+        tables=[
+            PresentationImportBatch.__table__,
+            PresentationRequest.__table__,
+            EmailTemplate.__table__,
+            EmailMessage.__table__,
+            EmailStaffTask.__table__,
+            PresentationActivity.__table__,
+        ],
+    )
     seeds = json.loads(
         (
             Path(email_registry.__file__).parents[3] / "alembic/data/email_templates_v1.json"

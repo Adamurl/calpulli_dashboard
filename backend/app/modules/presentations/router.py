@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.core.security import require_internal_access
 from app.db.session import get_session
-from app.modules.presentations import services
+from app.modules.presentations import operations_service, services
 from app.modules.presentations.email_router import router as email_router
 from app.modules.presentations.email_service import dispatch_automatic
+from app.modules.presentations.operations_schemas import OperationsRead
 from app.modules.presentations.schemas import (
     ActivityList,
     ActivityRead,
@@ -92,3 +93,11 @@ def get_activities(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/{request_id}/operations", response_model=OperationsRead)
+def get_operations(request_id: UUID, session: DbSession) -> OperationsRead:
+    try:
+        return operations_service.read_operations(session, request_id)
+    except operations_service.ImportRecordNotFound:
+        raise HTTPException(404, "Presentation operations not found") from None

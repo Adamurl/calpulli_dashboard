@@ -789,6 +789,258 @@
       "title": "NewPresentation",
       "type": "object"
     },
+    "OperationsRead": {
+      "properties": {
+        "attendance_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attendance Count"
+        },
+        "attendance_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attendance Notes"
+        },
+        "coi_status": {
+          "enum": [
+            "unknown",
+            "done",
+            "not_done"
+          ],
+          "title": "Coi Status",
+          "type": "string"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Currency"
+        },
+        "dressing_room_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dressing Room Notes"
+        },
+        "engagement_basis": {
+          "enum": [
+            "unknown",
+            "recorded",
+            "explicit",
+            "user_assumption"
+          ],
+          "title": "Engagement Basis",
+          "type": "string"
+        },
+        "engagement_type": {
+          "enum": [
+            "unknown",
+            "paid",
+            "volunteer",
+            "calpulli_internal"
+          ],
+          "title": "Engagement Type",
+          "type": "string"
+        },
+        "finder_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Finder Name"
+        },
+        "imported_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imported From"
+        },
+        "invoice_status": {
+          "enum": [
+            "unknown",
+            "done",
+            "not_done"
+          ],
+          "title": "Invoice Status",
+          "type": "string"
+        },
+        "logistics_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Logistics Notes"
+        },
+        "parking_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parking Notes"
+        },
+        "payment_basis": {
+          "enum": [
+            "unknown",
+            "recorded",
+            "explicit",
+            "user_assumption"
+          ],
+          "title": "Payment Basis",
+          "type": "string"
+        },
+        "payment_method": {
+          "enum": [
+            "unknown",
+            "check",
+            "cash",
+            "bank_transfer",
+            "other"
+          ],
+          "title": "Payment Method",
+          "type": "string"
+        },
+        "payment_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payment Notes"
+        },
+        "payment_status": {
+          "enum": [
+            "unknown",
+            "paid",
+            "unpaid",
+            "partial",
+            "no_charge",
+            "refunded"
+          ],
+          "title": "Payment Status",
+          "type": "string"
+        },
+        "quoted_amount": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Quoted Amount"
+        },
+        "recorded_received_amount": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recorded Received Amount"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "roster_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Roster Count"
+        },
+        "status_basis": {
+          "enum": [
+            "explicit",
+            "user_assumption",
+            "unresolved"
+          ],
+          "title": "Status Basis",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "quoted_amount",
+        "recorded_received_amount",
+        "currency",
+        "finder_name",
+        "payment_status",
+        "payment_basis",
+        "payment_method",
+        "payment_notes",
+        "engagement_type",
+        "engagement_basis",
+        "invoice_status",
+        "coi_status",
+        "attendance_count",
+        "roster_count",
+        "attendance_notes",
+        "parking_notes",
+        "dressing_room_notes",
+        "logistics_notes",
+        "status_basis",
+        "updated_at"
+      ],
+      "title": "OperationsRead",
+      "type": "object"
+    },
     "PresentationList": {
       "properties": {
         "items": {

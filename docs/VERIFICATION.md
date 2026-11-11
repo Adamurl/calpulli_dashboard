@@ -62,3 +62,20 @@ Observed checks for this change:
 - Browser execution was attempted. The Playwright connector reports its Chrome extension missing. Direct Playwright launch of local Chrome exits with SIGABRT, including after escalation. Computer use reports no available browser. The repeatable runner is `backend/tests/browser/email_workflow.mjs`; it has not passed in this environment.
 
 Tests ran under the available Python 3.14 runtime. CI targets Python 3.12. Gmail provider tests mock all HTTP and do not send real mail. Workflow service tests use SQLite and do not verify PostgreSQL row locking or migration execution. Live Gmail OAuth and redirected delivery still require an authorized smoke test.
+
+## Historical operations local verification
+
+Migration 0005, operational records, positional source evidence, guarded staging/reviewed apply, and a protected business-only read endpoint are implemented. Final backend run: 155 passed, 33 PostgreSQL integration tests skipped. Ruff lint/format and offline Alembic SQL generation pass. Five private CSV dry runs retain 361 overlapping event rows. No real CSV import or live migration was performed.
+
+The confirmed project is siaxqqewpiowfrxfdpkl and the ignored backend/.env contains the user-supplied connection. DNS resolution failed for Supabase and an unrelated external domain, including after escalation; authentication was never reached. Local PostgreSQL initdb cannot resolve UID 501. PostgreSQL migration execution, live RLS privileges, and drift checks remain unverified. uv and Docker are unavailable; no locked-sync or Compose pass is claimed. See [operational import handoff](presentations/operations-import.md).
+
+
+## Authorized Supabase migrations on November 11, 2026
+
+The user authorized applying pending migrations to project `siaxqqewpiowfrxfdpkl`. Reviewed Alembic-generated SQL for `0004` and `0005` was applied sequentially through the connected Supabase migration tool. Each transaction locked and checked the expected prior application revision. Live read-back reports `0005`.
+
+Migration `0004` had an incorrectly expanded activity constraint name. The upgrade and downgrade now use `op.f` for the existing full name. Two offline SQL regression cases reproduced the failure before the fix and pass afterward. The full backend run reports 157 passed and 33 PostgreSQL tests skipped; Ruff lint and formatting pass.
+
+Live read-back verified five new private tables, RLS enabled, no browser policies, denied SELECT/INSERT/UPDATE/DELETE access for anon/authenticated, the new activity columns, and the composite operations/evidence foreign key. Counts remain 883 requests, 883 activities, three Auth accounts, and three admin-role rows. Fourteen template seeds are present and disabled; no messages, tasks, operational import rows, or operations exist. No user accounts or roles were removed, no CSV was imported, and no email was sent.
+
+Fresh local PostgreSQL execution remains blocked because initdb cannot resolve OS user ID 501, including outside the sandbox. The local backend cannot resolve Supabase DNS, so full Alembic drift checking and backend-to-Supabase credential verification remain pending. uv and Docker are unavailable. Connector migration success does not establish password sign-in, local API connectivity, or CI success.

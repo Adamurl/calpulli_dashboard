@@ -40,6 +40,7 @@ from app.modules.health.router import HealthResponse
 from app.modules.presentations.email_schemas import (
     DraftEdit, EmailRead, EventInput, TaskRead, TemplateEdit, TemplateRead,
 )
+from app.modules.presentations.operations_schemas import OperationsRead
 from app.modules.presentations.schemas import (
     ActivityList, ActivityRead, NewPresentation, PresentationList,
     PresentationPatch, PresentationRead, PresentationSummary,
@@ -57,7 +58,7 @@ inputs = [
 ]
 outputs = [
     HealthResponse, PresentationSummary, PresentationRead, PresentationList,
-    ActivityRead, ActivityList, EmailRead, TaskRead, TemplateRead, ErrorResponse,
+    ActivityRead, ActivityList, EmailRead, TaskRead, TemplateRead, ErrorResponse, OperationsRead,
 ]
 _, catalog = models_json_schema(
     [(model, "validation") for model in inputs]
