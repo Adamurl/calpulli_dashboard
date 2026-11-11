@@ -80,7 +80,7 @@ Presentation writes can persist before synchronous email dispatch finishes. A su
 
 ## Error responses
 
-Errors use this envelope:
+Application errors use this envelope:
 
 ```json
 {

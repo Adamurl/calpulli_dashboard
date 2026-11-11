@@ -1,6 +1,6 @@
 # Calpulli Platform
 
-An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Events, and individual user-login flows remain unimplemented. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
+An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Events, and backend per-user authorization remain unimplemented. The standalone frontend includes Supabase sign-in support and an explicit fictional-data preview. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
 
 ## Current verification status
 
@@ -127,7 +127,7 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | `POSTGRES_PORT` | Host port `5432`. |
 | `TEST_DATABASE_URL` | Optional for local tests; distinct database ending in `_test`. Required for integration verification. |
 
-The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random internal and Wix secrets locally; do not reuse a documented example or put them in frontend code. Gmail OAuth, individual user authentication, background processing, and synchronization remain future work.
+The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random internal and Wix secrets locally; do not reuse a documented example or put them in frontend code. Live Gmail OAuth activation, individual API authorization, background processing, and synchronization remain future work.
 
 ## Migrations
 
@@ -199,13 +199,18 @@ The request schema supports both historical CSV answers and the new form. List, 
 The presentation schema is applied to the verified Calpulli Tonalehqueh Supabase project. Store server connection settings only in ignored environment files; see [database conventions](docs/DATABASE.md). The historical import defaults to a dry run; `--apply` is an explicit write operation. `TEMP/` stays out of Git and Docker.
 
 The future Wix target is `https://<your-api-host>/api/v1/integrations/wix/presentations`. This is not a deployed URL. Review a fictional request preview and map **Choose fields** before activation. Hosting, live Gmail activation, Events, shared contact identity, and a standalone frontend remain separate work.
-
 ## Client email workflow
 
 The presentations module now supports application drafts, staff approval, timeline records, mock/Gmail providers, and a small staff page at `/staff/presentations/INQUIRY_UUID`. Apply migration 0004 first. Temporary reference templates start disabled until reviewed. See [Email workflow](docs/email/README.md) for policy, template editing, Gmail setup, API actions, and the explicitly deferred background sending.
 
 ## Backend API documentation
 
-The [documentation index](docs/README.md) groups presentations, email, and health documentation by feature.
+The [documentation index](docs/README.md) groups presentations, email, health, and dashboard documentation by feature.
 
 [API overview](docs/API.md) links to feature-specific contracts for health, presentations, activity, emails, templates, Gmail, Wix, and historical imports. Each reference covers inputs, outputs, validation, authentication, side effects, and errors. [Schema artifacts](docs/api/README.md) include generated OpenAPI and JSON Schema with regeneration instructions.
+
+## Dashboard preview
+
+The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
+
+Read the [dashboard style guide](docs/DASHBOARD_STYLE_GUIDE.md) and [UX wireframes and integration plan](docs/DASHBOARD_UX.md). The frontend README documents Vercel configuration and observed verification.

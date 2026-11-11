@@ -66,13 +66,7 @@ The body limit is 64 KiB. Errors never echo the credential or requester details.
 
 End-to-end delivery, Wix retry timing, rate controls, alerting, and reconciliation remain deployment acceptance checks. No durable queue or worker is implemented.
 
-1. Set the method to **POST**.
-2. Choose **Choose fields** and map exact API key names to form values.
-3. Enable **Nest request body under data**.
-4. Add the stable provider `submission_id` and the form's `form_id`.
-5. Add `webhook_token` as a private static value matching `WIX_WEBHOOK_TOKEN`. Do not map it from a requester-editable form field.
-6. Map the required and optional presentation fields in [the data reference](PRESENTATIONS.md).
-7. Preview a fictional test submission and confirm its actual JSON before activating the automation.
+## Google Workspace and Gmail
 
 The local sending adapter supports OAuth refresh, `gmail.send`, MIME delivery, provider message/thread IDs, and outbound replies that retain conversation headers. Application drafts and approvals are implemented. Default delivery is mocked. See the [Gmail technical reference](email/gmail-provider.md) for exact inputs, outputs, and error handling.
 
