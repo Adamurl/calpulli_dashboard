@@ -1,8 +1,10 @@
 # Integration contracts and setup
 
+Detailed wire contracts are in the [Wix webhook reference](presentations/wix-webhook.md) and [Gmail provider reference](email/gmail-provider.md). Application-level email endpoints are documented in the [email workflow API](email/api.md).
+
 ## Current state
 
-A normalized Wix receiver is implemented locally. Its real Automation mapping and delivery have not been verified. Gmail, Google Workspace OAuth, Pub/Sub, and background synchronization remain planned. No integration has been activated and no hosted receiver URL exists yet.
+A normalized Wix receiver is implemented locally. Its real Automation mapping and delivery have not been verified. The Gmail sending adapter and environment-based refresh-token support are implemented locally; see [Email workflow](email/README.md). OAuth consent setup, live sending, Pub/Sub, and background synchronization remain unactivated or planned. No integration has been activated and no hosted receiver URL exists yet.
 
 ## Wix Automation target
 
@@ -23,7 +25,7 @@ This is a deployment placeholder, not a live URL. Do not send the form to a Supa
 3. Enable **Nest request body under data**.
 4. Add the stable provider `submission_id` and the form's `form_id`.
 5. Add `webhook_token` as a private static value matching `WIX_WEBHOOK_TOKEN`. Do not map it from a requester-editable form field.
-6. Map the required and optional presentation fields in [the data reference](PRESENTATIONS.md).
+6. Map the required and optional presentation fields in [the data reference](presentations/README.md).
 7. Preview a fictional test submission and confirm its actual JSON before activating the automation.
 
 The backend also requires `WIX_FORM_ID`. It rejects a different form with HTTP 403. The form ID is an identifier, not a secret. Keep `WIX_WEBHOOK_TOKEN` separate from `INTERNAL_API_TOKEN`.
@@ -64,11 +66,13 @@ The body limit is 64 KiB. Errors never echo the credential or requester details.
 
 End-to-end delivery, Wix retry timing, rate controls, alerting, and reconciliation remain deployment acceptance checks. No durable queue or worker is implemented.
 
-## Google Workspace and Gmail plans
+## Google Workspace and Gmail
 
-Use an approved organizational mailbox and OAuth with least-privilege scopes. Sending, reply handling, Gmail message IDs, thread IDs, Pub/Sub notifications, and background synchronization are future work.
+The local sending adapter supports OAuth refresh, `gmail.send`, MIME delivery, provider message/thread IDs, and outbound replies that retain conversation headers. Application drafts and approvals are implemented. Default delivery is mocked. See the [Gmail technical reference](email/gmail-provider.md) for exact inputs, outputs, and error handling.
 
-Persist synchronization progress and make message processing idempotent. Notifications indicate a mailbox change; they are not the message-history source. Reconcile periodically, retry transient failures with bounded backoff, and define full resynchronization when incremental history expires.
+An approved organizational mailbox and initial OAuth consent setup are still required for live activation. Incoming reply ingestion, Pub/Sub notifications, and background synchronization remain future work.
+
+Future synchronization must persist progress and process messages idempotently. Notifications indicate a mailbox change; they are not the message-history source. Reconcile periodically, retry transient failures with bounded backoff, and define full resynchronization when incremental history expires.
 
 Encrypt refresh tokens with separately managed keys. Restrict token access and define revocation, rotation, and reconnect procedures. Never log authorization codes, tokens, or email contents.
 

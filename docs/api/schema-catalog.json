@@ -1,0 +1,1836 @@
+{
+  "$defs": {
+    "ActivityList": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ActivityRead"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "limit",
+        "offset"
+      ],
+      "title": "ActivityList",
+      "type": "object"
+    },
+    "ActivityRead": {
+      "properties": {
+        "actor_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Actor Id"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "email_message_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Email Message Id"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "inquiry_id": {
+          "format": "uuid",
+          "title": "Inquiry Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "new_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Status"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Note"
+        },
+        "previous_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Previous Status"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Summary"
+        }
+      },
+      "required": [
+        "id",
+        "request_id",
+        "inquiry_id",
+        "kind",
+        "email_message_id",
+        "actor_id",
+        "summary",
+        "previous_status",
+        "new_status",
+        "note",
+        "created_at"
+      ],
+      "title": "ActivityRead",
+      "type": "object"
+    },
+    "DraftEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "body_text": {
+          "anyOf": [
+            {
+              "maxLength": 30000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Text"
+        },
+        "recipient_email": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recipient Email"
+        },
+        "reply_to_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply To Id"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "maxLength": 998,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 30,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "title": "DraftEdit",
+      "type": "object"
+    },
+    "EmailEvent": {
+      "enum": [
+        "inquiry_created",
+        "missing_information",
+        "approved_for_call",
+        "call_booked",
+        "call_reminder_due",
+        "call_completed",
+        "contract_ready",
+        "signed_and_paid",
+        "final_logistics_needed",
+        "event_details_complete",
+        "presentation_completed",
+        "balance_overdue",
+        "inquiry_declined",
+        "special_situation"
+      ],
+      "title": "EmailEvent",
+      "type": "string"
+    },
+    "EmailRead": {
+      "properties": {
+        "approved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Approved At"
+        },
+        "approved_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Approved By"
+        },
+        "attempts": {
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "body_html": {
+          "title": "Body Html",
+          "type": "string"
+        },
+        "body_text": {
+          "title": "Body Text",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "delivery_unknown": {
+          "title": "Delivery Unknown",
+          "type": "boolean"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Message"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "inquiry_id": {
+          "format": "uuid",
+          "title": "Inquiry Id",
+          "type": "string"
+        },
+        "missing_variables": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Variables",
+          "type": "array"
+        },
+        "presentation_id": {
+          "format": "uuid",
+          "title": "Presentation Id",
+          "type": "string"
+        },
+        "provider_message_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Message Id"
+        },
+        "provider_thread_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Thread Id"
+        },
+        "recipient_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recipient Email"
+        },
+        "recipient_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recipient Name"
+        },
+        "requires_approval": {
+          "title": "Requires Approval",
+          "type": "boolean"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sent At"
+        },
+        "sent_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sent By"
+        },
+        "state_trigger": {
+          "title": "State Trigger",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "APPROVED",
+            "SENDING",
+            "SENT",
+            "FAILED",
+            "CANCELLED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "template_key": {
+          "title": "Template Key",
+          "type": "string"
+        },
+        "triggering_event": {
+          "title": "Triggering Event",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "inquiry_id",
+        "presentation_id",
+        "template_key",
+        "state_trigger",
+        "triggering_event",
+        "recipient_email",
+        "recipient_name",
+        "subject",
+        "body_text",
+        "body_html",
+        "variables",
+        "missing_variables",
+        "status",
+        "requires_approval",
+        "approved_by",
+        "approved_at",
+        "sent_by",
+        "sent_at",
+        "provider_message_id",
+        "provider_thread_id",
+        "error_code",
+        "error_message",
+        "retryable",
+        "delivery_unknown",
+        "attempts",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "EmailRead",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "request_id"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "EventInput": {
+      "additionalProperties": false,
+      "properties": {
+        "call_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Call At"
+        },
+        "contract_signed": {
+          "default": false,
+          "title": "Contract Signed",
+          "type": "boolean"
+        },
+        "event": {
+          "$ref": "#/$defs/EmailEvent"
+        },
+        "payment_received": {
+          "default": false,
+          "title": "Payment Received",
+          "type": "boolean"
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 30,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "title": "EventInput",
+      "type": "object"
+    },
+    "HealthResponse": {
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "ready"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "HealthResponse",
+      "type": "object"
+    },
+    "NewPresentation": {
+      "additionalProperties": false,
+      "properties": {
+        "additional_notes": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Additional Notes"
+        },
+        "audience_distance_12ft": {
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ],
+          "title": "Audience Distance 12Ft",
+          "type": "string"
+        },
+        "contact_email": {
+          "maxLength": 320,
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+          "title": "Contact Email",
+          "type": "string"
+        },
+        "contact_first_name": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Contact First Name",
+          "type": "string"
+        },
+        "contact_last_name": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Contact Last Name",
+          "type": "string"
+        },
+        "contact_phone": {
+          "maxLength": 100,
+          "minLength": 3,
+          "title": "Contact Phone",
+          "type": "string"
+        },
+        "end_time": {
+          "format": "time",
+          "title": "End Time",
+          "type": "string"
+        },
+        "estimated_guests": {
+          "maximum": 10000000,
+          "minimum": 1,
+          "title": "Estimated Guests",
+          "type": "integer"
+        },
+        "event_access": {
+          "anyOf": [
+            {
+              "enum": [
+                "public",
+                "private"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Access"
+        },
+        "event_date": {
+          "format": "date",
+          "title": "Event Date",
+          "type": "string"
+        },
+        "event_purpose": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Event Purpose",
+          "type": "string"
+        },
+        "event_setting": {
+          "anyOf": [
+            {
+              "enum": [
+                "indoor",
+                "outdoor",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Setting"
+        },
+        "event_timezone": {
+          "default": "America/Los_Angeles",
+          "maxLength": 100,
+          "title": "Event Timezone",
+          "type": "string"
+        },
+        "event_types": {
+          "items": {
+            "enum": [
+              "k12_school",
+              "college_university",
+              "nonprofit",
+              "government",
+              "corporate",
+              "cultural_organization",
+              "funeral",
+              "grand_opening",
+              "other"
+            ],
+            "type": "string"
+          },
+          "maxItems": 9,
+          "minItems": 1,
+          "title": "Event Types",
+          "type": "array"
+        },
+        "organization_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Name"
+        },
+        "organization_website": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Website"
+        },
+        "referral_reference": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Referral Reference"
+        },
+        "referral_sources": {
+          "items": {
+            "enum": [
+              "website",
+              "instagram",
+              "facebook",
+              "tiktok",
+              "word_of_mouth",
+              "mexica_new_year",
+              "previous_performance",
+              "referral",
+              "other"
+            ],
+            "type": "string"
+          },
+          "maxItems": 9,
+          "title": "Referral Sources",
+          "type": "array"
+        },
+        "start_time": {
+          "format": "time",
+          "title": "Start Time",
+          "type": "string"
+        },
+        "unavailable_logistics": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Unavailable Logistics",
+          "type": "string"
+        },
+        "venue_address": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Venue Address",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_date",
+        "start_time",
+        "end_time",
+        "event_types",
+        "event_purpose",
+        "venue_address",
+        "estimated_guests",
+        "audience_distance_12ft",
+        "unavailable_logistics",
+        "contact_first_name",
+        "contact_last_name",
+        "contact_email",
+        "contact_phone"
+      ],
+      "title": "NewPresentation",
+      "type": "object"
+    },
+    "PresentationList": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/PresentationSummary"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "limit",
+        "offset"
+      ],
+      "title": "PresentationList",
+      "type": "object"
+    },
+    "PresentationPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_current_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "new",
+                "reviewing",
+                "proposal_sent",
+                "booked",
+                "completed",
+                "declined",
+                "cancelled"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Current Status"
+        },
+        "internal_notes": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Internal Notes"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "new",
+                "reviewing",
+                "proposal_sent",
+                "booked",
+                "completed",
+                "declined",
+                "cancelled"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        }
+      },
+      "title": "PresentationPatch",
+      "type": "object"
+    },
+    "PresentationRead": {
+      "properties": {
+        "additional_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Additional Notes"
+        },
+        "audience_distance_12ft": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Audience Distance 12Ft"
+        },
+        "contact_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Email"
+        },
+        "contact_first_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact First Name"
+        },
+        "contact_full_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Full Name"
+        },
+        "contact_last_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Last Name"
+        },
+        "contact_phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Phone"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Time"
+        },
+        "estimated_guests": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimated Guests"
+        },
+        "event_access": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Access"
+        },
+        "event_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Date"
+        },
+        "event_purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Purpose"
+        },
+        "event_setting": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Setting"
+        },
+        "event_timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Timezone"
+        },
+        "event_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Types",
+          "type": "array"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "External Id"
+        },
+        "form_version": {
+          "title": "Form Version",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "import_batch_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Batch Id"
+        },
+        "internal_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Internal Notes"
+        },
+        "organization_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Organization Name"
+        },
+        "organization_website": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Organization Website"
+        },
+        "original_fields": {
+          "additionalProperties": true,
+          "title": "Original Fields",
+          "type": "object"
+        },
+        "received_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Received At"
+        },
+        "referral_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Referral Reference"
+        },
+        "referral_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Referral Sources",
+          "type": "array"
+        },
+        "source": {
+          "enum": [
+            "legacy_csv",
+            "manual",
+            "wix"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Key"
+        },
+        "source_row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Row Number"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Time"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "new",
+            "reviewing",
+            "proposal_sent",
+            "booked",
+            "completed",
+            "declined",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unavailable_logistics": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unavailable Logistics"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "venue_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Address"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "form_version",
+        "status",
+        "received_at",
+        "created_at",
+        "updated_at",
+        "event_date",
+        "start_time",
+        "end_time",
+        "event_timezone",
+        "organization_name",
+        "contact_full_name",
+        "contact_email",
+        "event_types",
+        "venue_address",
+        "estimated_guests",
+        "source_key",
+        "external_id",
+        "import_batch_id",
+        "source_row_number",
+        "event_access",
+        "event_setting",
+        "event_purpose",
+        "audience_distance_12ft",
+        "unavailable_logistics",
+        "contact_first_name",
+        "contact_last_name",
+        "contact_phone",
+        "organization_website",
+        "referral_sources",
+        "referral_reference",
+        "additional_notes",
+        "internal_notes",
+        "original_fields"
+      ],
+      "title": "PresentationRead",
+      "type": "object"
+    },
+    "PresentationSummary": {
+      "properties": {
+        "contact_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Email"
+        },
+        "contact_full_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Full Name"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Time"
+        },
+        "estimated_guests": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimated Guests"
+        },
+        "event_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Date"
+        },
+        "event_timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Event Timezone"
+        },
+        "event_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Types",
+          "type": "array"
+        },
+        "form_version": {
+          "title": "Form Version",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "organization_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Organization Name"
+        },
+        "received_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Received At"
+        },
+        "source": {
+          "enum": [
+            "legacy_csv",
+            "manual",
+            "wix"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Time"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "new",
+            "reviewing",
+            "proposal_sent",
+            "booked",
+            "completed",
+            "declined",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "venue_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Address"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "form_version",
+        "status",
+        "received_at",
+        "created_at",
+        "updated_at",
+        "event_date",
+        "start_time",
+        "end_time",
+        "event_timezone",
+        "organization_name",
+        "contact_full_name",
+        "contact_email",
+        "event_types",
+        "venue_address",
+        "estimated_guests"
+      ],
+      "title": "PresentationSummary",
+      "type": "object"
+    },
+    "TaskRead": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "email_message_id": {
+          "format": "uuid",
+          "title": "Email Message Id",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "inquiry_id": {
+          "format": "uuid",
+          "title": "Inquiry Id",
+          "type": "string"
+        },
+        "resolved": {
+          "title": "Resolved",
+          "type": "boolean"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "inquiry_id",
+        "email_message_id",
+        "code",
+        "summary",
+        "resolved",
+        "created_at"
+      ],
+      "title": "TaskRead",
+      "type": "object"
+    },
+    "TemplateEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "body_text": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body Text",
+          "type": "string"
+        },
+        "ready_for_use": {
+          "default": false,
+          "title": "Ready For Use",
+          "type": "boolean"
+        },
+        "subject": {
+          "maxLength": 998,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject",
+        "body_text"
+      ],
+      "title": "TemplateEdit",
+      "type": "object"
+    },
+    "TemplateRead": {
+      "additionalProperties": false,
+      "properties": {
+        "body_text": {
+          "maxLength": 30000,
+          "minLength": 1,
+          "title": "Body Text",
+          "type": "string"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "ready_for_use": {
+          "default": false,
+          "title": "Ready For Use",
+          "type": "boolean"
+        },
+        "subject": {
+          "maxLength": 998,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "updated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Updated By"
+        }
+      },
+      "required": [
+        "subject",
+        "body_text",
+        "key",
+        "updated_by",
+        "updated_at"
+      ],
+      "title": "TemplateRead",
+      "type": "object"
+    },
+    "WixFields": {
+      "additionalProperties": false,
+      "properties": {
+        "additional_notes": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Additional Notes"
+        },
+        "audience_distance_12ft": {
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ],
+          "title": "Audience Distance 12Ft",
+          "type": "string"
+        },
+        "contact_email": {
+          "maxLength": 320,
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+          "title": "Contact Email",
+          "type": "string"
+        },
+        "contact_first_name": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Contact First Name",
+          "type": "string"
+        },
+        "contact_last_name": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Contact Last Name",
+          "type": "string"
+        },
+        "contact_phone": {
+          "maxLength": 100,
+          "minLength": 3,
+          "title": "Contact Phone",
+          "type": "string"
+        },
+        "end_time": {
+          "format": "time",
+          "title": "End Time",
+          "type": "string"
+        },
+        "estimated_guests": {
+          "maximum": 10000000,
+          "minimum": 1,
+          "title": "Estimated Guests",
+          "type": "integer"
+        },
+        "event_access": {
+          "anyOf": [
+            {
+              "enum": [
+                "public",
+                "private"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Access"
+        },
+        "event_date": {
+          "format": "date",
+          "title": "Event Date",
+          "type": "string"
+        },
+        "event_purpose": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Event Purpose",
+          "type": "string"
+        },
+        "event_setting": {
+          "anyOf": [
+            {
+              "enum": [
+                "indoor",
+                "outdoor",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Setting"
+        },
+        "event_timezone": {
+          "default": "America/Los_Angeles",
+          "maxLength": 100,
+          "title": "Event Timezone",
+          "type": "string"
+        },
+        "event_types": {
+          "items": {
+            "enum": [
+              "k12_school",
+              "college_university",
+              "nonprofit",
+              "government",
+              "corporate",
+              "cultural_organization",
+              "funeral",
+              "grand_opening",
+              "other"
+            ],
+            "type": "string"
+          },
+          "maxItems": 9,
+          "minItems": 1,
+          "title": "Event Types",
+          "type": "array"
+        },
+        "form_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Form Id",
+          "type": "string"
+        },
+        "organization_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Name"
+        },
+        "organization_website": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Website"
+        },
+        "referral_reference": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Referral Reference"
+        },
+        "referral_sources": {
+          "items": {
+            "enum": [
+              "website",
+              "instagram",
+              "facebook",
+              "tiktok",
+              "word_of_mouth",
+              "mexica_new_year",
+              "previous_performance",
+              "referral",
+              "other"
+            ],
+            "type": "string"
+          },
+          "maxItems": 9,
+          "title": "Referral Sources",
+          "type": "array"
+        },
+        "start_time": {
+          "format": "time",
+          "title": "Start Time",
+          "type": "string"
+        },
+        "submission_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Submission Id",
+          "type": "string"
+        },
+        "unavailable_logistics": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Unavailable Logistics",
+          "type": "string"
+        },
+        "venue_address": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Venue Address",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_date",
+        "start_time",
+        "end_time",
+        "event_types",
+        "event_purpose",
+        "venue_address",
+        "estimated_guests",
+        "audience_distance_12ft",
+        "unavailable_logistics",
+        "contact_first_name",
+        "contact_last_name",
+        "contact_email",
+        "contact_phone",
+        "form_id",
+        "submission_id"
+      ],
+      "title": "WixFields",
+      "type": "object"
+    }
+  },
+  "title": "Calpulli backend request and response schemas"
+}
