@@ -213,4 +213,30 @@ The [documentation index](docs/README.md) groups presentations, email, health, a
 
 The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
 
+## Vercel services
+
+Import this repository as one Vercel project with **Root Directory** set to the repository root. Remove previous project overrides intended for a frontend-only deployment. The root [`vercel.json`](vercel.json) owns both service configurations. See [Vercel Services](https://vercel.com/docs/services).
+
+- `backend` runs FastAPI from `backend/asgi.py`, which exports the existing app factory as an ASGI application. Public `/api` and `/api/...` requests reach it with their original paths. Existing `/api/v1/...` routes need no prefix changes.
+- `frontend` builds Vite from `frontend/` and handles all remaining paths, with an SPA fallback and static assets. Its existing hash navigation continues to work.
+- Neither service currently calls the other. The frontend calls external Supabase Auth from the browser; the backend connects to external PostgreSQL. These are not Vercel services and require no service bindings. Future function-to-function calls need caller-side bindings; browser calls use public routes.
+
+The backend's separate `/staff/presentations/{inquiry_id}` HTML panel and development `/docs` and `/openapi.json` routes are not exposed by these rewrites. Those paths reach the frontend. Confirm any additional backend public paths before deployment.
+
+Configure backend runtime variables in Vercel using [`backend/.env.example`](backend/.env.example) as a reference. Set `APP_ENV=production`, `DOCS_ENABLED=false`, and a server-only `DATABASE_URL` using `postgresql+psycopg` with externally supplied credentials and TLS. Use a hosted PostgreSQL connection suitable for concurrent function instances; Compose's `db` hostname and local database URLs do not work on Vercel. Keep `INTERNAL_API_TOKEN` server-only when enabling protected APIs, and set independent Wix credentials only after receiver activation is authorized. Keep `EMAIL_PROVIDER=mock` and `EMAIL_TEST_MODE=true` until live mail is authorized. Frontend build variables are documented in [`frontend/README.md`](frontend/README.md#vercel-preparation).
+
+Vercel does not host the Compose database or run Alembic automatically. Database provisioning, reviewed migrations, and deployment remain separate authorized operations. `.vercelignore` excludes private CSVs, environment files, credentials, and local build artifacts from CLI uploads.
+
+To check routing locally, install a current Vercel CLI that supports services, provide backend environment variables in the launching shell, and run from the repository root:
+
+```bash
+vercel dev --local
+# In another terminal, using the origin printed by Vercel (normally port 3000):
+curl -i http://localhost:3000/api/v1/health
+curl -i http://localhost:3000/api/v1/health/ready
+curl -i http://localhost:3000/
+```
+
+Expect liveness to return 200, readiness to return 200 only when PostgreSQL is reachable, and `/` to serve the frontend. Verify a frontend deep link and an `/assets/...` URL from the built page, and confirm an unknown `/api/...` path returns a backend JSON 404 rather than frontend HTML. No migrations run during startup or these checks.
+
 Read the [dashboard style guide](docs/dashboard/style-guide.md) and [UX wireframes and integration plan](docs/dashboard/ux.md). The frontend README documents Vercel configuration and observed verification.
