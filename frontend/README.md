@@ -17,11 +17,13 @@ Open http://127.0.0.1:5173 and choose **Explore demo workspace**. The local envi
 
 ## Authentication and data
 
-Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an existing Supabase email/password user. No public signup is provided. Set `VITE_ENABLE_DEMO=true` to expose the sample workspace. Leave it false or unset to disable demo entry. Supabase manages session persistence, refresh, auth events, and logout.
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an existing Supabase email/password user. No public signup is provided. Set `VITE_ENABLE_DEMO=true` to expose the sample workspace. Leave it false or unset to disable demo entry. Supabase manages session persistence, refresh, auth events, and logout. Missing or malformed public authentication settings disable sign-in and show the login page instead of crashing at startup. `VITE_SUPABASE_URL` must be an HTTP or HTTPS project URL, without surrounding quotes in the Vercel value. Rebuild after changing build variables.
 
 After login, the frontend sends the session JWT to `/api/v1/auth/me` and opens the workspace only after the backend verifies staff approval. Configure the backend's Supabase URL, publishable key, and `STAFF_USER_IDS` using the [staff authentication instructions](../README.md#supabase-staff-authentication). For local login, run FastAPI on port 8000; Vite proxies `/api` to it. Demo mode makes no protected API calls.
 
 All business records are still fictional in both authenticated and demo views. The auth check returns only the verified user UUID, not business records. The sample store uses `calpulli-demo-v1` in this browser's local storage, shared across sample sessions in this browser. Reset it in Settings. Never store real client data there. Before connecting real records, implement business-data loading, audit identities, conflict handling, and email delivery configuration. Existing endpoints and incoming-email gaps are mapped in [the UX plan](../docs/dashboard/ux.md).
+
+Home lives at `/`. Signed-out visitors go to `/login`; protected deep links return to the requested page after login. Workspace navigation uses paths such as `/presentations` and supports reload, Back, and Forward. Legacy links such as `/#inbox` migrate to `/inbox`. The login return path is restricted to workspace pages.
 
 ## Features to review
 

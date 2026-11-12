@@ -114,7 +114,10 @@
     async function load(path = "/") {
       const target = new URL(path, location.origin);
       target.searchParams.set("browsercheck", String(Date.now()));
-      frame.src = target.href;
+      await new Promise((resolve) => {
+        frame.onload = resolve;
+        frame.src = target.href;
+      });
       await until(() => text().includes("Welcome back."), "login");
       frame.contentWindow.addEventListener("error", (e) =>
         errors.push(e.message),
@@ -174,7 +177,42 @@
           doc().querySelector("input[name=password]").type === "text",
           "Password visibility toggle works",
         );
+        check(
+          frame.contentWindow.location.pathname === "/login",
+          "Anonymous root redirects to /login",
+        );
         await enter();
+        check(
+          frame.contentWindow.location.pathname === "/" &&
+            !frame.contentWindow.location.hash,
+          "Home uses the root without a hash",
+        );
+        await nav("Presentations");
+        check(
+          frame.contentWindow.location.pathname === "/presentations",
+          "Navigation uses clean paths",
+        );
+        await nav("Inbox");
+        frame.contentWindow.history.back();
+        await until(
+          () =>
+            doc().querySelector(".page-title")?.textContent === "Presentations",
+          "history back",
+        );
+        check(
+          frame.contentWindow.location.pathname === "/presentations",
+          "Back restores the previous page",
+        );
+        frame.contentWindow.history.forward();
+        await until(
+          () => doc().querySelector(".page-title")?.textContent === "Inbox",
+          "history forward",
+        );
+        check(
+          frame.contentWindow.location.pathname === "/inbox",
+          "Forward restores the next page",
+        );
+        await nav("Home");
         check(
           text().includes("fictional data") && text().includes("Alex"),
           "Demo shell has identity and sample-data disclosure",
@@ -464,6 +502,27 @@
           text().includes("Welcome back.") && !doc().querySelector("nav"),
           "Account logout returns to the login boundary",
         );
+        check(
+          frame.contentWindow.location.pathname === "/login",
+          "Logout uses /login",
+        );
+        for (const path of ["/inbox", "/#inbox"]) {
+          await load(path);
+          check(
+            frame.contentWindow.location.pathname === "/login",
+            "Signed-out deep link requires login: " + path,
+          );
+          await click("Explore demo workspace");
+          await until(
+            () => doc().querySelector(".page-title")?.textContent === "Inbox",
+            "restore inbox",
+          );
+          check(
+            frame.contentWindow.location.pathname === "/inbox" &&
+              !frame.contentWindow.location.hash,
+            "Deep link restores clean /inbox: " + path,
+          );
+        }
         check(errors.length === 0, "No uncaught browser errors");
         results.querySelector("h2").textContent = `${passed} checks passed`;
         document.title = `${passed} checks passed · Calpulli`;

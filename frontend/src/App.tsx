@@ -64,9 +64,17 @@ const pages: Page[] = [
   "Activity",
   "Settings",
 ];
-function pageFromHash(): Page {
-  const raw = location.hash.slice(1);
-  return pages.find((p) => p.toLowerCase() === raw) ?? "Home";
+function pagePath(page: Page): string {
+  return page === "Home" ? "/" : `/${page.toLowerCase()}`;
+}
+function pageFromLocation(): Page {
+  const legacy = pages.find((p) => `#${p.toLowerCase()}` === location.hash);
+  if (legacy) return legacy;
+  const path =
+    location.pathname === "/login"
+      ? new URLSearchParams(location.search).get("next")
+      : location.pathname;
+  return pages.find((p) => pagePath(p) === path) ?? "Home";
 }
 type Composition =
   { kind: "new"; inquiryId: string } | { kind: "edit"; draft: Draft };
@@ -79,7 +87,7 @@ export function App() {
   const [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(Boolean(supabase)),
     [demo, setDemo] = useState(false),
-    [page, setPage] = useState<Page>(pageFromHash),
+    [page, setPage] = useState<Page>(pageFromLocation),
     [detail, setDetail] = useState<string | null>(null),
     [workspace, setWorkspace] = useState(loadWorkspace),
     [composition, setComposition] = useState<Composition | null>(null),
@@ -92,6 +100,7 @@ export function App() {
   const [storageError, setStorageError] = useState(false);
   const [apiAccess, setApiAccess] = useState<ApiAccess>({ kind: "checking" });
   const [accessAttempt, setAccessAttempt] = useState(0);
+  const signedIn = Boolean(session) || demo;
   useEffect(() => {
     if (!session) return;
     const controller = new AbortController();
@@ -150,13 +159,30 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
   useEffect(() => {
+    if (loading) return;
     const handler = () => {
-      setPage(pageFromHash());
+      const next = pageFromLocation();
+      const path = pagePath(next);
+      const destination = signedIn
+        ? path
+        : next === "Home"
+          ? "/login"
+          : `/login?next=${encodeURIComponent(path)}`;
+      if (
+        `${location.pathname}${location.search}${location.hash}` !== destination
+      )
+        history.replaceState(null, "", destination);
+      setPage(next);
       setDetail(null);
     };
+    handler();
+    window.addEventListener("popstate", handler);
     window.addEventListener("hashchange", handler);
-    return () => window.removeEventListener("hashchange", handler);
-  }, []);
+    return () => {
+      window.removeEventListener("popstate", handler);
+      window.removeEventListener("hashchange", handler);
+    };
+  }, [loading, signedIn]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 4500);
@@ -174,7 +200,8 @@ export function App() {
     setPage(next);
     setDetail(null);
     setMobile(false);
-    location.hash = next.toLowerCase();
+    const path = pagePath(next);
+    if (location.pathname !== path) history.pushState(null, "", path);
   }
   function open(id: string) {
     setDetail(id);
@@ -214,7 +241,7 @@ export function App() {
     setSession(null);
     setDetail(null);
     setPage("Home");
-    location.hash = "home";
+    history.replaceState(null, "", "/login");
   }
   if (loading)
     return (

@@ -238,7 +238,7 @@ For local login, run FastAPI on port 8000 and Vite on port 5173. Vite's developm
 Import this repository as one Vercel project with **Root Directory** set to the repository root. Remove previous project overrides intended for a frontend-only deployment. The root [`vercel.json`](vercel.json) owns both service configurations. See [Vercel Services](https://vercel.com/docs/services).
 
 - `backend` runs FastAPI from `backend/asgi.py`, which exports the existing app factory as an ASGI application. Public `/api` and `/api/...` requests reach it with their original paths. Existing `/api/v1/...` routes need no prefix changes.
-- `frontend` builds Vite from `frontend/` and handles all remaining paths, with an SPA fallback and static assets. Its existing hash navigation continues to work.
+- `frontend` builds Vite from `frontend/` and handles all remaining paths, with an SPA fallback and static assets. Home uses `/`, signed-out visitors redirect to `/login`, and workspace pages use clean paths such as `/presentations`. Legacy page hashes redirect to their clean paths.
 - No server-side service-to-service calls are present. The browser calls public FastAPI routes and external Supabase Auth; FastAPI connects to external PostgreSQL and Supabase Auth. These external systems are not Vercel services. No service bindings are needed. Future function-to-function calls need caller-side bindings; browser calls use public routes.
 
 The backend's separate `/staff/presentations/{inquiry_id}` HTML panel and development `/docs` and `/openapi.json` routes are not exposed by these rewrites. Those paths reach the frontend. Confirm any additional backend public paths before deployment.

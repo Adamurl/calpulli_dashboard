@@ -25,7 +25,7 @@ function session() {
   };
 }
 
-async function login(page: Page) {
+async function login(page: Page, path = "/") {
   const data = session();
   await page.route("**/auth/v1/token?grant_type=password", (route) =>
     route.fulfill({ json: data }),
@@ -33,7 +33,8 @@ async function login(page: Page) {
   await page.route("**/auth/v1/logout**", (route) =>
     route.fulfill({ status: 204 }),
   );
-  await page.goto("/");
+  await page.goto(path);
+  await expect(page).toHaveURL(/\/login(?:\?|$)/);
   await page.getByLabel("Email address").fill("staff@example.org");
   await page.getByLabel("Password", { exact: true }).fill("fictional-password");
   await page.getByRole("button", { name: "Log in", exact: true }).click();
@@ -121,3 +122,63 @@ test("fictional demo mode never requests API access", async ({ page }) => {
   ).toBeVisible();
   expect(requests).toEqual([]);
 });
+
+test("root, clean navigation, history, and logout follow the session", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ json: { id: userId } }),
+  );
+  await login(page);
+  await expect(page).toHaveURL("/");
+  await page
+    .getByRole("button", { name: "Presentations", exact: true })
+    .click();
+  await expect(page).toHaveURL("/presentations");
+  await page
+    .getByRole("button", { name: /^Inbox/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL("/inbox");
+  await page.goBack();
+  await expect(
+    page.getByRole("heading", { name: "Presentations", exact: true }),
+  ).toBeVisible();
+  await page.goForward();
+  await expect(
+    page.getByRole("heading", { name: "Inbox", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Inbox", exact: true }),
+  ).toBeVisible();
+  await page.goto("/login");
+  await expect(page).toHaveURL("/");
+  await page.getByRole("button", { name: /staff Calpulli/ }).click();
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await expect(page).toHaveURL("/login");
+  await page.goBack();
+  await expect(page.getByRole("navigation")).toHaveCount(0);
+});
+
+for (const path of [
+  "/inbox",
+  "/#inbox",
+  "/#home",
+  "/login?next=https://example.org",
+]) {
+  test(`login safely restores ${path}`, async ({ page }) => {
+    await page.route("**/api/v1/auth/me", (route) =>
+      route.fulfill({ json: { id: userId } }),
+    );
+    await login(page, path);
+    const inbox = path.includes("inbox");
+    await expect(page).toHaveURL(inbox ? "/inbox" : "/");
+    await expect(
+      page.getByRole("heading", {
+        name: inbox ? "Inbox" : "Home",
+        exact: true,
+      }),
+    ).toBeVisible();
+  });
+}

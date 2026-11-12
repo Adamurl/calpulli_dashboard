@@ -1,5 +1,15 @@
 # Dashboard verification
 
+## Root and clean routes, November 11, 2026
+
+Production Chrome reproduced the blank screen at the root. Its console reported `Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.` during client initialization. Public auth configuration now validates before client construction; malformed settings leave sign-in disabled with the existing administrator notice.
+
+Safari reported **51 checks passed**, including root-to-login routing, Home at `/`, clean navigation, Back and Forward, logout, protected deep links, legacy hash migration, and existing desktop/mobile workflows. A separate Vite server with an intentionally invalid Supabase URL and demo disabled displayed `/login`, the administrator notice, and a disabled login button instead of a blank page.
+
+`npm run build`, `npm run format:check`, and `git diff --check` passed. Independent source review found no blocking defects; its token-refresh navigation observation was corrected by depending on signed-in status rather than the session object. No new dependencies or backend changes. Backend checks were not rerun.
+
+Playwright was attempted but Chrome aborted at startup before assertions. New authenticated routing tests remain unexecuted here; real-user sign-in was not tested. Production authentication still requires a valid `VITE_SUPABASE_URL` build value and redeployment. The code fix does not change Vercel settings.
+
 ## Login and statistics follow-up, November 11, 2026
 
 Safari reported **41 checks passed**, including the two-column login dimensions, loaded background photograph, visual-only password reset control, arrow-free submit button, Today default, 7-day and 30-day changes, event-date totals, wide-screen expansion, rounded checkboxes, and existing desktop/mobile workflows. The login was visually inspected at desktop size. Build and formatting checks passed.
