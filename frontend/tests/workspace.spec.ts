@@ -237,8 +237,8 @@ test("split login and statistics period controls", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".login-background img")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Forgot password?" }),
-  ).toHaveAttribute("aria-disabled", "true");
+    page.getByRole("link", { name: "Forgot password?" }),
+  ).toHaveAttribute("href", "/forgot-password");
   await expect(page.locator(".login-card form > button svg")).toHaveCount(0);
   await enter(page);
   await page

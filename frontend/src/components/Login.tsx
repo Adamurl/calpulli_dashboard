@@ -54,14 +54,9 @@ export function Login({ onDemo }: { onDemo: () => void }) {
               <div className="login-password">
                 <div className="password-label-row">
                   <label htmlFor="login-password">Password</label>
-                  <button
-                    type="button"
-                    className="forgot-password"
-                    aria-disabled="true"
-                    title="Password reset is not available yet"
-                  >
+                  <a className="forgot-password" href="/forgot-password">
                     Forgot password?
-                  </button>
+                  </a>
                 </div>
                 <div className="password-wrap">
                   <input

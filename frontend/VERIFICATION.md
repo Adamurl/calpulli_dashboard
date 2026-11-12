@@ -1,5 +1,15 @@
 # Dashboard verification
 
+## Password recovery, November 11, 2026
+
+Added `/forgot-password` and `/reset-password` with the login typography and inputs, a centered single-column layout, and no background photograph. Recovery links are processed by the installed Supabase SDK using an isolated in-memory session; ordinary saved staff authentication is unchanged. Direct visits do not expose password inputs. The reset component mounts before the workspace, so recovery never requires staff approval or calls business APIs.
+
+Safari reported **17 recovery checks passed** against the real SDK and a local fictional Auth network boundary. Checks covered direct visits with an existing staff session, expired links, rejected forged tokens, URL cleanup, password mismatch, server password rejection, successful updates, local sign-out, existing staff-session preservation, reload denial, root recovery callbacks, mobile width, email redirect URL, generic confirmation, and rate limits. The photograph-free desktop request page was visually inspected. The existing workspace runner also reported **51 checks passed**.
+
+`npm run build`, `npm run format:check`, `node --check tests/auth-fixture.mjs`, and `git diff --check` passed. Independent security review found no blocking defects. No dependencies, database changes, or backend source changes; backend checks were not rerun locally.
+
+Chrome still aborts at launch even outside the shell sandbox, before Playwright assertions. Live email delivery, real password changes, and live Supabase redirect settings were not changed or verified. Production must allow `https://www.calpullitonalehqueh.org/reset-password` as an exact Auth redirect. Request a new email after changing redirect settings. Refreshing a consumed recovery page requires a new link because recovery tokens are deliberately not persisted.
+
 ## Root and clean routes, November 11, 2026
 
 Production Chrome reproduced the blank screen at the root. Its console reported `Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.` during client initialization. Public auth configuration now validates before client construction; malformed settings leave sign-in disabled with the existing administrator notice.

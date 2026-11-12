@@ -3206,7 +3206,7 @@ tr[data-state="selected"] {
   font-size: 12px;
   padding: 0;
   color: #171717;
-  cursor: default;
+  cursor: pointer;
 }
 .forgot-password:hover {
   text-decoration: underline;
@@ -3425,4 +3425,31 @@ input[type="checkbox"]:indeterminate::after {
   .request-stat svg {
     width: 76px;
   }
+}
+
+.password-page {
+  grid-template-columns: 1fr;
+}
+.password-page .login-panel {
+  max-width: none;
+}
+.password-page .login-identity {
+  align-self: flex-start;
+  color: inherit;
+  text-decoration: none;
+}
+.password-page .login-layout {
+  width: min(100%, 360px);
+}
+.password-hint {
+  margin: -14px 0 0;
+  font-size: 12px;
+  color: #626262;
+}
+.password-back {
+  display: block;
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: #525252;
 }

@@ -16,13 +16,14 @@ import {
   Activity,
   Settings,
 } from "lucide-react";
-import { supabase, demoEnabled } from "./auth";
+import { supabase, demoEnabled, passwordRecovery } from "./auth";
 import { apiFetch, ApiError } from "./api";
 import { inquiries } from "./data";
 import { emptyWorkspace, workspaceSchema } from "./domain";
 import type { Draft, Page, Workspace } from "./domain";
 import { Sidebar } from "./components/Sidebar";
 import { Login } from "./components/Login";
+import { PasswordReset, ForgotPassword } from "./components/PasswordReset";
 import { Home } from "./components/Home";
 import { Requests } from "./components/Requests";
 import { Inbox } from "./components/Inbox";
@@ -84,6 +85,11 @@ type ApiAccess =
   | { kind: "denied"; accessToken: string; message: string };
 const apiUserSchema = z.object({ id: z.uuid() });
 export function App() {
+  if (passwordRecovery) return <PasswordReset />;
+  if (location.pathname === "/forgot-password") return <ForgotPassword />;
+  return <WorkspaceApp />;
+}
+function WorkspaceApp() {
   const [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(Boolean(supabase)),
     [demo, setDemo] = useState(false),

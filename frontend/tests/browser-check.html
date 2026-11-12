@@ -166,11 +166,10 @@
           "Provided login background loads",
         );
         check(
-          doc()
-            .querySelector(".forgot-password")
-            .getAttribute("aria-disabled") === "true" &&
+          doc().querySelector(".forgot-password").getAttribute("href") ===
+            "/forgot-password" &&
             !doc().querySelector(".login-card form > button svg"),
-          "Forgot password is visual only and login has no arrow",
+          "Forgot password links to recovery and login has no arrow",
         );
         await click("Show password");
         check(
