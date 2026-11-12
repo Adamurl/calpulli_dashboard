@@ -6,7 +6,7 @@ Source: `backend/app/modules/presentations/router.py`, `schemas.py`, and `models
 
 ## Endpoint and input
 
-`GET /api/v1/presentations/{request_id}/activities` requires the internal bearer credential. `request_id` is a UUID. There is no body.
+`GET /api/v1/presentations/{request_id}/activities` requires the Supabase user JWT and staff approval. `request_id` is a UUID. There is no body.
 
 | Query parameter | Type | Default | Bounds |
 | --- | --- | --- | --- |

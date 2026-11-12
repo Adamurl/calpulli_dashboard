@@ -24,7 +24,7 @@ Validate external input at the boundary with Pydantic. Use typed settings for en
 
 Return consistent, safe API errors. Do not expose database URLs, driver error messages, or stack traces. Do not log authorization headers, cookies, payload bodies, email content, or personal information. Keep CORS restrictive and production documentation exposure intentional.
 
-Presentation routes use a bootstrap internal bearer token, and the Wix receiver uses an independent body secret and form ID. Missing settings must disable those routes. Do not expose personal data through Supabase browser roles or embed server credentials in frontend code. Individual user authentication and role policies are not implemented. Keep TEMP and its private CSV contents out of Git, Docker, logs, and public test fixtures.
+Presentation routes require a Supabase user access token verified through the configured Auth server and membership in the server-side staff UUID allowlist. Anonymous users and the former bootstrap token must never grant access. Health routes remain public; the Wix receiver uses an independent body secret and form ID. Missing authentication settings must disable protected routes, and an empty staff allowlist must deny all users. Do not expose personal data through Supabase browser roles or embed server credentials in frontend code. Fine-grained staff roles and per-person audit attribution are not implemented. Keep TEMP and its private CSV contents out of Git, Docker, logs, and public test fixtures.
 
 ## Verification
 

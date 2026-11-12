@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
-from app.core.security import require_internal_access
+from app.core.security import require_staff_access
 from app.db.session import get_session
 from app.modules.presentations import operations_service, services
 from app.modules.presentations.email_router import router as email_router
@@ -23,7 +23,7 @@ from app.modules.presentations.schemas import (
 )
 
 router = APIRouter(
-    prefix="/presentations", tags=["presentations"], dependencies=[Depends(require_internal_access)]
+    prefix="/presentations", tags=["presentations"], dependencies=[Depends(require_staff_access)]
 )
 router.include_router(email_router)
 DbSession = Annotated[Session, Depends(get_session)]

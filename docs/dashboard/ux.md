@@ -192,9 +192,9 @@ Supabase Auth supports password sign-in for an email identity. The login form ca
 
 The frontend receives only the Supabase project URL and a publishable API key. Supabase distinguishes the application key from the signed-in user's identity. Secret and service-role keys remain server-only. [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 
-The existing presentation API accepts a shared `INTERNAL_API_TOKEN`. It does not yet accept individual Supabase user JWTs. Never place that internal token in a `VITE_` or `NEXT_PUBLIC_` environment variable. Do not forward any signed-in user's actions through an unrestricted shared-token proxy.
+The presentation API verifies individual Supabase user JWTs and requires membership in the server-side `STAFF_USER_IDS` allowlist. The frontend sends its current session token to same-origin `/api/v1/...` paths and checks `/api/v1/auth/me` before opening the workspace. The shared internal token is no longer accepted.
 
-Before private records can appear in this dashboard, the server must validate the user token, verify the staff access policy, and attach verified individual identity to audit records. The frontend route guard only controls what the browser displays. Server authorization must protect every private read and mutation.
+User token validation and the staff access policy are implemented. Before private records replace the fictional workspace, connect the business API responses and attach verified individual identity to persisted audit records. The frontend route guard only controls what the browser displays. Server authorization must protect every private read and mutation.
 
 Production business requests stay behind FastAPI. Existing Supabase tables retain their restrictive browser-role permissions. Sign-in does not require opening browser access to presentation or email tables.
 

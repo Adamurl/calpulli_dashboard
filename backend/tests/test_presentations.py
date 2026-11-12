@@ -84,16 +84,14 @@ def test_patch_requires_explicit_valid_change(payload: dict[str, object]) -> Non
         PresentationPatch.model_validate(payload)
 
 
-def test_internal_api_denies_unconfigured_or_invalid_access() -> None:
+def test_api_denies_unconfigured_or_invalid_access(staff_auth) -> None:
     unconfigured = create_app(
         Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test")
     )
     with TestClient(unconfigured) as client:
         assert client.get("/api/v1/presentations").status_code == 503
     configured = create_app(
-        Settings(
-            _env_file=None, database_url=UNAVAILABLE_URL, app_env="test", internal_api_token=TOKEN
-        )
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test", **staff_auth(TOKEN))
     )
     with TestClient(configured) as client:
         for headers in [{}, {"Authorization": "Bearer incorrect-token"}]:
@@ -105,6 +103,7 @@ def test_internal_api_denies_unconfigured_or_invalid_access() -> None:
 
 def test_authorized_list_filters_pagination_and_summary(
     monkeypatch: pytest.MonkeyPatch,
+    staff_auth,
 ) -> None:
     captured: dict[str, object] = {}
 
@@ -137,9 +136,7 @@ def test_authorized_list_filters_pagination_and_summary(
 
     monkeypatch.setattr(services, "list_presentations", list_records)
     app = create_app(
-        Settings(
-            _env_file=None, database_url=UNAVAILABLE_URL, app_env="test", internal_api_token=TOKEN
-        )
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test", **staff_auth(TOKEN))
     )
     with TestClient(app) as client:
         response = client.get(
@@ -158,7 +155,9 @@ def test_authorized_list_filters_pagination_and_summary(
         assert invalid.status_code == 422
 
 
-def test_not_found_and_status_conflict_are_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_not_found_and_status_conflict_are_http_errors(
+    monkeypatch: pytest.MonkeyPatch, staff_auth
+) -> None:
     def missing(*args, **kwargs):
         raise services.PresentationNotFound
 
@@ -168,9 +167,7 @@ def test_not_found_and_status_conflict_are_http_errors(monkeypatch: pytest.Monke
     monkeypatch.setattr(services, "get_presentation", missing)
     monkeypatch.setattr(services, "update_presentation", conflict)
     app = create_app(
-        Settings(
-            _env_file=None, database_url=UNAVAILABLE_URL, app_env="test", internal_api_token=TOKEN
-        )
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test", **staff_auth(TOKEN))
     )
     with TestClient(app) as client:
         headers = {"Authorization": f"Bearer {TOKEN}"}

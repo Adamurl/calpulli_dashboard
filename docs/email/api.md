@@ -6,7 +6,7 @@ Sources: `backend/app/modules/presentations/email_router.py`, `email_schemas.py`
 
 ## Authentication and identifiers
 
-All JSON routes require the internal bearer credential. All inquiry and message IDs in paths are UUIDs. A message is selected within its inquiry; using another inquiry's message ID returns HTTP 404. Send-again additionally requires `X-Email-Resend-Token` matching configured `EMAIL_SEND_AGAIN_TOKEN`.
+All JSON routes require the Supabase user JWT and staff approval. All inquiry and message IDs in paths are UUIDs. A message is selected within its inquiry; using another inquiry's message ID returns HTTP 404. Send-again additionally requires `X-Email-Resend-Token` matching configured `EMAIL_SEND_AGAIN_TOKEN`.
 
 The prefix below is `/api/v1/presentations`. An action root is `/{inquiry_id}/emails/{message_id}`.
 

@@ -4,6 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID
 
+from fastapi import Header, HTTPException
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from sqlalchemy import create_engine, event
 from sqlalchemy.dialects.postgresql import JSONB
@@ -11,6 +13,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.security import require_staff_access
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import create_app
@@ -63,7 +66,6 @@ app = create_app(
         _env_file=None,
         database_url="postgresql+psycopg://test@127.0.0.1:1/calpulli_test",
         app_env="test",
-        internal_api_token="fictional-browser-staff-token-32-characters",
         email_send_again_token="fictional-browser-resend-token-32-characters",
         email_test_recipient="qa@example.org",
     )
@@ -76,6 +78,14 @@ def db():
 
 
 app.dependency_overrides[get_session] = db
+
+
+def browser_staff(authorization: str = Header(default="")):
+    if authorization != "Bearer fictional-browser-staff-token-32-characters":
+        raise HTTPException(401, "Authentication required")
+
+
+app.dependency_overrides[require_staff_access] = browser_staff
 if __name__ == "__main__":
     import uvicorn
 

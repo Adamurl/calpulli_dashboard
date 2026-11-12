@@ -85,7 +85,7 @@ New input rejects unknown keys, blank required text, duplicate selections, inval
 
 Allowed statuses are `unknown`, `new`, `reviewing`, `proposal_sent`, `booked`, `completed`, `declined`, and `cancelled`. These are record labels. The email workflow maps selected labels to recommendations; scheduling, contract signing, and payment verification are not implemented by the state model. See the [presentations API](api.md) and [email API](../email/api.md).
 
-A status patch includes both `status` and `expected_current_status`. The service locks the row and rejects a stale expected status with HTTP 409. A successful change records the previous and new status. Internal note changes update the current note and append an activity. There is no user identity attribution yet because the bootstrap token does not identify individual coordinators.
+A status patch includes both `status` and `expected_current_status`. The service locks the row and rejects a stale expected status with HTTP 409. A successful change records the previous and new status. Internal note changes update the current note and append an activity. The API verifies individual Supabase users, but these activities do not yet persist the verified user ID.
 
 ## Historical import
 

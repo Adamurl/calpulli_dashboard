@@ -28,7 +28,7 @@ This is a deployment placeholder, not a live URL. Do not send the form to a Supa
 6. Map the required and optional presentation fields in [the data reference](presentations/README.md).
 7. Preview a fictional test submission and confirm its actual JSON before activating the automation.
 
-The backend also requires `WIX_FORM_ID`. It rejects a different form with HTTP 403. The form ID is an identifier, not a secret. Keep `WIX_WEBHOOK_TOKEN` separate from `INTERNAL_API_TOKEN`.
+The backend also requires `WIX_FORM_ID`. It rejects a different form with HTTP 403. The form ID is an identifier, not a secret. Keep `WIX_WEBHOOK_TOKEN` independent from email capability secrets and user access tokens.
 
 The body has a flat field map inside `data`. This fictional example deliberately leaves the credential blank and cannot authenticate:
 

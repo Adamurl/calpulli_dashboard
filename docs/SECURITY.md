@@ -2,15 +2,17 @@
 
 ## Current access boundary
 
-Health endpoints are public. Presentation list, detail, create, update, and activity routes require a bearer credential matching `INTERNAL_API_TOKEN`. The Wix receiver uses its own body credential and configured form ID. Missing configuration disables the corresponding routes with HTTP 503. Credential comparisons use constant-time comparison.
+Health endpoints are public. Presentation, activity, email, template, and capability routes require a Supabase user access token and staff authorization. The backend sends the bearer token to the configured HTTPS Supabase Auth `/auth/v1/user` endpoint with the project's publishable key. Supabase validates it; FastAPI rejects anonymous identities and checks the verified UUID against `STAFF_USER_IDS`. An empty allowlist denies all users. The Wix receiver retains its independent body secret and configured form ID.
 
-These are bootstrap server credentials. They do not identify individual coordinators or provide role-based access. The email staff page uses the same bootstrap API credential, entered at runtime and held only in memory. There is no individual user-login flow. Keep the internal API token out of browser bundles and do not treat the shared token as a production user-management solution.
+Missing Auth configuration and provider outages fail closed with HTTP 503. Invalid credentials receive HTTP 401, and valid users without staff approval receive HTTP 403. Auth calls have a five-second timeout and do not follow redirects. The old shared token is not an access path. The frontend sends the current Supabase session JWT only to same-origin API paths and refuses redirects. The legacy email staff page accepts a user JWT held in memory. Neither page supplies server database credentials.
+
+All approved staff currently share access to all presentation and email business routes. There are no per-record ownership rules or distinct coordinator/admin roles. Existing business audit fields still use generic staff/system actors; verified user IDs are available on the request but are not yet persisted on every activity. Do not interpret these records as individual approval attribution.
 
 ## Secrets and environments
 
 Use environment variables or a secret manager. Keep `.env`, private keys, tokens, database dumps, source exports, and local credentials out of Git and container contexts. `TEMP/` contains private historical source data and must remain excluded. The public repository must contain only synthetic test and example data.
 
-Use separate random values for `INTERNAL_API_TOKEN` and `WIX_WEBHOOK_TOKEN`, each at least 32 characters. Generate them locally and store them securely. Leave settings unset until they are needed. Never put webhook secrets in URLs, commit messages, logs, or shared screenshots.
+Use separate random values for `WIX_WEBHOOK_TOKEN` and `EMAIL_SEND_AGAIN_TOKEN`, each at least 32 characters. Generate them locally and store them securely. Supabase validation needs the project URL and publishable key, not a JWT signing secret, service-role key, or secret API key. Never put webhook secrets or user access tokens in URLs, commit messages, logs, or shared screenshots.
 
 Separate development, test, and production databases and credentials. Database owner credentials belong only in trusted server or migration environments. Rotate exposed credentials; removing a secret from the latest commit does not revoke it.
 
@@ -32,9 +34,9 @@ Historical records contain personal contact details and notes. Define retention,
 
 Do not log authorization headers, cookies, body secrets, full form bodies, contact details, or message contents. Use safe event names, status codes, and UUID request IDs. Database exceptions and validation errors must not disclose input values or connection details. Apply the same restrictions to hosting and proxy logs.
 
-## Future identity and Gmail controls
+## Remaining identity and Gmail controls
 
-Choose an organization-controlled identity provider before a multiuser frontend. Verify token issuer, audience, signature, expiry, and algorithms. Define coordinator roles and offboarding, enforce access in the backend, and test forbidden operations. Do not infer identity from request IDs or client-supplied roles.
+Supabase Auth supplies verified user identity, and backend configuration supplies staff membership. Define finer coordinator roles and offboarding ownership before expanding access. Never infer staff membership from user-editable metadata or request IDs. Changes to the server allowlist take effect after process restart or deployment.
 
 Gmail remains planned. Use least-privilege scopes, encrypt refresh tokens with separately managed keys, restrict decryption, and document revocation and reconnect procedures. Verify Pub/Sub identity and reconcile mailbox history before relying on notifications.
 
@@ -46,4 +48,4 @@ A Docker volume is not a backup. Review the actual Supabase plan's backup facili
 
 ## Email sending boundary
 
-Email APIs require internal access. Preparing send-again drafts additionally requires a separate `EMAIL_SEND_AGAIN_TOKEN`. Gmail credentials remain server-only. Reference templates start unready, approvals reset on draft edits, test mode redirects recipients, and uncertain deliveries block retries. See [Email workflow](email/README.md) for the shared-actor limitation and production requirements.
+Email APIs require Supabase staff authorization. Preparing send-again drafts additionally requires a separate `EMAIL_SEND_AGAIN_TOKEN`. Gmail credentials remain server-only. Reference templates start unready, approvals reset on draft edits, test mode redirects recipients, and uncertain deliveries block retries. See [Email workflow](email/README.md) for the shared-actor limitation and production requirements.

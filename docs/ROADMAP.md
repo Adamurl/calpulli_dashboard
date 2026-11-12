@@ -26,7 +26,7 @@ Future work includes approved mailbox connection, OAuth, sending, replies, threa
 
 ## Phase 5: Internal security and production readiness
 
-Replace bootstrap shared-token access with reviewed organizational identity and role policies before a multiuser frontend. Add operational monitoring, recovery tests, backup ownership, and deployment hardening. Apply the protections needed for personal data before any public hosting step.
+Supabase JWT validation and staff UUID allowlisting are implemented. Add fine-grained staff roles and per-person audit attribution before expanding multiuser production workflows. Add operational monitoring, recovery tests, backup ownership, and deployment hardening. Apply the protections needed for personal data before any public hosting step.
 
 ## Future: Events module
 

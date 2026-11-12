@@ -2,7 +2,7 @@
 
 [API overview](../API.md) · [Activity API](activity.md) · [Email API](../email/api.md)
 
-Sources: `backend/app/modules/presentations/router.py`, `schemas.py`, and `services.py`. All endpoints require the [internal bearer credential](../API.md#authentication). Path IDs are UUIDs. JSON bodies reject unknown keys.
+Sources: `backend/app/modules/presentations/router.py`, `schemas.py`, and `services.py`. All endpoints require the [Supabase staff authorization](../API.md#authentication). Path IDs are UUIDs. JSON bodies reject unknown keys.
 
 ## Operations
 
@@ -28,7 +28,7 @@ Both filters apply when supplied. Ordering is `created_at DESC, id DESC`. The re
 
 ```http
 GET /api/v1/presentations?limit=25&offset=0&source=manual&status=new HTTP/1.1
-Authorization: Bearer <INTERNAL_API_TOKEN>
+Authorization: Bearer <SUPABASE_USER_ACCESS_TOKEN>
 ```
 
 An empty successful response is:

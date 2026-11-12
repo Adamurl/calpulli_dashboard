@@ -8,7 +8,7 @@ Source: `backend/app/integrations/wix.py`.
 
 `POST /api/v1/integrations/wix/presentations` accepts the normalized Choose fields payload. It does not accept arbitrary native Wix form payloads.
 
-Authentication is `data.webhook_token`, matched against server setting `WIX_WEBHOOK_TOKEN`. `data.form_id` must match `WIX_FORM_ID`. Both settings must be configured, otherwise the endpoint returns HTTP 503 before processing the body. The internal bearer token is not used for this route.
+Authentication is `data.webhook_token`, matched against server setting `WIX_WEBHOOK_TOKEN`. `data.form_id` must match `WIX_FORM_ID`. Both settings must be configured, otherwise the endpoint returns HTTP 503 before processing the body. A Supabase user JWT is not required for this route.
 
 The receiver reads at most 65,536 bytes, including the envelope, secret, and JSON encoding. It parses the body as JSON. The code does not enforce a Content-Type header, though clients should send `application/json`. Secrets belong in the HTTPS body, never in a URL. The secret is removed before schema validation and persistence.
 

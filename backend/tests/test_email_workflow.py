@@ -465,13 +465,13 @@ def test_unknown_variable_rejected_on_template_and_event_inputs():
 
 
 @pytest.fixture
-def api_client(session):
+def api_client(session, staff_auth):
     app = create_app(
         Settings(
             _env_file=None,
             app_env="test",
             database_url=UNAVAILABLE_URL,
-            internal_api_token=TOKEN,
+            **staff_auth(TOKEN),
             email_send_again_token=RESEND_TOKEN,
             email_test_recipient="reviewer@example.org",
         )
