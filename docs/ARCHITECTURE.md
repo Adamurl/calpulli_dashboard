@@ -38,7 +38,7 @@ The Wix adapter validates its provider-facing contract and calls presentation se
 
 The application uses synchronous SQLAlchemy. Synchronous routes run database work outside the event loop. The asynchronous Wix receiver limits and parses its body, then dispatches persistence to a worker thread. Sessions remain local to each request.
 
-`INTERNAL_API_TOKEN` protects internal presentation routes. `WIX_WEBHOOK_TOKEN` separately protects the ingestion contract. Unset secrets disable their corresponding routes. These are bootstrap server credentials, not user identity, role-based access, or frontend authentication.
+Supabase user JWTs and the server-side `STAFF_USER_IDS` allowlist protect presentation and email routes. Auth verification calls the configured Supabase Auth server through a lifespan-managed HTTP client. Missing configuration and provider outages fail closed. `WIX_WEBHOOK_TOKEN` separately protects ingestion; health checks remain public. Fine-grained roles and per-person activity attribution remain unimplemented.
 
 The migration enables RLS and removes browser-facing table grants. API authentication still matters when the database connection owns the tables. See [security](SECURITY.md) and [database conventions](DATABASE.md).
 

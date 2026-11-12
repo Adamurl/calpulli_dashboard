@@ -52,3 +52,23 @@ def test_development_credential_rejected_in_production() -> None:
 def test_pool_limits() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, database_url=UNAVAILABLE_URL, db_pool_size=0)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://auth.example.org",
+        "https://user:password@auth.example.org",
+        "https://auth.example.org/auth/v1",
+        "https://auth.example.org?query=secret",
+        "https://auth.example.org#fragment",
+    ],
+)
+def test_supabase_url_must_be_a_trusted_https_origin(url: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, supabase_url=url)
+
+
+def test_staff_ids_must_be_user_uuids() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, staff_user_ids=["admin@example.org"])

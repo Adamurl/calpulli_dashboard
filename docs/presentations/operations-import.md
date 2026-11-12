@@ -19,7 +19,7 @@ From `backend/`, after PostgreSQL integration checks pass against a dedicated `_
 
 These commands apply/check the application's migrations. They do not import CSVs. RLS is enabled and privileges are revoked from PUBLIC, anon, and authenticated on both new tables. No browser policies are created.
 
-The backend's protected APIs also require an independent `INTERNAL_API_TOKEN` of at least 32 characters. Frontend Supabase sign-in uses the separate public settings documented in `frontend/.env.example`; it does not grant access to these private tables.
+The backend's protected APIs require a verified Supabase user JWT and membership in `STAFF_USER_IDS`. See [staff authentication setup](../../README.md#supabase-staff-authentication). Signing in does not grant direct browser access to private tables.
 
 ## Check connectivity without migrating
 
@@ -38,7 +38,7 @@ curl --fail-with-body http://127.0.0.1:8000/api/v1/health/ready
 
 Liveness returns HTTP 200 with `{"status":"ok"}` without connecting to PostgreSQL. Readiness executes `SELECT 1` using the backend's configured credentials. HTTP 200 with `{"status":"ready"}` confirms connectivity; HTTP 503 means the database is unavailable. Neither endpoint migrates or imports data, and readiness does not verify schema compatibility.
 
-With development documentation enabled, open [Swagger UI](http://127.0.0.1:8000/docs). The runtime schema is [OpenAPI](http://127.0.0.1:8000/openapi.json). Configure a separate random `INTERNAL_API_TOKEN` in ignored `backend/.env` and restart before testing protected routes. In Swagger, select **Authorize** and enter that token, then use `GET /api/v1/presentations` for a read-only API test. An unset token returns HTTP 503; a missing or incorrect bearer token returns HTTP 401 once access is configured. Do not use the database password, a Supabase user password, or a Supabase API key as this token.
+With development documentation enabled, open [Swagger UI](http://127.0.0.1:8000/docs). The runtime schema is [OpenAPI](http://127.0.0.1:8000/openapi.json). Configure the Supabase Auth settings and staff UUID allowlist in ignored `backend/.env` and restart before testing protected routes. In Swagger, select **Authorize** and enter a current approved staff user access token, then use `GET /api/v1/presentations` for a read-only API test. Missing Auth configuration returns HTTP 503, invalid credentials return 401, and nonstaff users receive 403. Do not use a database password, user password, or project API key as the bearer token.
 
 The official [FastAPI testing guide](https://fastapi.tiangolo.com/tutorial/testing/) describes `TestClient`; [testing lifespan](https://fastapi.tiangolo.com/advanced/testing-events/) explains why these tests use a context manager. Local references are [Health API](../health/README.md) and [Backend API overview](../API.md).
 
@@ -101,7 +101,7 @@ For a later snapshot of the same request, re-review using the current request ti
 
 ## Protected read API
 
-`GET /api/v1/presentations/{request_id}/operations` uses the existing internal bearer-token boundary. It returns operational business fields and `imported_from` as a CSV basename, without raw cells, import-row IDs, batch IDs, or row hashes. Missing operations return 404.
+`GET /api/v1/presentations/{request_id}/operations` requires a verified Supabase user JWT and staff UUID approval. It returns operational business fields and `imported_from` as a CSV basename, without raw cells, import-row IDs, batch IDs, or row hashes. Missing operations return 404.
 
 The React preview remains fictional and is not connected to private backend records. Its Source list/detail display was removed. Connecting real business data remains separate backend-authorized integration work.
 
@@ -122,7 +122,7 @@ Rechecked November 11, 2026 before the authorized migration:
 
 - The authorized Supabase connector reached the healthy project and read revision `0003`, 883 requests, and 883 activities. Both user tables exist. No migration or CSV import was performed.
 - Direct PostgreSQL and Supabase Auth HTTPS checks failed at DNS resolution, including outside the shell sandbox. The saved database password and account password remain unverified.
-- FastAPI `TestClient` with the reviewed database URL returned HTTP 200 for liveness, `/docs`, and `/openapi.json`. Readiness returned HTTP 503. Protected presentation reads returned HTTP 503 because the local `INTERNAL_API_TOKEN` is unset.
+- FastAPI `TestClient` with the reviewed database URL returned HTTP 200 for liveness, `/docs`, and `/openapi.json`. Readiness returned HTTP 503. Before the Supabase JWT migration, protected presentation reads returned HTTP 503 because the local bootstrap token was unset.
 - `env -u TEST_DATABASE_URL .venv/bin/python -m pytest -q --tb=short` passed 155 tests and skipped 33 database tests. The inherited test URL points to an unrelated unavailable local database; the initial run had one failure and 32 setup errors. No integration tests ran against the live project.
 - Ruff lint and format checks passed using the existing virtual environment. uv and Docker remain unavailable, so locked dependency synchronization, Compose validation, and fresh PostgreSQL migration tests were not run. A Starlette warning reports that the installed TestClient/httpx combination is deprecated.
 - Supabase security advisories report browser-callable `public.is_admin` and disabled leaked-password protection. See [function access advisory](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) and [password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). The no-policy notices on presentation tables match their intentional private access model. These settings were not changed.

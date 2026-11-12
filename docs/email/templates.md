@@ -2,7 +2,7 @@
 
 [API overview](../API.md) · [Email workflow API](api.md) · [Template editing guide](README.md#temporary-templates-and-staff-page)
 
-Source: `backend/app/modules/presentations/email_router.py`, `email_schemas.py`, and `email_registry.py`. Both operations require the internal bearer credential.
+Source: `backend/app/modules/presentations/email_router.py`, `email_schemas.py`, and `email_registry.py`. Both operations require the Supabase user JWT and staff approval.
 
 | Method | Path | Request | Success |
 | --- | --- | --- | --- |

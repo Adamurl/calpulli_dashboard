@@ -1,6 +1,7 @@
 from typing import Literal
+from uuid import UUID
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AnyHttpUrl, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -10,7 +11,9 @@ class Settings(BaseSettings):
 
     app_env: Literal["development", "test", "production"] = "development"
     database_url: SecretStr
-    internal_api_token: SecretStr | None = Field(default=None, min_length=32)
+    supabase_url: AnyHttpUrl | None = None
+    supabase_publishable_key: SecretStr | None = Field(default=None, min_length=1)
+    staff_user_ids: frozenset[UUID] = frozenset()
     wix_webhook_token: SecretStr | None = Field(default=None, min_length=32)
     wix_form_id: str | None = Field(default=None, min_length=1, max_length=200)
     email_provider: Literal["mock", "gmail"] = "mock"
@@ -31,6 +34,20 @@ class Settings(BaseSettings):
     db_pool_timeout: int = Field(default=5, ge=1, le=60)
     db_connect_timeout: int = Field(default=3, ge=1, le=30)
     db_statement_timeout_ms: int = Field(default=3000, ge=1, le=60000)
+
+    @field_validator("supabase_url")
+    @classmethod
+    def supabase_origin(cls, value: AnyHttpUrl | None) -> AnyHttpUrl | None:
+        if value is not None and (
+            value.scheme != "https"
+            or value.username
+            or value.password
+            or value.path not in {None, "/"}
+            or value.query
+            or value.fragment
+        ):
+            raise ValueError("SUPABASE_URL must be an HTTPS origin without credentials or a path")
+        return value
 
     @field_validator("database_url")
     @classmethod

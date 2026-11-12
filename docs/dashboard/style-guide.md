@@ -4,7 +4,7 @@ Design reference and component specification. Researched November 10, 2026. Visu
 
 This guide defines a Shopify-inspired staff workspace for presentation requests and client email. The supplied screenshots are the visual reference. Calpulli keeps its own name, content, and organizational identity.
 
-The first dashboard is a frontend demo with fictional business records. Supabase sign-in uses the configured project URL and public publishable key. Production presentation data, individual backend authorization, mailbox synchronization, and live delivery are separate integration work. A signed-in frontend alone does not secure business APIs.
+The first dashboard is a frontend demo with fictional business records. Supabase sign-in uses the configured project URL and public publishable key. Production presentation data, per-person audit attribution, mailbox synchronization, and live delivery are separate integration work. A signed-in frontend alone does not secure business APIs.
 
 ## Research findings
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { z } from "zod";
 import {
   Bell,
   Menu,
@@ -16,6 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { supabase, demoEnabled } from "./auth";
+import { apiFetch, ApiError } from "./api";
 import { inquiries } from "./data";
 import { emptyWorkspace, workspaceSchema } from "./domain";
 import type { Draft, Page, Workspace } from "./domain";
@@ -68,6 +70,11 @@ function pageFromHash(): Page {
 }
 type Composition =
   { kind: "new"; inquiryId: string } | { kind: "edit"; draft: Draft };
+type ApiAccess =
+  | { kind: "checking" }
+  | { kind: "allowed"; accessToken: string }
+  | { kind: "denied"; accessToken: string; message: string };
+const apiUserSchema = z.object({ id: z.uuid() });
 export function App() {
   const [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(Boolean(supabase)),
@@ -83,6 +90,32 @@ export function App() {
     [toast, setToast] = useState(""),
     [notifications, setNotifications] = useState(false);
   const [storageError, setStorageError] = useState(false);
+  const [apiAccess, setApiAccess] = useState<ApiAccess>({ kind: "checking" });
+  const [accessAttempt, setAccessAttempt] = useState(0);
+  useEffect(() => {
+    if (!session) return;
+    const controller = new AbortController();
+    const accessToken = session.access_token;
+    setApiAccess({ kind: "checking" });
+    apiFetch("/api/v1/auth/me", { signal: controller.signal })
+      .then(async (response) => {
+        apiUserSchema.parse(await response.json());
+        if (!controller.signal.aborted)
+          setApiAccess({ kind: "allowed", accessToken });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          setApiAccess({
+            kind: "denied",
+            accessToken,
+            message:
+              error instanceof ApiError
+                ? error.message
+                : "Unable to verify workspace access. Please try again.",
+          });
+      });
+    return () => controller.abort();
+  }, [session?.access_token, accessAttempt]);
   useEffect(() => {
     if (!supabase) return;
     const { data } = supabase.auth.onAuthStateChange((_event, current) => {
@@ -198,6 +231,26 @@ export function App() {
         }}
       />
     );
+  if (session && !demo) {
+    if (
+      apiAccess.kind === "checking" ||
+      apiAccess.accessToken !== session.access_token
+    )
+      return <main className="loading">Checking workspace access…</main>;
+    if (apiAccess.kind === "denied")
+      return (
+        <main className="login-page">
+          <section className="login-card">
+            <h1>Workspace access</h1>
+            <p role="alert">{apiAccess.message}</p>
+            <button onClick={() => setAccessAttempt((attempt) => attempt + 1)}>
+              Try again
+            </button>
+            <button onClick={logout}>Log out</button>
+          </section>
+        </main>
+      );
+  }
   const PageIcon = pageIcons[detail ? "Presentations" : page];
   const selected = items.find((i) => i.id === detail);
   const composing = composition

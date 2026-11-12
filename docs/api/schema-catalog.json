@@ -136,6 +136,20 @@
       "title": "ActivityRead",
       "type": "object"
     },
+    "AuthenticatedUser": {
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "AuthenticatedUser",
+      "type": "object"
+    },
     "DraftEdit": {
       "additionalProperties": false,
       "properties": {

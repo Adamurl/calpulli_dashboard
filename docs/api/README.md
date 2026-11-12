@@ -34,6 +34,7 @@ from pydantic.json_schema import models_json_schema
 
 from app.core.config import Settings
 from app.core.errors import ErrorResponse
+from app.integrations.supabase_auth import AuthenticatedUser
 from app.integrations.wix import WixFields
 from app.main import create_app
 from app.modules.health.router import HealthResponse
@@ -57,7 +58,7 @@ inputs = [
     TemplateEdit, WixFields,
 ]
 outputs = [
-    HealthResponse, PresentationSummary, PresentationRead, PresentationList,
+    AuthenticatedUser, HealthResponse, PresentationSummary, PresentationRead, PresentationList,
     ActivityRead, ActivityList, EmailRead, TaskRead, TemplateRead, ErrorResponse, OperationsRead,
 ]
 _, catalog = models_json_schema(

@@ -192,7 +192,7 @@ def test_different_request_cannot_use_evidence(session, tmp_path):
         apply(session, other, row)
 
 
-def test_business_endpoint_requires_staff_and_returns_only_csv_label(session, tmp_path):
+def test_business_endpoint_requires_staff_and_returns_only_csv_label(session, tmp_path, staff_auth):
     from fastapi.testclient import TestClient
 
     from app.core.config import Settings
@@ -206,7 +206,7 @@ def test_business_endpoint_requires_staff_and_returns_only_csv_label(session, tm
         Settings(
             _env_file=None,
             database_url="postgresql+psycopg://test@127.0.0.1:1/calpulli_test",
-            internal_api_token=token,
+            **staff_auth(token),
             app_env="test",
         )
     )

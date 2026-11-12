@@ -134,6 +134,7 @@ def test_sparse_historical_record_and_new_record_share_api(
     database_url: str,
     pg_session: Session,
     payload: NewPresentation,
+    staff_auth,
 ) -> None:
     legacy = PresentationRequest(
         source="legacy_csv",
@@ -152,9 +153,7 @@ def test_sparse_historical_record_and_new_record_share_api(
     )
     assert [record.id for record in records] == [legacy_id]
     app = create_app(
-        Settings(
-            _env_file=None, database_url=database_url, app_env="test", internal_api_token=TOKEN
-        )
+        Settings(_env_file=None, database_url=database_url, app_env="test", **staff_auth(TOKEN))
     )
 
     def override_session() -> Iterator[Session]:

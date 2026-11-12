@@ -1,6 +1,6 @@
 # Calpulli Platform
 
-An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation, Events, and backend per-user authorization remain unimplemented. The standalone frontend includes Supabase sign-in support and an explicit fictional-data preview. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
+An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation and Events remain unimplemented. Business APIs verify Supabase user JWTs and require server-side staff approval. The standalone frontend includes Supabase sign-in support and an explicit fictional-data preview. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
 
 ## Current verification status
 
@@ -113,7 +113,9 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | --- | --- |
 | `DATABASE_URL` | Required `postgresql+psycopg://` URL with host and database; never logged. |
 | `APP_ENV` | `development`, `test`, or `production`; default `development`. |
-| `INTERNAL_API_TOKEN` | Optional secret, at least 32 characters; unset disables presentation routes. |
+| `SUPABASE_URL` | HTTPS origin for the same Supabase Auth project as the frontend; unset disables protected APIs. |
+| `SUPABASE_PUBLISHABLE_KEY` | Project publishable key used to validate user JWTs with Supabase Auth. No signing secret or service-role key is needed. |
+| `STAFF_USER_IDS` | JSON array of approved Supabase user UUIDs; defaults to `[]`, which denies all staff access. |
 | `WIX_WEBHOOK_TOKEN` | Separate optional secret, at least 32 characters; unset disables Wix ingestion. |
 | `WIX_FORM_ID` | Expected form ID; required with the webhook secret to enable the receiver. |
 | `DOCS_ENABLED` | Optional boolean; defaults to enabled only in development. |
@@ -127,7 +129,7 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | `POSTGRES_PORT` | Host port `5432`. |
 | `TEST_DATABASE_URL` | Optional for local tests; distinct database ending in `_test`. Required for integration verification. |
 
-The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random internal and Wix secrets locally; do not reuse a documented example or put them in frontend code. Live Gmail OAuth activation, individual API authorization, background processing, and synchronization remain future work.
+The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random Wix and send-again secrets locally; do not reuse a documented example or put them in frontend code. Live Gmail OAuth activation, fine-grained staff roles, per-person audit attribution, background processing, and synchronization remain future work.
 
 ## Migrations
 
@@ -194,7 +196,7 @@ Container tests skip PostgreSQL integration unless `TEST_DATABASE_URL` is explic
 - [Roadmap](docs/ROADMAP.md).
 - [Security](docs/SECURITY.md).
 
-The request schema supports both historical CSV answers and the new form. List, detail, create, status or note patch, and activity routes are under `/api/v1/presentations`. They require a server-side bearer credential matching `INTERNAL_API_TOKEN`; unset configuration disables access. See [API reference](docs/API.md).
+The request schema supports both historical CSV answers and the new form. List, detail, create, status or note patch, and activity routes are under `/api/v1/presentations`. They require a verified Supabase user JWT and membership in the server-side staff UUID allowlist; missing Auth configuration disables access. See [API reference](docs/API.md).
 
 The presentation schema is applied to the verified Calpulli Tonalehqueh Supabase project. Store server connection settings only in ignored environment files; see [database conventions](docs/DATABASE.md). The historical import defaults to a dry run; `--apply` is an explicit write operation. `TEMP/` stays out of Git and Docker.
 
@@ -213,17 +215,35 @@ The [documentation index](docs/README.md) groups presentations, email, health, a
 
 The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
 
+## Supabase staff authentication
+
+Use the same Supabase project for the frontend and backend. In Supabase **Authentication > Users**, copy the UUID of each approved staff account. No database migration or custom JWT signing secret is required.
+
+Set these backend variables in ignored `backend/.env` for local host commands, root `.env` for Compose, or the Vercel project's environment settings:
+
+```dotenv
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+STAFF_USER_IDS=["11111111-1111-4111-8111-111111111111"]
+```
+
+Replace the example UUID with an actual approved user's UUID. Keep the allowlist server-side. Missing URL/key disables protected APIs with HTTP 503; an empty list denies every user. Removing a UUID and restarting/redeploying revokes that user's staff access. The former `INTERNAL_API_TOKEN` is ignored and must not be used by clients. All approved users currently share the same business permissions; distinct staff roles and per-person activity attribution remain future work.
+
+The frontend uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the same project. After login it checks `/api/v1/auth/me`, then sends its current session access token as `Authorization: Bearer ...` on API requests. Supabase Auth validates the JWT; FastAPI rejects anonymous identities and users outside the allowlist. Each protected request makes an Auth server call with a five-second timeout. Outages fail closed with HTTP 503. Invalid tokens return 401, and valid users without staff approval receive 403. No Supabase service-role key, secret API key, or JWT signing secret belongs in these settings.
+
+For local login, run FastAPI on port 8000 and Vite on port 5173. Vite's development proxy forwards `/api` to FastAPI without stripping the prefix. On Vercel, the root service rewrites provide that routing. Health endpoints remain public and Wix retains its independent secret; neither uses a user JWT. The frontend still shows fictional business records. The new access check does not import or expose production records.
+
 ## Vercel services
 
 Import this repository as one Vercel project with **Root Directory** set to the repository root. Remove previous project overrides intended for a frontend-only deployment. The root [`vercel.json`](vercel.json) owns both service configurations. See [Vercel Services](https://vercel.com/docs/services).
 
 - `backend` runs FastAPI from `backend/asgi.py`, which exports the existing app factory as an ASGI application. Public `/api` and `/api/...` requests reach it with their original paths. Existing `/api/v1/...` routes need no prefix changes.
 - `frontend` builds Vite from `frontend/` and handles all remaining paths, with an SPA fallback and static assets. Its existing hash navigation continues to work.
-- Neither service currently calls the other. The frontend calls external Supabase Auth from the browser; the backend connects to external PostgreSQL. These are not Vercel services and require no service bindings. Future function-to-function calls need caller-side bindings; browser calls use public routes.
+- No server-side service-to-service calls are present. The browser calls public FastAPI routes and external Supabase Auth; FastAPI connects to external PostgreSQL and Supabase Auth. These external systems are not Vercel services. No service bindings are needed. Future function-to-function calls need caller-side bindings; browser calls use public routes.
 
 The backend's separate `/staff/presentations/{inquiry_id}` HTML panel and development `/docs` and `/openapi.json` routes are not exposed by these rewrites. Those paths reach the frontend. Confirm any additional backend public paths before deployment.
 
-Configure backend runtime variables in Vercel using [`backend/.env.example`](backend/.env.example) as a reference. Set `APP_ENV=production`, `DOCS_ENABLED=false`, and a server-only `DATABASE_URL` using `postgresql+psycopg` with externally supplied credentials and TLS. Use a hosted PostgreSQL connection suitable for concurrent function instances; Compose's `db` hostname and local database URLs do not work on Vercel. Keep `INTERNAL_API_TOKEN` server-only when enabling protected APIs, and set independent Wix credentials only after receiver activation is authorized. Keep `EMAIL_PROVIDER=mock` and `EMAIL_TEST_MODE=true` until live mail is authorized. Frontend build variables are documented in [`frontend/README.md`](frontend/README.md#vercel-preparation).
+Configure backend runtime variables in Vercel using [`backend/.env.example`](backend/.env.example) as a reference. Set `APP_ENV=production`, `DOCS_ENABLED=false`, and a server-only `DATABASE_URL` using `postgresql+psycopg` with externally supplied credentials and TLS. Use a hosted PostgreSQL connection suitable for concurrent function instances; Compose's `db` hostname and local database URLs do not work on Vercel. Configure Supabase Auth and the staff allowlist as described below, and set independent Wix credentials only after receiver activation is authorized. Keep `EMAIL_PROVIDER=mock` and `EMAIL_TEST_MODE=true` until live mail is authorized. Frontend build variables are documented in [`frontend/README.md`](frontend/README.md#vercel-preparation).
 
 Vercel does not host the Compose database or run Alembic automatically. Database provisioning, reviewed migrations, and deployment remain separate authorized operations. `.vercelignore` excludes private CSVs, environment files, credentials, and local build artifacts from CLI uploads.
 

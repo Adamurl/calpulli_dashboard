@@ -24,10 +24,12 @@ Historical import and Gmail delivery are internal interfaces, not additional pub
 Presentation, activity, email, template, and capability routes require:
 
 ```http
-Authorization: Bearer <INTERNAL_API_TOKEN>
+Authorization: Bearer <SUPABASE_USER_ACCESS_TOKEN>
 ```
 
-The server compares this credential with its configured secret. Unconfigured `INTERNAL_API_TOKEN` returns HTTP 503 with code `http_503`. Missing or incorrect credentials return HTTP 401 with `WWW-Authenticate: Bearer`. This shared credential does not identify individual staff members or establish per-user roles.
+The server validates the access token through the configured Supabase Auth `/auth/v1/user` endpoint, rejects anonymous identities, and checks the verified user UUID against `STAFF_USER_IDS`. Missing configuration or an Auth service outage returns HTTP 503. Missing or invalid credentials return HTTP 401 with `WWW-Authenticate: Bearer`; a valid user outside the staff allowlist receives HTTP 403. An empty allowlist grants nobody access. The former shared internal token is no longer accepted.
+
+`GET /api/v1/auth/me` uses the same staff authorization and returns `{ "id": "<user UUID>" }` with `Cache-Control: no-store`. Business responses also disable caching. The frontend calls this route before opening a logged-in workspace. [Setup instructions](../README.md#supabase-staff-authentication) describe the required environment variables.
 
 `/send-again` additionally requires:
 
@@ -37,7 +39,7 @@ X-Email-Resend-Token: <EMAIL_SEND_AGAIN_TOKEN>
 
 Missing, invalid, or unconfigured send-again access returns HTTP 403 on that action. The capabilities endpoint instead returns `can_send_again=false`.
 
-Health endpoints and the empty staff HTML shell are public. The Wix webhook uses its own `data.webhook_token` and configured form ID rather than the internal bearer credential. Gmail OAuth secrets remain server-only and are never API-client inputs.
+Health endpoints and the empty staff HTML shell are public in FastAPI. The Wix webhook uses its own `data.webhook_token` and configured form ID rather than a user JWT. The Vercel rewrites expose `/api/...` but do not expose the staff HTML shell. Gmail OAuth secrets remain server-only and are never API-client inputs.
 
 ## Endpoint index
 

@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import sessionmaker
@@ -29,7 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.session_factory = sessionmaker(bind=engine, expire_on_commit=False)
         try:
-            yield
+            with httpx.Client(timeout=5, follow_redirects=False, trust_env=False) as auth_client:
+                app.state.auth_client = auth_client
+                yield
         finally:
             engine.dispose()
 
@@ -73,8 +76,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=config.cors_origins,
         allow_credentials=False,
-        allow_methods=["GET"],
-        allow_headers=["Content-Type", "X-Request-ID"],
+        allow_methods=["GET", "POST", "PATCH", "PUT"],
+        allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Email-Resend-Token"],
         expose_headers=["X-Request-ID"],
     )
     app.add_middleware(RequestContextMiddleware)

@@ -19,9 +19,9 @@ Open http://127.0.0.1:5173 and choose **Explore demo workspace**. The local envi
 
 Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an existing Supabase email/password user. No public signup is provided. Set `VITE_ENABLE_DEMO=true` to expose the sample workspace. Leave it false or unset to disable demo entry. Supabase manages session persistence, refresh, auth events, and logout.
 
-All business records are fictional in both authenticated and demo views. No production API or database queries are made. The demo stores drafts, notes, archived conversations, read state, and request status changes under `calpulli-demo-v1` in this browser's local storage. It is a shared sample store for this browser, not a per-user server store. Reset it in Settings. It must never be repurposed to store real client data. Reloading exits demo mode; drafts persist.
+After login, the frontend sends the session JWT to `/api/v1/auth/me` and opens the workspace only after the backend verifies staff approval. Configure the backend's Supabase URL, publishable key, and `STAFF_USER_IDS` using the [staff authentication instructions](../README.md#supabase-staff-authentication). For local login, run FastAPI on port 8000; Vite proxies `/api` to it. Demo mode makes no protected API calls.
 
-The frontend does not expose the backend's `INTERNAL_API_TOKEN`. Before connecting real records, implement server-side Supabase JWT verification and staff authorization, per-user data isolation, authorized API calls, audit identities, conflict handling, and email delivery configuration. Existing backend email endpoints and incoming-email gaps are mapped in [the UX plan](../docs/dashboard/ux.md). Supabase sign-in alone is not authorization to read Calpulli records.
+All business records are still fictional in both authenticated and demo views. The auth check returns only the verified user UUID, not business records. The sample store uses `calpulli-demo-v1` in this browser's local storage, shared across sample sessions in this browser. Reset it in Settings. Never store real client data there. Before connecting real records, implement business-data loading, audit identities, conflict handling, and email delivery configuration. Existing endpoints and incoming-email gaps are mapped in [the UX plan](../docs/dashboard/ux.md).
 
 ## Features to review
 
@@ -48,7 +48,7 @@ The observed verification for this task is a successful production build and 41 
 
 Import the repository with **Root Directory** set to the repository root, not `frontend`. The root [`vercel.json`](../vercel.json) defines the `frontend` Vite service and `backend` FastAPI service, public routing, SPA fallback, and response headers. Frontend commands run inside `frontend` using `npm ci`, `npm run build`, and output `dist`.
 
-Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as build environment variables. Enable demo only on a deliberate preview deployment. The frontend still uses fictional business records and does not call FastAPI. No service binding is needed. Runtime binding URLs cannot be read by this static browser app or during its build. Never put server secrets or database credentials in a `VITE_` variable.
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as build environment variables. Enable demo only on a deliberate preview deployment. The frontend uses same-origin `/api/v1/...` requests with the logged-in user's current JWT. No service binding is needed for browser-to-public-API requests. Runtime binding URLs cannot be read by this static browser app or during its build. Never put database credentials, server secrets, or a fixed user JWT in a `VITE_` variable.
 
 See the root [Vercel setup instructions](../README.md#vercel-services) for backend environment variables and local verification. Deployment does not provision PostgreSQL or run migrations. No deployment has been made by this change.
 
