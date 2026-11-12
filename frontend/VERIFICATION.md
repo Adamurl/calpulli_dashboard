@@ -8,7 +8,9 @@ Safari reported **17 recovery checks passed** against the real SDK and a local f
 
 `npm run build`, `npm run format:check`, `node --check tests/auth-fixture.mjs`, and `git diff --check` passed. Independent security review found no blocking defects. No dependencies, database changes, or backend source changes; backend checks were not rerun locally.
 
-Chrome still aborts at launch even outside the shell sandbox, before Playwright assertions. Live email delivery, real password changes, and live Supabase redirect settings were not changed or verified. Production must allow `https://www.calpullitonalehqueh.org/reset-password` as an exact Auth redirect. Request a new email after changing redirect settings. Refreshing a consumed recovery page requires a new link because recovery tokens are deliberately not persisted.
+Chrome still aborts at launch even outside the shell sandbox, before Playwright assertions. Live email delivery and real password changes were not performed. At local verification, Supabase redirect settings were still pending. Production must allow `https://www.calpullitonalehqueh.org/reset-password` as an exact Auth redirect. Request a new email after changing redirect settings. Refreshing a consumed recovery page requires a new link because recovery tokens are deliberately not persisted.
+
+Production follow-up: commit `7632b1e` deployed successfully through Vercel and its GitHub Actions run passed. The live `/forgot-password` form loads with sign-in configured, and a direct `/reset-password` visit shows the invalid-link message without password inputs. With explicit user approval, the exact `https://www.calpullitonalehqueh.org/reset-password` redirect was added to Supabase and read back from the saved configuration. The Site URL was already the production domain. No recovery email was sent or real password changed during verification.
 
 ## Root and clean routes, November 11, 2026
 
