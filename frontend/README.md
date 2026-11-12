@@ -1,6 +1,6 @@
 # Calpulli workspace
 
-A standalone React + TypeScript frontend, inspired by the Shopify admin references. Vite builds a static app that can run on Vercel separately from the existing FastAPI service.
+A React + TypeScript frontend, inspired by the Shopify admin references. Vite builds a static app deployed alongside FastAPI in one Vercel project.
 
 ## Run locally
 
@@ -46,9 +46,11 @@ The observed verification for this task is a successful production build and 41 
 
 ## Vercel preparation
 
-Import the repository with **Root Directory** set to `frontend`. Framework is **Vite**, build command `npm run build`, output `dist`, install command `npm ci`. Add the two public Supabase variables. Enable demo only on a deliberate preview deployment. `vercel.json` includes SPA routing and basic response headers. No deployment has been made by this task.
+Import the repository with **Root Directory** set to the repository root, not `frontend`. The root [`vercel.json`](../vercel.json) defines the `frontend` Vite service and `backend` FastAPI service, public routing, SPA fallback, and response headers. Frontend commands run inside `frontend` using `npm ci`, `npm run build`, and output `dist`.
 
-The frontend can be deployed as a fictional-data preview independently. A production data deployment requires the server authorization work above and a deployed FastAPI backend. Vercel deployment does not host the current persistent Python/PostgreSQL backend automatically.
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as build environment variables. Enable demo only on a deliberate preview deployment. The frontend still uses fictional business records and does not call FastAPI. No service binding is needed. Runtime binding URLs cannot be read by this static browser app or during its build. Never put server secrets or database credentials in a `VITE_` variable.
+
+See the root [Vercel setup instructions](../README.md#vercel-services) for backend environment variables and local verification. Deployment does not provision PostgreSQL or run migrations. No deployment has been made by this change.
 
 ## Design
 
