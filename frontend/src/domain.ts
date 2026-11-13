@@ -2,7 +2,7 @@ import { z } from "zod";
 export const requestSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.email(),
+  email: z.union([z.email(), z.literal("")]),
   organization: z.string(),
   title: z.string(),
   date: z.string(),
@@ -17,7 +17,8 @@ export const requestSchema = z.object({
     "unknown",
   ]),
   source: z.enum(["wix", "manual", "legacy_csv"]),
-  guests: z.number(),
+  guests: z.number().nullable(),
+  receivedAt: z.string().nullable().optional(),
   location: z.string(),
   unread: z.boolean(),
   preview: z.string(),

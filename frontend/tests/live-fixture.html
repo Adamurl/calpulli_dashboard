@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" /><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  /><title>Fictional live workspace fixture</title>
+  <div id="root"></div>
+  <script>
+    window.addEventListener("error", (event) => {
+      document.querySelector("#root").textContent =
+        "Fixture error: " + event.message;
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      document.querySelector("#root").textContent =
+        "Fixture error: " + String(event.reason);
+    });
+  </script>
+  <script type="module">
+    import { supabase } from "/src/auth.ts";
+    const id = "11111111-1111-4111-8111-111111111111";
+    const stamp = new Date().toISOString();
+    const parameters = new URLSearchParams(location.search);
+    const summary = {
+      id,
+      source: "legacy_csv",
+      form_version: "legacy_v1",
+      status: "unknown",
+      received_at: stamp,
+      created_at: stamp,
+      updated_at: stamp,
+      event_date: null,
+      start_time: null,
+      end_time: null,
+      event_timezone: null,
+      organization_name: "Fictional Operations School",
+      contact_full_name: "Fixture Contact",
+      contact_email: null,
+      event_types: [],
+      venue_address: "Fixture Hall",
+      estimated_guests: null,
+    };
+    const detail = {
+      ...summary,
+      source_key: "fixture",
+      external_id: "fixture-row",
+      import_batch_id: null,
+      source_row_number: 1,
+      event_access: null,
+      event_setting: null,
+      event_purpose: "A fictional cultural education request",
+      audience_distance_12ft: null,
+      unavailable_logistics: null,
+      contact_first_name: "Fixture",
+      contact_last_name: "Contact",
+      contact_phone: "+1 555 0100",
+      organization_website: null,
+      referral_sources: [],
+      referral_reference: null,
+      additional_notes: "Fixture form notes",
+      internal_notes: null,
+      original_fields: {
+        "Custom historical answer": "A complete original response",
+        "Recorded zero": 0,
+      },
+    };
+    const operations = {
+      request_id: id,
+      imported_from: "fictional-operations.csv",
+      quoted_amount: "1200.00",
+      recorded_received_amount: "0.00",
+      currency: "USD",
+      finder_name: "Fixture Coordinator",
+      payment_status: "unpaid",
+      payment_basis: "explicit",
+      payment_method: "check",
+      payment_notes: "Payment pending",
+      engagement_type: "paid",
+      engagement_basis: "recorded",
+      invoice_status: "done",
+      coi_status: "not_done",
+      attendance_count: 0,
+      roster_count: 4,
+      attendance_notes: "Fixture attendance note",
+      parking_notes: "Three reserved spaces",
+      dressing_room_notes: "Private room",
+      logistics_notes: "Arrive one hour early",
+      status_basis: "user_assumption",
+      updated_at: stamp,
+    };
+    const calls = [],
+      activities = [];
+    window.fixture = {
+      id,
+      calls,
+      summary,
+      detail,
+      operations,
+      listFailure: false,
+      run: parameters.get("run"),
+      tableDelay: Number(parameters.get("table-delay") || 0),
+      statsDelay: Number(parameters.get("stats-delay") || 0),
+      listDelay: Number(parameters.get("list-delay") || 0),
+      statsFailure: false,
+      indexFailure: false,
+      secondPageFailure: new URLSearchParams(location.search).has(
+        "page-failure",
+      ),
+      operationsFailure: false,
+      emailFailure: false,
+      conflict: false,
+      blockLoad: false,
+      noteDelay: 0,
+      detailDelay: Number(parameters.get("detail-delay") || 0),
+      operationsDelay: Number(parameters.get("operations-delay") || 0),
+      activitiesDelay: Number(parameters.get("activities-delay") || 0),
+      emailDelay: Number(parameters.get("email-delay") || 0),
+      detailFailure: false,
+      activitiesFailure: false,
+      operationsMissing: false,
+      logoutFailure: false,
+      activities,
+    };
+    const allItems = Array.from({ length: 101 }, (_, index) =>
+      index === 0
+        ? summary
+        : {
+            ...summary,
+            id: `22222222-2222-4222-8222-${String(index).padStart(12, "0")}`,
+            organization_name:
+              index === 1
+                ? "Earlier fixture"
+                : index === 2
+                  ? "=1+1"
+                  : `Other fixture ${index}`,
+            contact_full_name:
+              index === 2 ? 'CSV, "Quoted"' : "Fixture Contact",
+            received_at:
+              index === 1
+                ? new Date(Date.now() - 86400000).toISOString()
+                : null,
+          },
+    );
+    const createObjectURL = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => {
+      window.fixture.exportBlob = blob;
+      return createObjectURL(blob);
+    };
+    const anchorClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download) window.fixture.exportName = this.download;
+      else anchorClick.call(this);
+    };
+    async function delay(ms, signal, call) {
+      if (signal?.aborted) {
+        call.aborted = true;
+        throw new DOMException("Aborted", "AbortError");
+      }
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          signal?.removeEventListener("abort", abort);
+          resolve();
+        }, ms);
+        function abort() {
+          clearTimeout(timer);
+          call.aborted = true;
+          reject(new DOMException("Aborted", "AbortError"));
+        }
+        signal?.addEventListener("abort", abort, { once: true });
+      });
+    }
+    let session = {
+      access_token: "fictional-browser-fixture-token",
+      refresh_token: "fictional-refresh",
+      token_type: "bearer",
+      expires_in: 3600,
+      user: {
+        id,
+        email: "fixture-staff@example.org",
+        aud: "authenticated",
+        role: "authenticated",
+        app_metadata: {},
+        user_metadata: {},
+        created_at: stamp,
+      },
+    };
+    if (!supabase)
+      throw new Error(
+        "Public sign-in configuration is needed for this fixture",
+      );
+    supabase.auth.getSession = async () => ({ data: { session }, error: null });
+    const listeners = new Set();
+    supabase.auth.onAuthStateChange = (callback) => {
+      listeners.add(callback);
+      const timer = setTimeout(() => callback("SIGNED_IN", session), 0);
+      return {
+        data: {
+          subscription: {
+            unsubscribe() {
+              clearTimeout(timer);
+              listeners.delete(callback);
+            },
+          },
+        },
+      };
+    };
+    supabase.auth.signOut = async () => ({
+      error: window.fixture.logoutFailure
+        ? new Error("Fictional logout failure")
+        : null,
+    });
+    window.fixture.refresh = () => {
+      session = {
+        ...session,
+        access_token: "fictional-browser-refreshed-token",
+      };
+      for (const callback of listeners) callback("TOKEN_REFRESHED", session);
+    };
+    let signedOutSession = session;
+    if (parameters.has("signed-out")) session = null;
+    window.fixture.loseSession = () => {
+      signedOutSession = session;
+      session = null;
+      for (const callback of listeners) callback("SIGNED_OUT", null);
+    };
+    window.fixture.signInAgain = () => {
+      session = signedOutSession;
+      for (const callback of listeners) callback("SIGNED_IN", session);
+    };
+    window.fetch = async (input, options = {}) => {
+      const url = new URL(
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url,
+        location.origin,
+      );
+      const reply = (status, data) =>
+        Promise.resolve(
+          new Response(JSON.stringify(data), {
+            status,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      if (!url.pathname.startsWith("/api/v1/"))
+        throw new Error("Unexpected fixture network request");
+      const headers = new Headers(options.headers);
+      calls.push({
+        path: url.pathname,
+        search: url.search,
+        method: options.method || "GET",
+        authorization: headers.get("Authorization"),
+        body: options.body,
+      });
+      if (url.pathname === "/api/v1/auth/me") {
+        if (window.fixture.authDelay)
+          await new Promise((resolve) =>
+            setTimeout(resolve, window.fixture.authDelay),
+          );
+        return reply(200, { id });
+      }
+      if (url.pathname === "/api/v1/presentations/index") {
+        await delay(window.fixture.tableDelay, options.signal, calls.at(-1));
+        if (window.fixture.indexFailure || window.fixture.secondPageFailure)
+          return reply(503, {});
+        const q = (url.searchParams.get("q") || "").toLowerCase();
+        const status = url.searchParams.get("status");
+        const ascending = url.searchParams.get("sort") === "received_asc";
+        const rows = allItems
+          .filter(
+            (item) =>
+              (!status || item.status === status) &&
+              `${item.organization_name} ${item.contact_full_name} ${item.contact_email || ""}`
+                .toLowerCase()
+                .includes(q),
+          )
+          .sort((a, b) => {
+            if (!a.received_at)
+              return b.received_at ? 1 : a.id.localeCompare(b.id);
+            if (!b.received_at) return -1;
+            return ascending
+              ? a.received_at.localeCompare(b.received_at)
+              : b.received_at.localeCompare(a.received_at);
+          });
+        const limit = Number(url.searchParams.get("limit") || 10),
+          offset = Number(url.searchParams.get("offset") || 0);
+        return reply(200, {
+          items: rows.slice(offset, offset + limit),
+          limit,
+          offset,
+          total: rows.length,
+          total_all: allItems.length,
+        });
+      }
+      if (url.pathname === "/api/v1/presentations/statistics") {
+        await delay(window.fixture.statsDelay, options.signal, calls.at(-1));
+        if (window.fixture.statsFailure) return reply(503, {});
+        const days = Number(url.searchParams.get("days") || 1);
+        return reply(200, {
+          days,
+          timezone: "America/Los_Angeles",
+          start_date: stamp.slice(0, 10),
+          end_date: stamp.slice(0, 10),
+          metrics: ["presentations", "reviewing", "booked", "completed"].map(
+            (key) => ({
+              key,
+              current: Array.from({ length: days }, (_, index) =>
+                index === days - 1 &&
+                (key === "presentations" || key === summary.status)
+                  ? 1
+                  : 0,
+              ),
+              previous: Array.from({ length: days }, (_, index) =>
+                index === days - 1 && key === "presentations" ? 1 : 0,
+              ),
+            }),
+          ),
+        });
+      }
+      if (url.pathname === "/api/v1/presentations") {
+        await delay(window.fixture.listDelay, options.signal, calls.at(-1));
+        if (window.fixture.listFailure) return reply(503, {});
+        const offset = Number(url.searchParams.get("offset"));
+        if (offset > 0 && window.fixture.secondPageFailure)
+          return reply(503, {});
+        if (offset === 0)
+          return reply(200, {
+            items: Array.from({ length: 100 }, (_, index) =>
+              index === 0
+                ? summary
+                : {
+                    ...summary,
+                    id: `22222222-2222-4222-8222-${String(index).padStart(12, "0")}`,
+                    organization_name: `Other fixture ${index}`,
+                    received_at: null,
+                  },
+            ),
+            limit: 100,
+            offset,
+          });
+        return reply(200, {
+          items: [
+            {
+              ...summary,
+              id: "33333333-3333-4333-8333-333333333333",
+              organization_name: "Last page fixture",
+              received_at: null,
+            },
+          ],
+          limit: 100,
+          offset,
+        });
+      }
+      if (url.pathname.endsWith("/workspace")) {
+        if (window.fixture.conflict) return reply(409, {});
+        const patch = JSON.parse(options.body);
+        if (patch.internal_notes && window.fixture.noteDelay)
+          await new Promise((resolve) =>
+            setTimeout(resolve, window.fixture.noteDelay),
+          );
+        if (patch.status) {
+          detail.status = patch.status;
+          summary.status = patch.status;
+        }
+        if (patch.internal_notes) {
+          detail.internal_notes = patch.internal_notes;
+          activities.unshift({
+            id: crypto.randomUUID(),
+            request_id: id,
+            kind: "note_added",
+            actor_id: id,
+            summary: null,
+            previous_status: null,
+            new_status: null,
+            note: patch.internal_notes,
+            created_at: stamp,
+          });
+        }
+        return reply(200, detail);
+      }
+      if (url.pathname.endsWith("/operations")) {
+        await delay(
+          window.fixture.operationsDelay,
+          options.signal,
+          calls.at(-1),
+        );
+        if (window.fixture.operationsMissing) return reply(404, {});
+        return window.fixture.operationsFailure
+          ? reply(503, {})
+          : reply(200, operations);
+      }
+      if (url.pathname.endsWith("/activities")) {
+        await delay(
+          window.fixture.activitiesDelay,
+          options.signal,
+          calls.at(-1),
+        );
+        if (window.fixture.activitiesFailure) return reply(503, {});
+        return reply(200, { items: activities, limit: 100, offset: 0 });
+      }
+      if (url.pathname.endsWith("/emails")) {
+        await delay(window.fixture.emailDelay, options.signal, calls.at(-1));
+        return window.fixture.emailFailure
+          ? reply(503, {})
+          : reply(200, { messages: [] });
+      }
+      const requestedId = /^\/api\/v1\/presentations\/([^/]+)$/.exec(
+        url.pathname,
+      )?.[1];
+      if (requestedId) {
+        await delay(window.fixture.detailDelay, options.signal, calls.at(-1));
+        if (window.fixture.detailFailure) return reply(503, {});
+        const item = allItems.find((item) => item.id === requestedId);
+        return item ? reply(200, { ...detail, ...item }) : reply(404, {});
+      }
+      return reply(404, {});
+    };
+    history.replaceState(
+      null,
+      "",
+      parameters.get("path") ||
+        (location.pathname.startsWith("/tests/")
+          ? "/presentations"
+          : location.pathname),
+    );
+    await import("/src/main.tsx");
+  </script>
+</html>

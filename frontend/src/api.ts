@@ -7,7 +7,13 @@ export class ApiError extends Error {
         ? "Your session has expired. Please log in again."
         : status === 403
           ? "Your account does not have staff access. Contact an administrator."
-          : "Unable to verify workspace access. Please try again.",
+          : status === 503
+            ? "Unable to verify workspace access or load data. Please try again."
+            : status === 409
+              ? "This request changed. Reload it before saving again."
+              : status === 404
+                ? "This record was not found."
+                : "Unable to load or save workspace data. Please try again.",
     );
   }
 }

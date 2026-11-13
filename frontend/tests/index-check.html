@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" /><title>Presentation loading checks</title
+  ><style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+    }
+    iframe {
+      width: 1280px;
+      height: 850px;
+      border: 1px solid #ccc;
+    }
+    .pass {
+      color: green;
+    }
+    .fail {
+      color: #a00;
+    }
+  </style>
+  <h1>Presentation loading checks</h1>
+  <p>
+    Uses fictional Auth and API boundaries. No business requests or record
+    changes reach Supabase. Existing local storage is untouched.
+  </p>
+  <button id="run">Run loading checks</button>
+  <section id="results" aria-live="polite">Ready.</section>
+  <iframe id="app" title="Workspace under test"></iframe>
+  <script type="module">
+    const frame = document.querySelector("#app"),
+      results = document.querySelector("#results");
+    let passed = 0;
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    async function until(fn, label) {
+      for (let i = 0; i < 100; i++) {
+        const value = fn();
+        if (value) return value;
+        await wait(100);
+      }
+      throw Error("Timed out: " + label);
+    }
+    const doc = () => frame.contentDocument,
+      text = () => doc()?.body.innerText || "";
+    function check(ok, label) {
+      if (!ok) throw Error(label);
+      passed++;
+      const item = document.createElement("li");
+      item.className = "pass";
+      item.textContent = "PASS " + label;
+      results.append(item);
+    }
+    async function click(name) {
+      const button = await until(
+        () =>
+          [...doc().querySelectorAll("button")].find(
+            (button) =>
+              (button.getAttribute("aria-label") ||
+                button.textContent.trim()) === name,
+          ),
+        name,
+      );
+      button.click();
+      await wait(150);
+    }
+    async function field(label, value) {
+      const input = await until(
+        () => doc().querySelector(`[aria-label="${label}"]`),
+        label,
+      );
+      const prototype =
+        input.tagName === "TEXTAREA"
+          ? frame.contentWindow.HTMLTextAreaElement.prototype
+          : input.tagName === "SELECT"
+            ? frame.contentWindow.HTMLSelectElement.prototype
+            : frame.contentWindow.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, "value").set.call(
+        input,
+        value,
+      );
+      input.dispatchEvent(
+        new frame.contentWindow.Event(
+          input.tagName === "SELECT" ? "change" : "input",
+          { bubbles: true },
+        ),
+      );
+      await wait(150);
+    }
+    let run = 0;
+    async function load(parameters = "") {
+      const token = String(++run);
+      frame.src = `/tests/live-fixture.html?run=${token}&${parameters}`;
+      await until(
+        () =>
+          frame.contentWindow.fixture?.run === token &&
+          doc().querySelector(".request-stats"),
+        "new index shell",
+      );
+    }
+    function fixture() {
+      return frame.contentWindow.fixture;
+    }
+    function tableReady() {
+      return (
+        doc().querySelector(".table-card")?.getAttribute("aria-busy") ===
+          "false" && doc().querySelector("tbody .request-row")
+      );
+    }
+    document.querySelector("#run").onclick = async () => {
+      results.textContent = "";
+      passed = 0;
+      try {
+        await load("table-delay=2500");
+        await until(
+          () => doc().querySelector(".stat-value strong"),
+          "fast statistics",
+        );
+        check(
+          doc().querySelectorAll(".skeleton-row").length === 10,
+          "Analytics render while the table independently shows ten skeleton rows",
+        );
+        check(
+          fixture().calls.some((call) => call.path.endsWith("/index")) &&
+            fixture().calls.some((call) => call.path.endsWith("/statistics")) &&
+            !fixture().calls.some(
+              (call) => call.path === "/api/v1/presentations",
+            ),
+          "Index starts separate table/statistics requests without a full-dataset fetch",
+        );
+        await until(tableReady, "table completion");
+        const headers = [...doc().querySelectorAll("thead th")].map((node) =>
+          node.textContent.trim(),
+        );
+        check(
+          headers.at(-1) === "Status" &&
+            !headers.includes("Request") &&
+            !headers.includes("Actions"),
+          "Status is last and request ID/action columns are absent",
+        );
+        check(
+          doc()
+            .querySelector("tbody tr")
+            .textContent.includes("Fictional Operations School") &&
+            !doc().querySelector("tbody tr").textContent.includes("11111111"),
+          "Rows default to newest receipt without displaying IDs",
+        );
+        const period = doc().querySelector(".period-menu"),
+          summary = period.querySelector("summary");
+        const box = period.getBoundingClientRect(),
+          control = summary.getBoundingClientRect();
+        check(
+          Math.abs(
+            box.left + box.width / 2 - control.left - control.width / 2,
+          ) < 2 &&
+            Math.abs(
+              box.top + box.height / 2 - control.top - control.height / 2,
+            ) < 2,
+          "Days selector is centered inside a horizontally padded block",
+        );
+        check(
+          [...doc().querySelectorAll(".stat-copy")].every(
+            (copy) =>
+              Math.abs(
+                copy.querySelector(".stat-label").getBoundingClientRect()
+                  .right -
+                  copy
+                    .querySelector(".stat-value strong")
+                    .getBoundingClientRect().right,
+              ) < 1,
+          ),
+          "Analytics labels and values share right alignment",
+        );
+        await load("stats-delay=2500");
+        await until(tableReady, "fast table");
+        check(
+          doc().querySelector(".request-stats").getAttribute("aria-busy") ===
+            "true" &&
+            doc().querySelectorAll(".skeleton-stat-value").length === 4,
+          "Table renders while analytics independently show skeletons",
+        );
+        await until(
+          () => doc().querySelector(".stat-value strong"),
+          "slow statistics completion",
+        );
+        const statsBefore = fixture().calls.filter((call) =>
+          call.path.endsWith("/statistics"),
+        ).length;
+        fixture().tableDelay = 650;
+        await field("Search presentations", "Ear");
+        await field("Search presentations", "Earlier");
+        await until(
+          () =>
+            fixture().calls.some((call) => call.search.includes("q=Earlier")),
+          "debounced search request",
+        );
+        await field("Search presentations", "Fictional Operations");
+        await until(
+          () =>
+            fixture().calls.some(
+              (call) => call.search.includes("q=Earlier") && call.aborted,
+            ),
+          "old search cancellation",
+        );
+        await until(
+          () =>
+            tableReady() &&
+            doc()
+              .querySelector("tbody tr")
+              .textContent.includes("Fictional Operations School"),
+          "latest search rows",
+        );
+        check(
+          !fixture().calls.some(
+            (call) => new URLSearchParams(call.search).get("q") === "Ear",
+          ),
+          "Search debounces typing rather than requesting every character",
+        );
+        check(
+          fixture().calls.some(
+            (call) => call.search.includes("q=Earlier") && call.aborted,
+          ),
+          "A superseded table search is aborted and cannot replace current rows",
+        );
+        check(
+          fixture().calls.filter((call) => call.path.endsWith("/statistics"))
+            .length === statsBefore,
+          "Table search does not refetch independent analytics",
+        );
+        fixture().tableDelay = 0;
+        await field("Search presentations", "");
+        await until(
+          () => tableReady() && text().includes("Page 1 of 11"),
+          "unfiltered paging",
+        );
+        const before = fixture().calls.length;
+        await click("Next page");
+        await until(
+          () => tableReady() && text().includes("Page 2 of 11"),
+          "next page",
+        );
+        check(
+          fixture()
+            .calls.slice(before)
+            .some(
+              (call) =>
+                call.path.endsWith("/index") &&
+                new URLSearchParams(call.search).get("offset") === "10",
+            ),
+          "Pagination loads only the requested server page",
+        );
+        await click("First page");
+        await until(
+          () => tableReady() && text().includes("Page 1 of 11"),
+          "first page",
+        );
+        const checkbox = doc().querySelector("tbody input");
+        checkbox.click();
+        await wait(100);
+        check(
+          !doc().querySelector(".live-detail") && checkbox.checked,
+          "Checkbox selection does not navigate the row",
+        );
+        checkbox.click();
+        await wait(100);
+        await click("Export");
+        await until(() => fixture().exportBlob, "export blob");
+        const csv = await fixture().exportBlob.text();
+        check(
+          csv.split("\n").length === 102 &&
+            fixture().exportName === "calpulli-presentations.csv",
+          "Export fetches all 101 filtered rows instead of only the visible page",
+        );
+        check(
+          csv.includes('"\'=1+1"') && csv.includes('"CSV, ""Quoted"""'),
+          "CSV export escapes formulas, commas and quotes",
+        );
+        doc().querySelector("tbody .request-row td:last-child").click();
+        await until(
+          () => doc().querySelector(".live-detail"),
+          "whole row detail",
+        );
+        check(
+          Boolean(doc().querySelector(".live-detail")),
+          "Clicking a neutral status cell opens the whole row",
+        );
+        await click("Back to presentations");
+        await until(tableReady, "back to index");
+        doc()
+          .querySelector("tbody .request-row")
+          .dispatchEvent(
+            new frame.contentWindow.KeyboardEvent("keydown", {
+              key: "Enter",
+              bubbles: true,
+            }),
+          );
+        await until(
+          () => doc().querySelector(".live-detail"),
+          "keyboard detail",
+        );
+        check(
+          Boolean(doc().querySelector(".live-detail")),
+          "A focused row supports Enter navigation",
+        );
+        await click("Back to presentations");
+        await until(tableReady, "back before mutation");
+        doc().querySelector("tbody input").click();
+        await wait(100);
+        doc().querySelector("tbody .request-row td:last-child").click();
+        await until(
+          () => doc().querySelector('[aria-label="Request status"]'),
+          "selected request details",
+        );
+        await field("Request status", "reviewing");
+        await until(
+          () => fixture().detail.status === "reviewing",
+          "saved status",
+        );
+        await click("Back to presentations");
+        await until(tableReady, "refreshed index");
+        check(
+          !doc().querySelector("tbody input").checked &&
+            !doc()
+              .querySelector(".header-export button")
+              .textContent.includes("(1)"),
+          "Saving a request clears stale cross-page selections before exporting",
+        );
+        await load();
+        await until(tableReady, "failure fixture");
+        fixture().indexFailure = true;
+        await click("Sort by received date ascending");
+        await until(() => text().includes("Retry table"), "table failure");
+        check(
+          Boolean(doc().querySelector(".stat-value strong")) &&
+            !doc().querySelector("tbody .request-row"),
+          "A table failure leaves analytics visible and never exposes stale interactive rows",
+        );
+        fixture().indexFailure = false;
+        await click("Retry table");
+        await until(tableReady, "table retry");
+        check(Boolean(tableReady()), "Table errors can retry independently");
+        fixture().statsFailure = true;
+        doc().querySelector(".period-menu summary").click();
+        doc().querySelector('input[name="stats-period"][value="7"]').click();
+        await until(
+          () => text().includes("Retry statistics"),
+          "statistics failure",
+        );
+        check(
+          Boolean(tableReady()),
+          "An analytics failure leaves the loaded table usable",
+        );
+        fixture().statsFailure = false;
+        await click("Retry statistics");
+        await until(
+          () => doc().querySelector(".stat-value strong"),
+          "statistics retry",
+        );
+        check(
+          Boolean(tableReady()) &&
+            doc().querySelector(".period-menu summary").textContent.trim() ===
+              "7 days",
+          "Analytics retry keeps the chosen period without reloading the table",
+        );
+        results.insertAdjacentHTML(
+          "afterbegin",
+          `<h2>${passed} loading checks passed</h2>`,
+        );
+      } catch (error) {
+        const item = document.createElement("p");
+        item.className = "fail";
+        item.textContent = `FAIL after ${passed} checks: ${error.message}`;
+        results.append(item);
+      }
+    };
+  </script>
+</html>
