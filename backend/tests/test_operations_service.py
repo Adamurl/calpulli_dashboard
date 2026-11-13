@@ -30,6 +30,8 @@ from app.modules.presentations.operations_service import (
 from app.modules.presentations.operations_service import (
     read_operations as read_business_operations,
 )
+from app.modules.presentations.schemas import PresentationPatch
+from app.modules.presentations.services import PresentationConflict, update_presentation
 
 
 @compiles(JSONB, "sqlite")
@@ -226,3 +228,50 @@ def test_business_endpoint_requires_staff_and_returns_only_csv_label(session, tm
         assert data["recorded_received_amount"] is None
         assert "original_cells" not in data
         assert "import_row_id" not in data
+
+
+def test_workspace_edit_commits_notes_and_actor_without_recommending_email(session, monkeypatch):
+    request = PresentationRequest(source="manual", form_version="legacy_v1", status="unknown")
+    session.add(request)
+    session.commit()
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("A workspace edit must not recommend email")
+
+    monkeypatch.setattr("app.modules.presentations.services.recommend_state", forbidden)
+    for note in ["Fictional first note", "Fictional second note"]:
+        update_presentation(
+            session,
+            request.id,
+            PresentationPatch(internal_notes=note),
+            actor_id="verified-user-id",
+            recommend_email=False,
+        )
+    update_presentation(
+        session,
+        request.id,
+        PresentationPatch(status="reviewing", expected_current_status="unknown"),
+        actor_id="verified-user-id",
+        recommend_email=False,
+    )
+    with pytest.raises(PresentationConflict):
+        update_presentation(
+            session,
+            request.id,
+            PresentationPatch(status="booked", expected_current_status="unknown"),
+            actor_id="verified-user-id",
+            recommend_email=False,
+        )
+    session.expire_all()
+    saved = session.get(PresentationRequest, request.id)
+    assert saved.status == "reviewing"
+    assert saved.internal_notes == "Fictional second note"
+    history = list(session.scalars(select(PresentationActivity)))
+    assert len(history) == 3
+    assert {item.actor_id for item in history} == {"verified-user-id"}
+    assert {item.note for item in history if item.kind == "note_added"} == {
+        "Fictional first note",
+        "Fictional second note",
+    }
+    assert session.scalar(select(func.count()).select_from(EmailMessage)) == 0
+    assert session.scalar(select(func.count()).select_from(EmailStaffTask)) == 0

@@ -6,7 +6,7 @@ Health endpoints are public. Presentation, activity, email, template, and capabi
 
 Missing Auth configuration and provider outages fail closed with HTTP 503. Invalid credentials receive HTTP 401, and valid users without staff approval receive HTTP 403. Auth calls have a five-second timeout and do not follow redirects. The old shared token is not an access path. The frontend sends the current Supabase session JWT only to same-origin API paths and refuses redirects. The legacy email staff page accepts a user JWT held in memory. Neither page supplies server database credentials.
 
-All approved staff currently share access to all presentation and email business routes. There are no per-record ownership rules or distinct coordinator/admin roles. Existing business audit fields still use generic staff/system actors; verified user IDs are available on the request but are not yet persisted on every activity. Do not interpret these records as individual approval attribution.
+All approved staff currently share access to all presentation and email business routes. There are no per-record ownership rules or distinct coordinator/admin roles. Dashboard status and note changes persist the verified user UUID in activity `actor_id`. Older activities and other email/workflow actions can still use generic staff/system actors. Do not interpret these records as individual approval attribution.
 
 ## Secrets and environments
 

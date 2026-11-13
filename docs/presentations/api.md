@@ -9,9 +9,13 @@ Sources: `backend/app/modules/presentations/router.py`, `schemas.py`, and `servi
 | Method | Path | Input | Success output |
 | --- | --- | --- | --- |
 | GET | `/api/v1/presentations` | Query filters and pagination | 200, `PresentationList` |
+| GET | `/api/v1/presentations/index` | Search, status, receipt sorting and pagination | 200, `PresentationIndex` |
+| GET | `/api/v1/presentations/statistics` | `days=1`, `7`, or `30` | 200, `PresentationStatistics` |
 | POST | `/api/v1/presentations` | `NewPresentation` JSON | 201, `PresentationRead` |
 | GET | `/api/v1/presentations/{request_id}` | UUID path parameter | 200, `PresentationRead` |
 | PATCH | `/api/v1/presentations/{request_id}` | UUID plus `PresentationPatch` JSON | 200, `PresentationRead` |
+| PATCH | `/api/v1/presentations/{request_id}/workspace` | UUID plus `PresentationPatch` JSON | 200, `PresentationRead`, no email side effects |
+| GET | `/api/v1/presentations/{request_id}/operations` | UUID path parameter | 200, `OperationsRead`, or 404 when no operations record exists |
 
 There is no delete endpoint or general form-answer editing endpoint. `presentation_id`, `request_id`, and `inquiry_id` refer to the same existing presentation request where those names appear in related APIs.
 
@@ -190,3 +194,21 @@ Shared authentication and validation errors are defined in the [API overview](..
 These routes do not convert all database exceptions to HTTP 503. A write can commit before a later dispatch error produces HTTP 500. Automatic retry of manual creation is therefore unsafe without checking whether a record was created.
 
 Verification: `test_presentations.py`, `test_presentations_database.py`, and `test_email_workflow.py` under `backend/tests/`.
+
+## Dashboard edits
+
+The workspace PATCH accepts the same status and internal-note inputs as the existing PATCH. Status changes still require `expected_current_status` and return 409 if another update changed the status. Each saved status change and note records the verified staff UUID as `actor_id`. Each submitted note remains a separate activity; `internal_notes` holds the latest note.
+
+Workspace edits neither call email recommendation nor dispatch delivery. The original PATCH retains its existing email workflow behavior. The dashboard uses the workspace endpoint exclusively. Operations remain read-only; a missing operations record is distinct from a database or authorization error.
+
+## Presentation index and statistics
+
+The dashboard starts the index and statistics requests independently after staff verification. Neither response requires loading every presentation. Both endpoints use the existing staff dependency and private, no-store response policy.
+
+`GET /api/v1/presentations/index` accepts `limit` from 1 through 100, default 10; nonnegative `offset`; `q` up to 200 characters; optional presentation `status`; and `sort=received_desc` or `received_asc`. The default is newest receipt first. Unknown receipt dates are last in both directions; creation time descending and UUID descending break ties. Event dates never determine index order. Search matches literal case-insensitive substrings in contact name, organization, email, purpose, venue and humanized event types. Percent and underscore characters are escaped rather than interpreted as search wildcards.
+
+The response contains `items: PresentationSummary[]`, `limit`, `offset`, `total` for the filtered set and `total_all` for all requests. Filtering and sorting occur before pagination. The query projects only summary columns and does not select original form payloads or internal notes. The existing `/presentations` list contract and creation-date ordering remain unchanged for other consumers.
+
+`GET /api/v1/presentations/statistics?days=7` returns `days`, `timezone`, `start_date`, `end_date` and four `metrics`. Each metric has a `key` of `presentations`, `reviewing`, `booked` or `completed`, plus chronological `current` and `previous` arrays with one integer count per day. Dates describe the inclusive current period; the previous array covers the immediately preceding equal number of calendar days. Only 1, 7 and 30 days are accepted. Calendar boundaries and grouping use America/Los_Angeles, including daylight-saving changes. Missing receipt timestamps are excluded. Status series describe the current status of requests received in the period, not historical status transitions. Table filters do not affect these workspace-wide statistics.
+
+Statistics use a bounded aggregate query over both periods. They return counts, not individual records. No schema changes, migrations, public database policies or external integrations are needed.

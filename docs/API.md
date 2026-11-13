@@ -43,16 +43,20 @@ Health endpoints and the empty staff HTML shell are public in FastAPI. The Wix w
 
 ## Endpoint index
 
-The current application has 20 JSON operations. `{request_id}` and `{inquiry_id}` both identify a presentation request. `{message_id}` identifies a stored email scoped to that inquiry. All three are UUID strings.
+The current application has 25 JSON operations. `{request_id}` and `{inquiry_id}` both identify a presentation request. `{message_id}` identifies a stored email scoped to that inquiry. All three are UUID strings.
 
 | Method | Path | Successful response | Reference |
 | --- | --- | --- | --- |
 | GET | `/api/v1/health` | 200, health object | [Health](health/README.md) |
 | GET | `/api/v1/health/ready` | 200, readiness object | [Health](health/README.md) |
 | GET | `/api/v1/presentations` | 200, paginated summaries | [Presentations](presentations/api.md) |
+| GET | `/api/v1/presentations/index` | 200, receipt-sorted page and total counts | [Presentation index](presentations/api.md#presentation-index-and-statistics) |
+| GET | `/api/v1/presentations/statistics` | 200, bounded receipt-date statistics | [Statistics](presentations/api.md#presentation-index-and-statistics) |
 | POST | `/api/v1/presentations` | 201, presentation detail | [Presentations](presentations/api.md) |
 | GET | `/api/v1/presentations/{request_id}` | 200, presentation detail | [Presentations](presentations/api.md) |
 | PATCH | `/api/v1/presentations/{request_id}` | 200, presentation detail | [Presentations](presentations/api.md) |
+| PATCH | `/api/v1/presentations/{request_id}/workspace` | 200, presentation detail without email side effects | [Presentations](presentations/api.md#dashboard-edits) |
+| GET | `/api/v1/presentations/{request_id}/operations` | 200, historical operations | [Presentations](presentations/api.md) |
 | GET | `/api/v1/presentations/{request_id}/activities` | 200, paginated activities | [Activity](presentations/activity.md) |
 | GET | `/api/v1/presentations/email-capabilities` | 200, capability object | [Emails](email/api.md#capability-output) |
 | GET | `/api/v1/presentations/email-templates` | 200, template array | [Templates](email/templates.md) |

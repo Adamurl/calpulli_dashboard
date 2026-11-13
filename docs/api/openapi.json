@@ -1044,6 +1044,42 @@
         "title": "OperationsRead",
         "type": "object"
       },
+      "PresentationIndex": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PresentationSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_all": {
+            "title": "Total All",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total",
+          "total_all"
+        ],
+        "title": "PresentationIndex",
+        "type": "object"
+      },
       "PresentationList": {
         "properties": {
           "items": {
@@ -1527,6 +1563,50 @@
         "title": "PresentationRead",
         "type": "object"
       },
+      "PresentationStatistics": {
+        "properties": {
+          "days": {
+            "enum": [
+              1,
+              7,
+              30
+            ],
+            "title": "Days",
+            "type": "integer"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/StatisticSeries"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "timezone": {
+            "const": "America/Los_Angeles",
+            "default": "America/Los_Angeles",
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "days",
+          "start_date",
+          "end_date",
+          "metrics"
+        ],
+        "title": "PresentationStatistics",
+        "type": "object"
+      },
       "PresentationSummary": {
         "properties": {
           "contact_email": {
@@ -1713,6 +1793,45 @@
           "estimated_guests"
         ],
         "title": "PresentationSummary",
+        "type": "object"
+      },
+      "StatisticSeries": {
+        "properties": {
+          "current": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Current",
+            "type": "array"
+          },
+          "key": {
+            "enum": [
+              "presentations",
+              "reviewing",
+              "booked",
+              "completed"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "previous": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Previous",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "current",
+          "previous"
+        ],
+        "title": "StatisticSeries",
         "type": "object"
       },
       "TemplateEdit": {
@@ -2259,6 +2378,168 @@
           }
         ],
         "summary": "Update Template",
+        "tags": [
+          "presentations"
+        ]
+      }
+    },
+    "/api/v1/presentations/index": {
+      "get": {
+        "operationId": "presentation_index_api_v1_presentations_index_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "unknown",
+                    "new",
+                    "reviewing",
+                    "proposal_sent",
+                    "booked",
+                    "completed",
+                    "declined",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "received_desc",
+              "enum": [
+                "received_desc",
+                "received_asc"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresentationIndex"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Presentation Index",
+        "tags": [
+          "presentations"
+        ]
+      }
+    },
+    "/api/v1/presentations/statistics": {
+      "get": {
+        "operationId": "presentation_statistics_api_v1_presentations_statistics_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresentationStatistics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Presentation Statistics",
         "tags": [
           "presentations"
         ]
@@ -3018,6 +3299,64 @@
           }
         ],
         "summary": "Get Operations",
+        "tags": [
+          "presentations"
+        ]
+      }
+    },
+    "/api/v1/presentations/{request_id}/workspace": {
+      "patch": {
+        "operationId": "update_workspace_request_api_v1_presentations__request_id__workspace_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresentationPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresentationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Workspace Request",
         "tags": [
           "presentations"
         ]

@@ -7,12 +7,13 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.db.session import build_engine, get_session
 from app.main import create_app
+from app.modules.presentations.email_models import EmailMessage, EmailStaffTask
 from app.modules.presentations.models import PresentationActivity, PresentationRequest
 from app.modules.presentations.schemas import NewPresentation, PresentationPatch
 from app.modules.presentations.services import (
@@ -21,6 +22,7 @@ from app.modules.presentations.services import (
     list_presentations,
     update_presentation,
 )
+from tests.conftest import STAFF_ID
 
 TOKEN = "fictional-integration-token-32-characters"
 pytestmark = pytest.mark.integration
@@ -215,3 +217,68 @@ def test_presentation_tables_have_rls_and_no_browser_policies(pg_session: Sessio
                     text("SELECT has_table_privilege(:role, :table, 'SELECT')"),
                     {"role": role, "table": f"public.{name}"},
                 )
+
+
+def test_workspace_edits_persist_audited_notes_without_email_side_effects(
+    database_url: str, pg_session: Session, staff_auth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    legacy = PresentationRequest(
+        source="manual", form_version="legacy_v1", status="unknown", original_fields={}
+    )
+    pg_session.add(legacy)
+    pg_session.commit()
+    request_id = legacy.id
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Workspace updates must not recommend or dispatch email")
+
+    monkeypatch.setattr("app.modules.presentations.services.recommend_state", forbidden)
+    monkeypatch.setattr("app.modules.presentations.router.dispatch_automatic", forbidden)
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, app_env="test", **staff_auth(TOKEN))
+    )
+
+    def database():
+        yield pg_session
+
+    app.dependency_overrides[get_session] = database
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    path = f"/api/v1/presentations/{request_id}/workspace"
+    before = {
+        model: pg_session.scalar(select(func.count()).select_from(model))
+        for model in (EmailMessage, EmailStaffTask)
+    }
+    with TestClient(app) as client:
+        assert client.patch(path, json={"internal_notes": "Unauthenticated"}).status_code == 401
+        for note in ["First staff note", "Second staff note"]:
+            response = client.patch(path, json={"internal_notes": note}, headers=headers)
+            assert response.status_code == 200
+        updated = client.patch(
+            path,
+            json={"status": "reviewing", "expected_current_status": "unknown"},
+            headers=headers,
+        )
+        assert updated.status_code == 200
+        assert updated.json()["status"] == "reviewing"
+        conflict = client.patch(
+            path,
+            json={"status": "booked", "expected_current_status": "unknown"},
+            headers=headers,
+        )
+        assert conflict.status_code == 409
+        reloaded = client.get(f"/api/v1/presentations/{request_id}", headers=headers)
+        assert reloaded.json()["status"] == "reviewing"
+        assert reloaded.json()["internal_notes"] == "Second staff note"
+    activities = list(
+        pg_session.scalars(
+            select(PresentationActivity).where(PresentationActivity.request_id == request_id)
+        )
+    )
+    assert {activity.actor_id for activity in activities} == {str(STAFF_ID)}
+    assert {activity.note for activity in activities if activity.kind == "note_added"} == {
+        "First staff note",
+        "Second staff note",
+    }
+    assert len([a for a in activities if a.kind == "status_changed"]) == 1
+    for model, count in before.items():
+        assert pg_session.scalar(select(func.count()).select_from(model)) == count

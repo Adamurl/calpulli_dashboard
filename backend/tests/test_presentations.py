@@ -8,8 +8,8 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.main import create_app
 from app.modules.presentations import services
-from app.modules.presentations.schemas import NewPresentation, PresentationPatch
-from tests.conftest import UNAVAILABLE_URL
+from app.modules.presentations.schemas import NewPresentation, PresentationPatch, PresentationRead
+from tests.conftest import STAFF_ID, UNAVAILABLE_URL
 
 TOKEN = "fictional-test-access-token-32-characters"
 
@@ -178,3 +178,84 @@ def test_not_found_and_status_conflict_are_http_errors(
             headers=headers,
         )
         assert response.status_code == 409
+
+
+def test_workspace_update_uses_verified_actor_without_dispatch(
+    monkeypatch: pytest.MonkeyPatch, staff_auth
+) -> None:
+    captured = {}
+    request_id = uuid4()
+    now = datetime.now(UTC)
+    record = dict.fromkeys(PresentationRead.model_fields)
+    record.update(
+        id=request_id,
+        source="legacy_csv",
+        form_version="legacy_v1",
+        status="reviewing",
+        created_at=now,
+        updated_at=now,
+        event_types=[],
+        referral_sources=[],
+        original_fields={"Occasion": "Fictional school celebration"},
+        internal_notes="Confirmed availability",
+    )
+
+    def update(session, found_id, payload, **kwargs):
+        captured.update(request_id=found_id, payload=payload, **kwargs)
+        return record
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("Workspace edits must not dispatch email")
+
+    monkeypatch.setattr(services, "update_presentation", update)
+    monkeypatch.setattr("app.modules.presentations.router.dispatch_automatic", unexpected)
+    app = create_app(
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test", **staff_auth(TOKEN))
+    )
+    with TestClient(app) as client:
+        forged = client.patch(
+            f"/api/v1/presentations/{request_id}/workspace",
+            json={"internal_notes": "Forged attribution", "actor_id": "another-user"},
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        )
+        assert forged.status_code == 422
+        assert captured == {}
+        response = client.patch(
+            f"/api/v1/presentations/{request_id}/workspace",
+            json={
+                "status": "reviewing",
+                "expected_current_status": "unknown",
+                "internal_notes": "Confirmed availability",
+            },
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["internal_notes"] == "Confirmed availability"
+        assert response.json()["original_fields"] == record["original_fields"]
+        assert captured["request_id"] == request_id
+        assert captured["actor_id"] == str(STAFF_ID)
+        assert captured["recommend_email"] is False
+
+
+@pytest.mark.parametrize(
+    ("failure", "status_code"),
+    [(services.PresentationNotFound, 404), (services.PresentationConflict, 409)],
+)
+def test_workspace_update_errors_are_safe(
+    monkeypatch: pytest.MonkeyPatch, staff_auth, failure, status_code
+) -> None:
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(services, "update_presentation", fail)
+    app = create_app(
+        Settings(_env_file=None, database_url=UNAVAILABLE_URL, app_env="test", **staff_auth(TOKEN))
+    )
+    with TestClient(app) as client:
+        response = client.patch(
+            f"/api/v1/presentations/{uuid4()}/workspace",
+            json={"status": "booked", "expected_current_status": "new"},
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        )
+        assert response.status_code == status_code
+        assert "traceback" not in response.text.lower()

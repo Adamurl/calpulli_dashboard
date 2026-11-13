@@ -96,7 +96,12 @@ def create_presentation(
 
 
 def update_presentation(
-    session: Session, request_id: UUID, payload: PresentationPatch
+    session: Session,
+    request_id: UUID,
+    payload: PresentationPatch,
+    *,
+    actor_id: str | None = None,
+    recommend_email: bool = True,
 ) -> PresentationRequest:
     try:
         request = session.scalar(
@@ -116,15 +121,20 @@ def update_presentation(
                         kind="status_changed",
                         previous_status=request.status,
                         new_status=payload.status,
+                        actor_id=actor_id,
                     )
                 )
                 request.status = payload.status
-                recommend_state(session, request)
+                if recommend_email:
+                    recommend_state(session, request)
         if payload.internal_notes is not None:
             request.internal_notes = payload.internal_notes
             session.add(
                 PresentationActivity(
-                    request_id=request_id, kind="note_added", note=payload.internal_notes
+                    request_id=request_id,
+                    kind="note_added",
+                    note=payload.internal_notes,
+                    actor_id=actor_id,
                 )
             )
         session.commit()

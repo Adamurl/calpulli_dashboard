@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import require_staff_access
 from app.db.session import get_session
+from app.integrations.supabase_auth import AuthenticatedUser
 from app.modules.presentations import index_service, operations_service, services
 from app.modules.presentations.email_router import router as email_router
 from app.modules.presentations.email_service import dispatch_automatic
@@ -34,6 +35,7 @@ router.include_router(email_router)
 DbSession = Annotated[Session, Depends(get_session)]
 PageLimit = Annotated[int, Query(ge=1, le=100)]
 PageOffset = Annotated[int, Query(ge=0)]
+Staff = Annotated[AuthenticatedUser, Depends(require_staff_access)]
 
 
 @router.get("", response_model=PresentationList)
@@ -121,6 +123,25 @@ def get_activities(
         limit=limit,
         offset=offset,
     )
+
+
+@router.patch("/{request_id}/workspace", response_model=PresentationRead)
+def update_workspace_request(
+    request_id: UUID, payload: PresentationPatch, session: DbSession, staff: Staff
+) -> PresentationRead:
+    try:
+        record = services.update_presentation(
+            session,
+            request_id,
+            payload,
+            actor_id=str(staff.id),
+            recommend_email=False,
+        )
+        return PresentationRead.model_validate(record)
+    except services.PresentationNotFound:
+        raise HTTPException(404, "Presentation not found") from None
+    except services.PresentationConflict:
+        raise HTTPException(409, "Presentation status changed; reload before updating") from None
 
 
 @router.get("/{request_id}/operations", response_model=OperationsRead)
