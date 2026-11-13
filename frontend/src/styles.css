@@ -230,12 +230,12 @@ small {
   color: #466991;
 }
 .badge.booked {
-  background: #e3efdf;
-  color: #43713b;
+  background: #e5efff;
+  color: #466991;
 }
 .badge.completed {
-  background: #e9ede7;
-  color: #61765a;
+  background: #e3efdf;
+  color: #43713b;
 }
 .avatar {
   flex-shrink: 0;
