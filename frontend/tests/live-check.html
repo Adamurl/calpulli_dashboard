@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" /><title>Live data browser checks</title
+  ><style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+    }
+    iframe {
+      width: 1280px;
+      height: 850px;
+      border: 1px solid #ccc;
+    }
+    .pass {
+      color: green;
+    }
+    .fail {
+      color: #a00;
+    }
+  </style>
+  <h1>Live data browser checks</h1>
+  <p>
+    Uses fictional Auth and API boundaries. No business requests or record
+    changes reach Supabase. Existing local storage is untouched.
+  </p>
+  <button id="run">Run live checks</button>
+  <section id="results" aria-live="polite">Ready.</section>
+  <iframe id="app" title="Workspace under test"></iframe>
+  <script type="module">
+    const frame = document.querySelector("#app"),
+      results = document.querySelector("#results");
+    let passed = 0;
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    async function until(fn, label) {
+      for (let i = 0; i < 100; i++) {
+        const value = fn();
+        if (value) return value;
+        await wait(100);
+      }
+      throw Error("Timed out: " + label);
+    }
+    const doc = () => frame.contentDocument,
+      text = () => doc()?.body.innerText || "";
+    function check(ok, label) {
+      if (!ok) throw Error(label);
+      passed++;
+      const item = document.createElement("li");
+      item.className = "pass";
+      item.textContent = "PASS " + label;
+      results.append(item);
+    }
+    async function click(name) {
+      const button = await until(
+        () =>
+          [...doc().querySelectorAll("button")].find(
+            (button) =>
+              (button.getAttribute("aria-label") ||
+                button.textContent.trim()) === name,
+          ),
+        name,
+      );
+      button.click();
+      await wait(150);
+    }
+    async function field(label, value) {
+      const input = await until(
+        () => doc().querySelector(`[aria-label="${label}"]`),
+        label,
+      );
+      const prototype =
+        input.tagName === "TEXTAREA"
+          ? frame.contentWindow.HTMLTextAreaElement.prototype
+          : input.tagName === "SELECT"
+            ? frame.contentWindow.HTMLSelectElement.prototype
+            : frame.contentWindow.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, "value").set.call(
+        input,
+        value,
+      );
+      input.dispatchEvent(
+        new frame.contentWindow.Event(
+          input.tagName === "SELECT" ? "change" : "input",
+          { bubbles: true },
+        ),
+      );
+      await wait(150);
+    }
+    document.querySelector("#run").onclick = async () => {
+      results.textContent = "";
+      passed = 0;
+      const storage = JSON.stringify({ ...localStorage });
+      try {
+        frame.src = "/tests/live-fixture.html";
+        await until(
+          () => text().includes("Fictional Operations School"),
+          "live records",
+        );
+        check(
+          !text().includes("Oak Valley") && !text().includes("fictional data"),
+          "Signed-in workspace shows API records without demo fixtures",
+        );
+        await click("Presentations");
+        await until(() => doc().querySelector(".stat-value"), "table");
+        check(
+          text().includes("101") &&
+            frame.contentWindow.fixture.calls.some(
+              (call) =>
+                call.path.endsWith("/index") &&
+                call.search.includes("limit=10"),
+            ) &&
+            !frame.contentWindow.fixture.calls.some(
+              (call) => call.path === "/api/v1/presentations",
+            ),
+          "First table page loads without downloading all summaries",
+        );
+        check(
+          doc()
+            .querySelector(".topbar .header-export button")
+            ?.textContent.includes("Export"),
+          "Black export control is in the top header",
+        );
+        check(
+          Number(doc().querySelector(".stat-value strong").textContent) === 1,
+          "Statistics use receipt dates and exclude unknown dates",
+        );
+        await field("Search presentations", "Fictional Operations School");
+        await until(
+          () =>
+            doc()
+              .querySelector("tbody .table-link")
+              ?.textContent.includes("Fictional Operations School"),
+          "filtered row",
+        );
+        await click("Fictional Operations School");
+        await until(
+          () => text().includes("Payment and paperwork"),
+          "full details",
+        );
+        check(
+          doc().querySelector('[role="tab"][aria-selected="true"]')
+            .textContent === "Presentation details",
+          "Presentation details opens first",
+        );
+        check(
+          text().includes("1200.00") &&
+            text().includes("0.00") &&
+            text().includes("User assumption"),
+          "Operations show recorded amounts including zero and assumption provenance",
+        );
+        check(
+          text().includes("Three reserved spaces") &&
+            text().includes("Private room") &&
+            text().includes("Fixture attendance note"),
+          "Operational attendance and logistics fields display",
+        );
+        check(
+          text().includes("Not provided") && !text().includes("Invalid Date"),
+          "Unknown historical fields stay missing without fabricated dates",
+        );
+        doc().querySelector(".original-submission summary").click();
+        check(
+          text().includes("A complete original response"),
+          "Original form answers are available",
+        );
+        await click("Conversation thread");
+        check(
+          text().includes("No conversation history yet") &&
+            !doc().querySelector(".email-card"),
+          "Historical requests have no invented email thread",
+        );
+        await field("Internal note", "Saved fixture note");
+        const noteEditor = doc().querySelector('[aria-label="Internal note"]');
+        frame.contentWindow.fixture.refresh();
+        await wait(250);
+        check(
+          doc().querySelector('[aria-label="Internal note"]') === noteEditor &&
+            noteEditor.value === "Saved fixture note" &&
+            text().includes("No conversation history yet"),
+          "Refreshing the same staff session preserves the open request and unsaved note",
+        );
+        frame.contentWindow.fixture.noteDelay = 600;
+        await click("Add note");
+        check(
+          doc().querySelector('[aria-label="Internal note"]').disabled,
+          "Note editor cannot accept a second note while its save is pending",
+        );
+        await until(
+          () =>
+            text().includes("Saved fixture note") &&
+            doc().querySelector('[aria-label="Internal note"]').value === "",
+          "saved note",
+        );
+        check(
+          frame.contentWindow.fixture.activities.some(
+            (activity) => activity.note === "Saved fixture note",
+          ),
+          "Notes persist through the API and activity refresh",
+        );
+        await field("Request status", "reviewing");
+        await until(() => text().includes("In review"), "saved status");
+        check(
+          frame.contentWindow.fixture.detail.status === "reviewing",
+          "Status saves through the workspace endpoint",
+        );
+        frame.contentWindow.fixture.conflict = true;
+        await field("Request status", "booked");
+        await until(() => text().includes("This request changed"), "conflict");
+        check(
+          doc().querySelector('[aria-label="Request status"]').value ===
+            "reviewing",
+          "Conflict retains server status and explains reload",
+        );
+        frame.contentWindow.fixture.conflict = false;
+        frame.contentWindow.fixture.emailFailure = true;
+        await click("Back to presentations");
+        await click("Fictional Operations School");
+        await click("Conversation thread");
+        await until(
+          () =>
+            text().includes("Unable to verify workspace access or load data"),
+          "email error",
+        );
+        check(
+          !text().includes("No conversation history yet"),
+          "Failed email loading is not shown as empty history",
+        );
+        check(
+          frame.contentWindow.fixture.calls.every((call) =>
+            [
+              "Bearer fictional-browser-fixture-token",
+              "Bearer fictional-browser-refreshed-token",
+            ].includes(call.authorization),
+          ),
+          "Every business request uses the staff bearer token",
+        );
+        check(
+          !frame.contentWindow.fixture.calls.some((call) =>
+            /send|approve|email-events/.test(call.path),
+          ),
+          "Viewing and saving status or notes never requests email delivery",
+        );
+        check(
+          JSON.stringify({ ...localStorage }) === storage,
+          "Live records and changes never enter browser local storage",
+        );
+        frame.contentWindow.fixture.logoutFailure = true;
+        doc().querySelector(".account-button").click();
+        await click("Log out");
+        check(
+          text().includes("Unable to log out. Please try again.") &&
+            doc().querySelector(".live-detail"),
+          "Failed logout is visible in the live workspace without hiding the current request",
+        );
+        frame.style.width = "390px";
+        await wait(200);
+        check(
+          doc().documentElement.scrollWidth <= 390,
+          "Presentation details fits a mobile viewport",
+        );
+        frame.contentWindow.fixture.loseSession();
+        await until(() => text().includes("Welcome back."), "signed out");
+        frame.contentWindow.fixture.authDelay = 1000;
+        frame.contentWindow.fixture.signInAgain();
+        await wait(150);
+        check(
+          text().includes("Checking workspace access") &&
+            !doc().querySelector(".app-shell"),
+          "Same-user login verifies staff access again after losing the session",
+        );
+        frame.src = "/tests/live-fixture.html?page-failure";
+        await until(
+          () =>
+            frame.contentWindow.fixture?.secondPageFailure === true &&
+            text().includes("Unable to verify workspace access or load data"),
+          "second page error",
+        );
+        check(
+          !text().includes("Recent requests") &&
+            !text().includes("Fictional Operations School"),
+          "A failed table request never displays stale rows as complete",
+        );
+        results.insertAdjacentHTML(
+          "afterbegin",
+          `<h2>${passed} live checks passed</h2>`,
+        );
+      } catch (error) {
+        const item = document.createElement("p");
+        item.className = "fail";
+        item.textContent = `FAIL after ${passed} checks: ${error.message}`;
+        results.append(item);
+      }
+    };
+  </script>
+</html>

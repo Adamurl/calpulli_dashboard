@@ -38,7 +38,7 @@ export function Detail({
   archive: () => void;
 }) {
   const [text, setText] = useState(""),
-    [tab, setTab] = useState("Conversation");
+    [tab, setTab] = useState("Presentation details");
   return (
     <div className="detail-page">
       <div className="detail-toolbar">
@@ -70,49 +70,87 @@ export function Detail({
             <span className="muted">Sample request</span>
           </div>
           <div className="detail-tabs">
-            {["Conversation", "Presentation details", "Activity"].map((t) => (
-              <button
-                className={tab === t ? "selected" : ""}
-                key={t}
-                onClick={() => setTab(t)}
-              >
-                {t}
-              </button>
-            ))}
+            {["Presentation details", "Conversation thread", "Activity"].map(
+              (t) => (
+                <button
+                  className={tab === t ? "selected" : ""}
+                  key={t}
+                  onClick={() => setTab(t)}
+                >
+                  {t}
+                </button>
+              ),
+            )}
           </div>
-          {tab === "Conversation" ? (
+          {tab === "Conversation thread" ? (
             <>
-              <section className="card email-card">
-                <header>
-                  <Avatar name={item.name} />
-                  <div>
-                    <strong>{item.name}</strong>
-                    <small>
-                      {item.email} <span>to Calpulli Tonalehqueh</span>
-                    </small>
+              <p className="demo-thread-label">
+                <strong>Demo conversation</strong> · Fictional messages showing
+                the complete presentation workflow.
+              </p>
+              {[
+                {
+                  sender: item.name,
+                  email: item.email,
+                  to: "Calpulli Tonalehqueh",
+                  time: "Nov 10, 2026 · 9:41 AM",
+                  subject: item.title,
+                  body: `Hello Calpulli team,\n\n${item.preview}\n\nWe are planning our event for ${dateLabel(item.date)} in ${item.location}, with around ${item.guests} guests. Could you share your availability and presentation options?\n\nThank you,\n${item.name.split(" ")[0]}`,
+                },
+                {
+                  sender: "Calpulli Team",
+                  email: "team@example.org",
+                  to: item.name,
+                  time: "Nov 10, 2026 · 11:15 AM",
+                  subject: `Re: ${item.title}`,
+                  body: `Hello ${item.name.split(" ")[0]},\n\nThank you for inviting Calpulli Tonalehqueh. We would love to share a cultural presentation with your community.\n\nCould you confirm whether the performance space is indoors or outdoors, the available time, and whether you can provide a dressing room and parking nearby?\n\nWarmly,\nCalpulli Team`,
+                },
+                {
+                  sender: item.name,
+                  email: item.email,
+                  to: "Calpulli Tonalehqueh",
+                  time: "Nov 10, 2026 · 1:32 PM",
+                  subject: `Re: ${item.title}`,
+                  body: "Thank you for your response!\n\nThe presentation will be in our indoor assembly room from 1:00 to 2:00 PM. We can provide a private dressing room and reserve three parking spaces next to the entrance. There is room to keep the audience at least 12 feet from the dancers.\n\nWe would especially enjoy a short explanation of the traditions and an opportunity for questions.",
+                },
+                {
+                  sender: "Calpulli Team",
+                  email: "team@example.org",
+                  to: item.name,
+                  time: "Nov 11, 2026 · 10:05 AM",
+                  subject: "Presentation proposal and next steps",
+                  body: `Hello ${item.name.split(" ")[0]},\n\nThat space sounds suitable. Our example proposal includes a 45-minute presentation followed by 15 minutes for questions. We will coordinate arrival and setup with your venue contact.\n\nPlease review the proposal and confirm the details. In the live workflow, contract and payment confirmation are separate steps before booking.\n\nWarmly,\nCalpulli Team`,
+                },
+                {
+                  sender: item.name,
+                  email: item.email,
+                  to: "Calpulli Tonalehqueh",
+                  time: "Nov 11, 2026 · 2:20 PM",
+                  subject: "Re: Presentation proposal and next steps",
+                  body: "The proposed format looks wonderful. We have reviewed the details and would like to move forward.\n\nPlease send the contract and payment instructions. I will be your point of contact on the day and meet you at the reserved parking area.\n\nWe look forward to welcoming you!",
+                },
+              ].map((message) => (
+                <section className="card email-card" key={message.time}>
+                  <header>
+                    <Avatar name={message.sender} />
+                    <div>
+                      <strong>{message.sender}</strong>
+                      <small>
+                        {message.email} <span>to {message.to}</span>
+                      </small>
+                    </div>
+                    <time>{message.time}</time>
+                  </header>
+                  <div className="email-content">
+                    <h3>{message.subject}</h3>
+                    <p className="email-text">{message.body}</p>
                   </div>
-                  <time>Nov 10, 2026 · 9:41 AM</time>
-                </header>
-                <div className="email-content">
-                  <h3>{item.title}</h3>
-                  <p>Hello Calpulli team,</p>
-                  <p>{item.preview}</p>
-                  <p>
-                    We are planning our event for {dateLabel(item.date)} in{" "}
-                    {item.location}, with around {item.guests} guests. It would
-                    be wonderful to share this experience with our community.
-                  </p>
-                  <p>Please let me know what information you need from us.</p>
-                  <p>
-                    Thank you,
-                    <br />
-                    {item.name.split(" ")[0]}
-                  </p>
-                </div>
-                <footer>
-                  <Mail size={13} /> Fictional incoming email for preview
-                </footer>
-              </section>
+                  <footer>
+                    <Mail size={13} />
+                    Demo message · Not sent
+                  </footer>
+                </section>
+              ))}
               {drafts.map((d) => (
                 <section className="card draft-preview" key={d.id}>
                   <div className="section-head">
@@ -291,7 +329,7 @@ export function Detail({
           <section>
             <h2>Connection summary</h2>
             <p>
-              <Mail size={14} />1 incoming sample message
+              <Mail size={14} />5 demo messages
             </p>
             <p>
               <FileText size={14} />
@@ -302,10 +340,6 @@ export function Detail({
               Personal attention, always
             </p>
           </section>
-          <div className="privacy-callout">
-            <span className="tiny-dot" />
-            <p>Thoughtful conversations start with the full picture.</p>
-          </div>
         </aside>
       </div>
     </div>

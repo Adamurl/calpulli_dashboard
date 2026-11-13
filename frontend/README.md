@@ -13,7 +13,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 and choose **Explore demo workspace**. The local environment prepared for this task already points to the Calpulli Tonalehqueh Supabase project using its public publishable key. No secret server key is used.
+Open http://127.0.0.1:5173 and sign in with an approved staff account to load records through FastAPI on port 8000. Choose **Explore demo workspace** separately to review fictional conversations. The local environment prepared for this task already points to the Calpulli Tonalehqueh Supabase project using its public publishable key. No secret server key is used.
 
 ## Authentication and data
 
@@ -21,17 +21,20 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an e
 
 After login, the frontend sends the session JWT to `/api/v1/auth/me` and opens the workspace only after the backend verifies staff approval. Configure the backend's Supabase URL, publishable key, and `STAFF_USER_IDS` using the [staff authentication instructions](../README.md#supabase-staff-authentication). For local login, run FastAPI on port 8000; Vite proxies `/api` to it. Demo mode makes no protected API calls.
 
-All business records are still fictional in both authenticated and demo views. The auth check returns only the verified user UUID, not business records. The sample store uses `calpulli-demo-v1` in this browser's local storage, shared across sample sessions in this browser. Reset it in Settings. Never store real client data there. Before connecting real records, implement business-data loading, audit identities, conflict handling, and email delivery configuration. Existing endpoints and incoming-email gaps are mapped in [the UX plan](../docs/dashboard/ux.md).
+Approved staff load real presentation records through the same-origin FastAPI service. The Presentations index independently requests one server-filtered, receipt-sorted page and aggregated statistics. Opening a presentation loads the core record first, then activities and read-only operations independently. Conversation history loads on the first visit to its tab. Each pending section has a skeleton and its own retry control. Status changes and internal notes persist through the workspace endpoint with the verified staff UUID, without recommending or sending email. The demo uses a separate `calpulli-demo-v1` browser store. Real business records stay in memory and never enter that sample store. Existing public and server environment settings are reused; no additional environment variables are required.
 
-Home lives at `/`. Signed-out visitors go to `/login`; protected deep links return to the requested page after login. Workspace navigation uses paths such as `/presentations` and supports reload, Back, and Forward. Legacy links such as `/#inbox` migrate to `/inbox`. The login return path is restricted to workspace pages.
+Home lives at `/`. Signed-out visitors go to `/login`; protected deep links return to the requested page after login. Presentations is the main business section, with Drafts, Clients, and Templates beneath it. Those pages use `/presentations/drafts`, `/presentations/clients`, and `/presentations/templates`; old flat links remain aliases. The standalone Activity page is removed for now. Its old URLs redirect to Presentations, while individual presentation activity histories remain available. Home, Inbox, and Settings stay global. Workspace navigation supports reload, Back, and Forward. Legacy links such as `/#inbox` migrate to `/inbox`. The login return path is restricted to workspace pages.
+
+Individual presentations use `/presentations/[id]`. Direct links retain their destination through login and staff verification. Browser history restores details or the index, and returning to a previously opened index preserves its filters. Opening a detail URL directly skips index, statistics, and overview reads. The persistent **Reload request** button is removed; failed sections offer targeted retries.
 
 ## Features to review
 
-- Desktop sidebar with a persistent collapsed icon rail, mobile drawer, bottom account menu, logout, search with Cmd/Ctrl+K, notifications.
-- Home overview, attention list, upcoming presentations, and derived sample counts.
-- Presentation table with status tabs, search, date sorting, page selection, column visibility, page-size controls, pagination, CSV export, and details.
+- Desktop sidebar with a persistent collapsed icon rail, mobile drawer, bottom account menu, logout, search with Cmd/Ctrl+K, notifications. Presentations has an automatically expanded submenu without an arrow. Gray selection backgrounds appear only on main navigation sections.
+- Live presentation overview, search, client snapshots, full details, saved status changes and notes. Demo Home retains its sample overview.
+- Clients keeps its search field visible while contact-shaped skeletons load. Search text remains intact when contacts arrive. The presentation submenu uses compact rows without a vertical guide. Main statistics values align with the right edge of their headings; change indicators sit to the left.
+- Presentation table with independent table/statistics skeletons, status tabs, debounced server search, receipt-date sorting, whole-row navigation, page selection, column visibility, page-size controls and server pagination. Status is the rightmost column; request UUIDs and arrow controls are omitted. Export loads the full filtered set only when requested.
 - Client conversations, personal email composer, editable saved drafts, review queue, and internal notes.
-- Sample templates, clients, activity, and connection settings.
+- Read-only payment, engagement, invoice, COI, attendance, and logistics information where an operations record exists. Historical assumptions remain labeled. Templates and composing remain demo-only.
 - Draft review saves the message for review. No messages are sent or synchronized.
 
 ## Verify
@@ -44,7 +47,7 @@ npm test
 
 Playwright uses locally installed Google Chrome. The test server starts on port 5173 if no existing preview is running. Tests cover the login boundary, invalid-login error, request search and detail, status changes, notes, persisted and edited drafts, review queue, templates, mobile navigation, and logout. External auth responses are intercepted in the invalid-login test; a real account login requires an existing user's credentials and is not claimed by this test.
 
-The observed verification for this task is a successful production build and 41 browser-run checks in Safari. Headless Playwright could not launch Chrome in this host sandbox, so the Playwright tests are provided but did not execute their assertions here. The additional browser runner at http://127.0.0.1:5173/tests/browser-check.html runs the app in an iframe at desktop and 390px widths and reports each check. It resets only this origin's fictional workspace when you click Run browser checks. This development-only HTML is excluded from the production build. Real account login was not tested with user credentials.
+See [verification results](VERIFICATION.md) for the current checks and limitations. The development-only demo runner at `/tests/browser-check.html` resets only this origin's fictional workspace. The new `/tests/live-check.html` exercises live-data behavior with fictional Auth and API responses and leaves stored user data unchanged. Its Playwright wrapper is `tests/live-data.spec.ts`. Neither runner is included in the production build. Real staff login and the production data connection require separate live verification.
 
 ## Vercel preparation
 
@@ -58,7 +61,7 @@ See the root [Vercel setup instructions](../README.md#vercel-services) for backe
 
 See [style guide](../docs/dashboard/style-guide.md) and [UX and integration plan](../docs/dashboard/ux.md). The interface uses black, white, and gray, with color reserved for request status badges. Login uses the provided Calpulli logo and name above a form on the left half, with the supplied full-color photograph on the right. Mobile shows only the form. Forgot password opens the email recovery request form. Page headers contain one title and its icon.
 
-The login and table adapt the [shadcn login reference](https://ui.shadcn.com/blocks/login) and [dashboard reference](https://ui.shadcn.com/blocks#dashboard-01) to the existing CSS setup. Shared table elements live in `src/components/table.tsx`; no Tailwind, TanStack, chart, or drag-and-drop dependencies were added. Table state stays with the existing `Inquiry` model in `Requests.tsx`. `RequestStats.tsx` provides Today (default), Last 7 days, and Last 30 days. Counts and monochrome lines use event dates and current request statuses, comparing equal calendar-day periods ending today. Today has one daily bucket, not hourly history. This control changes statistics, not table filters. The index has no maximum width. The package registry was unreachable during this change.
+The login and table adapt the [shadcn login reference](https://ui.shadcn.com/blocks/login) and [dashboard reference](https://ui.shadcn.com/blocks#dashboard-01) to the existing CSS setup. Shared table elements live in `src/components/table.tsx`; no Tailwind, TanStack, chart, or drag-and-drop dependencies were added. The shared table consumes the `Inquiry` display model; API responses are validated before mapping nullable historical fields into the display. `RequestStats.tsx` provides Today (default), Last 7 days, and Last 30 days. Counts and monochrome lines use receipt dates in America/Los_Angeles and current request statuses, comparing equal calendar-day periods ending today. Unknown receipt dates are excluded rather than replaced with import timestamps. Today has one daily bucket, not hourly history. This control changes statistics, not table filters. The index has no maximum width. The package registry was unreachable during this change.
 
 Components live in `src/components`, domain schemas in `src/domain.ts`, sample fixtures in `src/data.ts`, Supabase client in `src/auth.ts`, and shared visual tokens in `src/styles.css`.
 

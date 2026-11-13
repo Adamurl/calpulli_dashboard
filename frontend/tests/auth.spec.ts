@@ -26,6 +26,27 @@ function session() {
 }
 
 async function login(page: Page, path = "/") {
+  await page.route("**/api/v1/presentations/index?**", (route) =>
+    route.fulfill({
+      json: { items: [], limit: 10, offset: 0, total: 0, total_all: 0 },
+    }),
+  );
+  await page.route("**/api/v1/presentations/statistics?**", (route) =>
+    route.fulfill({
+      json: {
+        days: 1,
+        timezone: "America/Los_Angeles",
+        start_date: "2026-11-11",
+        end_date: "2026-11-11",
+        metrics: ["presentations", "reviewing", "booked", "completed"].map(
+          (key) => ({ key, current: [0], previous: [0] }),
+        ),
+      },
+    }),
+  );
+  await page.route("**/api/v1/presentations?**", (route) =>
+    route.fulfill({ json: { items: [], limit: 100, offset: 0 } }),
+  );
   const data = session();
   await page.route("**/auth/v1/token?grant_type=password", (route) =>
     route.fulfill({ json: data }),
@@ -161,22 +182,26 @@ test("root, clean navigation, history, and logout follow the session", async ({
   await expect(page.getByRole("navigation")).toHaveCount(0);
 });
 
-for (const path of [
-  "/inbox",
-  "/#inbox",
-  "/#home",
-  "/login?next=https://example.org",
+for (const [path, destination, heading] of [
+  ["/inbox", "/inbox", "Inbox"],
+  ["/#inbox", "/inbox", "Inbox"],
+  ["/#home", "/", "Home"],
+  ["/presentations/templates", "/presentations/templates", "Templates"],
+  ["/templates", "/presentations/templates", "Templates"],
+  ["/#drafts", "/presentations/drafts", "Drafts"],
+  ["/login?next=https://example.org", "/", "Home"],
+  ["/login?next=constructor", "/", "Home"],
+  ["/login?next=__proto__", "/", "Home"],
 ]) {
   test(`login safely restores ${path}`, async ({ page }) => {
     await page.route("**/api/v1/auth/me", (route) =>
       route.fulfill({ json: { id: userId } }),
     );
     await login(page, path);
-    const inbox = path.includes("inbox");
-    await expect(page).toHaveURL(inbox ? "/inbox" : "/");
+    await expect(page).toHaveURL(destination);
     await expect(
       page.getByRole("heading", {
-        name: inbox ? "Inbox" : "Home",
+        name: heading,
         exact: true,
       }),
     ).toBeVisible();

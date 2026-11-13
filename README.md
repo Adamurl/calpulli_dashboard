@@ -1,6 +1,6 @@
 # Calpulli Platform
 
-An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation and Events remain unimplemented. Business APIs verify Supabase user JWTs and require server-side staff approval. The standalone frontend includes Supabase sign-in support and an explicit fictional-data preview. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
+An internal management platform for Calpulli Tonalehqueh. This repository contains the backend foundation and the authorized Presentations data model and routes. Presentations will be the first business module; Events will follow later. Historical import support and a normalized Wix receiver are implemented locally. The Calpulli Tonalehqueh Supabase project now contains the presentation tables and imported historical records. Wix activation and Events remain unimplemented. Business APIs verify Supabase user JWTs and require server-side staff approval. The frontend loads real presentation records and historical operations for approved Supabase staff, with a separate fictional demo. The client email workflow and a small staff page are implemented locally with mock delivery by default; live Gmail has not been activated.
 
 ## Current verification status
 
@@ -129,7 +129,7 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | `POSTGRES_PORT` | Host port `5432`. |
 | `TEST_DATABASE_URL` | Optional for local tests; distinct database ending in `_test`. Required for integration verification. |
 
-The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random Wix and send-again secrets locally; do not reuse a documented example or put them in frontend code. Live Gmail OAuth activation, fine-grained staff roles, per-person audit attribution, background processing, and synchronization remain future work.
+The example password is local-only and rejected when `APP_ENV=production`. Supply real production credentials externally. Generate independent random Wix and send-again secrets locally; do not reuse a documented example or put them in frontend code. Live Gmail OAuth activation, fine-grained staff roles, individual email approval attribution, background processing, and synchronization remain future work.
 
 ## Migrations
 
@@ -213,7 +213,7 @@ The [documentation index](docs/README.md) groups presentations, email, health, a
 
 ## Dashboard preview
 
-The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Production API access and live mail are not connected.
+The Shopify-inspired staff frontend is in [`frontend/`](frontend/README.md). Run `npm ci` and `npm run dev` from that directory, then open http://127.0.0.1:5173. It includes Supabase sign-in support and an explicit fictional-data demo for reviewing presentations, client conversations, editable personal drafts, templates, notes, and account navigation. Approved staff can load real records, view all saved form answers and operations, and save statuses and notes. Live composing and mail delivery remain outside this dashboard milestone.
 
 ## Supabase staff authentication
 

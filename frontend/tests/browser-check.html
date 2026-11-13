@@ -213,7 +213,7 @@
         );
         await nav("Home");
         check(
-          text().includes("fictional data") && text().includes("Alex"),
+          text().includes("Demo") && text().includes("Alex"),
           "Demo shell has identity and sample-data disclosure",
         );
         check(
@@ -263,13 +263,14 @@
         );
         const expected = sample.filter(
           (item) =>
-            new Date(item.date + "T12:00:00") >= start &&
-            new Date(item.date + "T12:00:00") < end,
+            item.receivedAt &&
+            new Date(item.receivedAt) >= start &&
+            new Date(item.receivedAt) < end,
         ).length;
         check(
           Number(doc().querySelector(".stat-value strong").textContent) ===
             expected,
-          "Statistics count actual sample event dates",
+          "Statistics count actual sample receipt dates",
         );
         doc().querySelector(".period-menu summary").click();
         doc().querySelector('input[name="stats-period"][value="30"]').click();
@@ -356,31 +357,42 @@
         await click("Expand sidebar");
         await field("Search presentations", "Oak Valley");
         check(
-          text().includes("#1048") && !text().includes("#1047"),
+          text().includes("Oak Valley Elementary") &&
+            !text().includes("Community Arts Center"),
           "Presentation search filters client records",
         );
         await field("Search presentations", "");
         const rowDates = [...doc().querySelectorAll("tbody tr")].map((tr) =>
-          new Date(tr.children[2].textContent).getTime(),
+          new Date(tr.children[1].textContent).getTime(),
         );
         check(
           rowDates.every(
             (date, index) => index === 0 || date <= rowDates[index - 1],
           ),
-          "Date descending sorts event dates",
+          "Date descending sorts received dates",
         );
-        await click("Sort by event date ascending");
+        await click("Sort by received date ascending");
         const ascending = [...doc().querySelectorAll("tbody tr")].map((tr) =>
-          new Date(tr.children[2].textContent).getTime(),
+          new Date(tr.children[1].textContent).getTime(),
         );
         check(
           ascending.every(
             (date, index) => index === 0 || date >= ascending[index - 1],
           ),
-          "Date ascending sorts event dates",
+          "Date ascending sorts received dates",
         );
         await field("Search presentations", "Oak Valley");
-        await click("#1048");
+        await click("Oak Valley Elementary");
+        check(
+          doc().querySelector(".detail-tabs .selected").textContent ===
+            "Presentation details",
+          "Presentation details is the first selected tab",
+        );
+        await click("Conversation thread");
+        check(
+          doc().querySelectorAll(".email-card").length === 5,
+          "Complete five-message demo thread is labeled and visible",
+        );
         check(
           text().includes("Elena Morales") && text().includes("Presentation"),
           "Request detail shows client and event context",
@@ -454,6 +466,7 @@
         await wait(100);
         await field("Search workspace records", "Oak Valley");
         await click("Oak Valley Elementary", false);
+        await click("Conversation thread");
         check(
           text().includes("Awaiting review") &&
             text().includes("Thursday would be a lovely time"),

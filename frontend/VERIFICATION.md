@@ -1,5 +1,33 @@
 # Dashboard verification
 
+## Presentation loading and navigation, November 12, 2026
+
+The Presentations index now starts separate paged-table and statistics reads, supports receipt-date ordering and server filtering/paging, and shows independent table/statistics skeletons and retries. Status is rightmost; visible UUID and arrow columns are removed; row cells and Enter open details while checkboxes retain selection. Export retrieves the entire matching set only on demand. Mutation refreshes clear stale selections. The skeleton adapts the shadcn table example with existing CSS and reduced-motion support.
+
+Presentations is now a main sidebar section with Drafts, Clients, Templates and Activity beneath it. Inbox remains global. Child pages have scoped `/presentations/...` paths, with safe Map-backed legacy aliases. Collapsed/disclosed groups use explicit hidden state. Other-chat detail URLs and caching edits were preserved while reconciling the final component interfaces.
+
+Final `tsc -b`, `vite build --configLoader native`, `npm run format:check` and `git diff --check` passed. The default Vite config loader stalled in this host, so the successful final production build used the documented native loader without changing repository scripts or configuration. `node --experimental-strip-types tests/navigation.test.mjs` reports **48 assertions passed**, including canonical/legacy/hash routes and invalid login-return paths. Locked offline backend sync and Ruff checks pass; the backend suite reports **226 passed, 35 skipped**. PostgreSQL integration checks require an available dedicated `_test` database and remain unverified.
+
+A controlled harness ran actual frontend data functions against 1,072 fictional rows, five runs each. The former path made 11 sequential calls and returned 1,072 table records each time. The new initial path made two concurrent calls and returned ten table records plus the aggregate response each time. All runs validated expected data and had zero errors. This measures request work and concurrency, not production latency. Authentication, real SQL execution, browser rendering and production network timing are excluded. See [loading analysis](../docs/dashboard/loading.md).
+
+The browser runners now define **21 loading scenarios** at `/tests/index-check.html`, **23 navigation scenarios** at `/tests/nav-check.html`, and the existing live-data regressions at `/tests/live-check.html`. Their wrappers and reduced-motion check are in Playwright. Targeted Playwright execution was attempted, but Chrome aborted with SIGABRT before assertions; the first test failed to launch and the reduced-motion test did not run. Safari access was intermittent and returned `cgWindowNotFound` before a final run could finish. These runners are provided but are not claimed as passing browser checks. The local presentation and nested template routes returned HTTP 200.
+
+Independent source reviews found no remaining blocking backend, index or sidebar defects after fixes to search cancellation, stale selection and alias safety. No environment files, dependencies, migrations, production resources, outgoing email, pushes or deployments were changed by this index/navigation work.
+
+## Live presentation records, November 11, 2026
+
+The signed-in workspace now loads FastAPI records, full form answers, original submissions, read-only operations, activities, and stored email history. Dashboard status and note updates use the workspace PATCH, persist the verified staff UUID, and bypass email recommendation and dispatch. Demo data stays separate. Existing authentication, recovery pages, environment files, Vite proxy and Vercel routing were preserved.
+
+`npm run build`, `npm run format:check`, and `git diff --check` passed. Locked offline dependency sync and backend Ruff checks passed. The backend suite reports **222 passed, 34 skipped** with the unavailable inherited integration database removed from that test process. A local PostgreSQL initialization also failed because the host could not resolve its effective user ID. No real database records or migrations were changed. PostgreSQL integration tests remain unverified.
+
+Safari executed **18 live-data checks successfully** before the original runner's final navigation assertion raced against the previous iframe. The final page visibly showed the correct error with no partial dataset. The runner now waits for the new fixture before that assertion. Independent review also found and corrected same-user token-refresh state loss, invisible logout errors, and editable note text during saving. Session loss now clears the prior staff gate. The expanded **23-check runner has not completed a new browser run** because native app access began returning `cgWindowNotFound`. It is available at `/tests/live-check.html` and wrapped by `tests/live-data.spec.ts`.
+
+The observed checks covered paginated summaries, header export placement, receipt-date statistics, details-first tabs, form and operations fields, nullable values and recorded zeroes, original answers, empty history, saved notes and status, conflicts, email load errors, bearer credentials, no delivery requests, no live records in local storage, and mobile overflow. These use fictional Auth and API boundaries, not a real staff login.
+
+`npm test` was attempted. Chrome aborted at launch before assertions in all 17 tests. This is not a passing Playwright run. The updated demo runner and final expanded live runner still need browser execution. Independent backend and frontend source reviews found no remaining blocking issues after the fixes.
+
+Read-only Supabase checks confirmed schema revision `0005`, 1,072 requests, 878 receipt timestamps, 509 operations records, and no email messages. Live production login and the deployed frontend/API integration were not tested. No environment changes, push, deployment, migrations, imports, or email delivery were performed.
+
 ## Password recovery, November 11, 2026
 
 Added `/forgot-password` and `/reset-password` with the login typography and inputs, a centered single-column layout, and no background photograph. Recovery links are processed by the installed Supabase SDK using an isolated in-memory session; ordinary saved staff authentication is unchanged. Direct visits do not expose password inputs. The reset component mounts before the workspace, so recovery never requires staff approval or calls business APIs.
@@ -67,3 +95,23 @@ Supabase email/password authentication uses the SDK and the Calpulli project's p
 No real client records were fetched. No database migrations, backend changes, live email, Gmail sync, deployment, push, or external resource changes were performed by this dashboard task. Backend quality checks were not rerun because this task did not change backend source. Existing backend changes were already present at task start.
 
 Vite emits nonfatal comments from the installed Zod package and a bundle-size advisory. The build exits successfully. This is a reviewable frontend preview, not a production authorization or email-delivery release.
+
+## Presentation detail loading and URLs, November 12, 2026
+
+Individual records use `/presentations/[id]`. The core record loads first, then activities and operations independently. Conversations load on the first visit to their tab. Direct detail visits skip index, statistics, and overview requests. Each pending section uses skeletons, and failed sections retry without clearing notes or reloading the record. The permanent Reload request button is removed.
+
+Observed checks for this change:
+
+- `npm run build` passed after the final source edits. Installed Zod annotations and the existing bundle-size advisory remain nonfatal.
+- `npm run format:check` passed. `node tests/navigation.test.mjs` passed 48 assertions, and `node tests/detail-navigation.test.mjs` passed 28 detail-route and login-destination assertions.
+- Safari ran the actual React app with fictional Auth and API boundaries. `tests/detail-check.html` reported 22 checks passed, including progressive sections, deferred conversations, targeted retry with an unsaved note, history, read cancellation, missing records, pending-save navigation, staff login return paths, and mobile skeleton width. `tests/live-check.html` reported 23 checks passed. `tests/index-check.html` reported 21 checks passed, including retained table interaction and independent loading.
+- A subsequent independent review found the immediate-reopen variant of the pending-save race. The final source fix hands the saved record to the reopened detail, cancels its older read, and refreshes activity. The reviewer verified the fix with no blockers. The expanded detail runner now has a check that reopens before the previous save finishes. Its final browser run was interrupted when native browser window access failed with `cgWindowNotFound`, so no passing result is claimed for that added case.
+- Playwright's selected suites were attempted, but installed Chrome aborted with `SIGABRT` before assertions. The official temporary headless-browser download also failed DNS resolution for `cdn.playwright.dev`. Browser refresh with an authenticated session and reduced-motion emulation have Playwright tests in `tests/detail-loading.spec.ts` but no observed pass from this run.
+
+To repeat the manual detail checks, run the frontend locally, open `/tests/detail-check.html`, and select **Run detail checks**. No production records, schema, credentials, deployment, or external service settings changed in this task. No production latency improvement is claimed.
+
+## Clients skeletons and navigation polish, November 12, 2026
+
+Clients now renders contact-shaped skeletons with an announced busy state while its existing data loader runs. Its search input and query survive loading. Activity is removed from workspace navigation and rendering; old flat, nested, and fragment links return to Presentations. Per-presentation activity history remains available. Submenu rows are 28 pixels tall without vertical margins or a guide line. Main statistics numbers align with the right edge of their headings, with change indicators to the left.
+
+`npm run build` and `npm run format:check` passed. The route suites passed 46 navigation assertions and 28 detail-route assertions. In Safari, the actual React app's fictional-data runner at `/tests/clients-check.html` reported **13 clients checks passed**. It checked loading announcements, placeholders, retained search, compact submenu spacing, removed Activity navigation, preserved detail activity, old-route redirects, exact heading/value alignment, and mobile overflow. New Playwright scenarios in `tests/clients-loading.spec.ts` were added but were not executed here; Chrome's startup failure from the prior check remains unresolved. Reduced-motion browser emulation is therefore not claimed. No dependencies, backend code, or external data changed in this task.

@@ -32,12 +32,14 @@ test("login boundary, shell, request filters and client detail", async ({
     .getByRole("textbox", { name: "Search presentations" })
     .fill("Oak Valley");
   await expect(
-    page.getByRole("button", { name: "#1048", exact: true }),
+    page.getByRole("button", { name: "Oak Valley Elementary", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "#1047", exact: true }),
+    page.getByRole("button", { name: "Community Arts Center", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "#1048", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Oak Valley Elementary", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Elena Morales", exact: true }),
   ).toBeVisible();
@@ -100,6 +102,9 @@ test("personal drafts persist, edit, review and remain in the client thread", as
     .getByRole("textbox", { name: "Search workspace records" })
     .fill("Oak Valley");
   await page.getByRole("button", { name: /Oak Valley Elementary/ }).click();
+  await page
+    .getByRole("button", { name: "Conversation thread", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Awaiting review", exact: true }),
   ).toBeVisible();

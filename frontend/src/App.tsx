@@ -13,7 +13,6 @@ import {
   Mail,
   Users,
   LayoutTemplate,
-  Activity,
   Settings,
 } from "lucide-react";
 import { supabase, demoEnabled, passwordRecovery } from "./auth";
@@ -21,6 +20,12 @@ import { apiFetch, ApiError } from "./api";
 import { inquiries } from "./data";
 import { emptyWorkspace, workspaceSchema } from "./domain";
 import type { Draft, Page, Workspace } from "./domain";
+import {
+  pages,
+  pagePath,
+  pageFromLocation,
+  detailFromLocation,
+} from "./navigation";
 import { Sidebar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { PasswordReset, ForgotPassword } from "./components/PasswordReset";
@@ -28,13 +33,9 @@ import { Home } from "./components/Home";
 import { Requests } from "./components/Requests";
 import { Inbox } from "./components/Inbox";
 import { Detail } from "./components/Detail";
+import { LiveWorkspace } from "./components/LiveWorkspace";
 import { Composer } from "./components/Composer";
-import {
-  Clients,
-  Templates,
-  ActivityPage,
-  SettingsPage,
-} from "./components/WorkspacePages";
+import { Clients, Templates, SettingsPage } from "./components/WorkspacePages";
 import logo from "./assets/Calpulli_Logo.png";
 import { Modal } from "./components/ui";
 function loadWorkspace(): Workspace {
@@ -52,36 +53,13 @@ const pageIcons = {
   Drafts: Mail,
   Clients: Users,
   Templates: LayoutTemplate,
-  Activity,
   Settings,
 } satisfies Record<Page, typeof HomeIcon>;
-const pages: Page[] = [
-  "Home",
-  "Presentations",
-  "Inbox",
-  "Drafts",
-  "Clients",
-  "Templates",
-  "Activity",
-  "Settings",
-];
-function pagePath(page: Page): string {
-  return page === "Home" ? "/" : `/${page.toLowerCase()}`;
-}
-function pageFromLocation(): Page {
-  const legacy = pages.find((p) => `#${p.toLowerCase()}` === location.hash);
-  if (legacy) return legacy;
-  const path =
-    location.pathname === "/login"
-      ? new URLSearchParams(location.search).get("next")
-      : location.pathname;
-  return pages.find((p) => pagePath(p) === path) ?? "Home";
-}
 type Composition =
   { kind: "new"; inquiryId: string } | { kind: "edit"; draft: Draft };
 type ApiAccess =
   | { kind: "checking" }
-  | { kind: "allowed"; accessToken: string }
+  | { kind: "allowed"; accessToken: string; userId: string }
   | { kind: "denied"; accessToken: string; message: string };
 const apiUserSchema = z.object({ id: z.uuid() });
 export function App() {
@@ -94,7 +72,7 @@ function WorkspaceApp() {
     [loading, setLoading] = useState(Boolean(supabase)),
     [demo, setDemo] = useState(false),
     [page, setPage] = useState<Page>(pageFromLocation),
-    [detail, setDetail] = useState<string | null>(null),
+    [detail, setDetail] = useState<string | null>(detailFromLocation),
     [workspace, setWorkspace] = useState(loadWorkspace),
     [composition, setComposition] = useState<Composition | null>(null),
     [search, setSearch] = useState(false),
@@ -104,6 +82,7 @@ function WorkspaceApp() {
     [toast, setToast] = useState(""),
     [notifications, setNotifications] = useState(false);
   const [storageError, setStorageError] = useState(false);
+  const [exportTarget, setExportTarget] = useState<HTMLDivElement | null>(null);
   const [apiAccess, setApiAccess] = useState<ApiAccess>({ kind: "checking" });
   const [accessAttempt, setAccessAttempt] = useState(0);
   const signedIn = Boolean(session) || demo;
@@ -111,12 +90,18 @@ function WorkspaceApp() {
     if (!session) return;
     const controller = new AbortController();
     const accessToken = session.access_token;
-    setApiAccess({ kind: "checking" });
+    const userId = session.user.id;
+    setApiAccess((previous) =>
+      previous.kind === "allowed" && previous.userId === userId
+        ? previous
+        : { kind: "checking" },
+    );
     apiFetch("/api/v1/auth/me", { signal: controller.signal })
       .then(async (response) => {
-        apiUserSchema.parse(await response.json());
+        const user = apiUserSchema.parse(await response.json());
+        if (user.id !== userId) throw new ApiError(403);
         if (!controller.signal.aborted)
-          setApiAccess({ kind: "allowed", accessToken });
+          setApiAccess({ kind: "allowed", accessToken, userId });
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted)
@@ -130,10 +115,11 @@ function WorkspaceApp() {
           });
       });
     return () => controller.abort();
-  }, [session?.access_token, accessAttempt]);
+  }, [session?.access_token, session?.user.id, accessAttempt]);
   useEffect(() => {
     if (!supabase) return;
     const { data } = supabase.auth.onAuthStateChange((_event, current) => {
+      if (!current) setApiAccess({ kind: "checking" });
       setSession(current);
       setLoading(false);
     });
@@ -147,13 +133,14 @@ function WorkspaceApp() {
     return () => data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
+    if (!demo) return;
     try {
       localStorage.setItem("calpulli-demo-v1", JSON.stringify(workspace));
       setStorageError(false);
     } catch {
       setStorageError(true);
     }
-  }, [workspace]);
+  }, [workspace, demo]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -168,7 +155,8 @@ function WorkspaceApp() {
     if (loading) return;
     const handler = () => {
       const next = pageFromLocation();
-      const path = pagePath(next);
+      const nextDetail = next === "Presentations" ? detailFromLocation() : null;
+      const path = nextDetail ? `/presentations/${nextDetail}` : pagePath(next);
       const destination = signedIn
         ? path
         : next === "Home"
@@ -179,7 +167,7 @@ function WorkspaceApp() {
       )
         history.replaceState(null, "", destination);
       setPage(next);
-      setDetail(null);
+      setDetail(nextDetail);
     };
     handler();
     window.addEventListener("popstate", handler);
@@ -210,10 +198,14 @@ function WorkspaceApp() {
     if (location.pathname !== path) history.pushState(null, "", path);
   }
   function open(id: string) {
+    setPage("Presentations");
     setDetail(id);
+    const path = `/presentations/${encodeURIComponent(id)}`;
+    if (location.pathname !== path) history.pushState(null, "", path);
     setSearch(false);
     setMobile(false);
-    setWorkspace((w) => ({ ...w, read: [...new Set([...w.read, id])] }));
+    if (demo)
+      setWorkspace((w) => ({ ...w, read: [...new Set([...w.read, id])] }));
     window.scrollTo(0, 0);
   }
   function compose(inquiryId = detail ?? items[0].id) {
@@ -236,18 +228,20 @@ function WorkspaceApp() {
         const { error } = await supabase.auth.signOut();
         if (error) {
           setToast("Unable to log out. Please try again.");
-          return;
+          return "Unable to log out. Please try again.";
         }
       } catch {
         setToast("Unable to log out. Please try again.");
-        return;
+        return "Unable to log out. Please try again.";
       }
     }
     setDemo(false);
+    setApiAccess({ kind: "checking" });
     setSession(null);
     setDetail(null);
     setPage("Home");
     history.replaceState(null, "", "/login");
+    return null;
   }
   if (loading)
     return (
@@ -267,7 +261,9 @@ function WorkspaceApp() {
   if (session && !demo) {
     if (
       apiAccess.kind === "checking" ||
-      apiAccess.accessToken !== session.access_token
+      (apiAccess.kind === "allowed" && apiAccess.userId !== session.user.id) ||
+      (apiAccess.kind === "denied" &&
+        apiAccess.accessToken !== session.access_token)
     )
       return <main className="loading">Checking workspace access…</main>;
     if (apiAccess.kind === "denied")
@@ -284,6 +280,18 @@ function WorkspaceApp() {
         </main>
       );
   }
+  if (session && !demo)
+    return (
+      <LiveWorkspace
+        key={session.user.id}
+        session={session}
+        page={page}
+        detail={detail}
+        open={open}
+        navigate={navigate}
+        logout={logout}
+      />
+    );
   const PageIcon = pageIcons[detail ? "Presentations" : page];
   const selected = items.find((i) => i.id === detail);
   const composing = composition
@@ -330,6 +338,8 @@ function WorkspaceApp() {
             </h1>
           </div>
           <div>
+            <span className="pill">Demo</span>
+            <div className="header-export" ref={setExportTarget} />
             <button
               className="icon-button"
               onClick={() => setSearch(true)}
@@ -347,18 +357,6 @@ function WorkspaceApp() {
             </button>
           </div>
         </header>
-        <div className="preview-banner">
-          <span>
-            You're exploring fictional data.{" "}
-            {session
-              ? "Signed in with Supabase."
-              : "Your changes stay in this browser."}
-          </span>
-          <button onClick={() => navigate("Settings")}>
-            Preview details
-            <ArrowUpRight size={12} />
-          </button>
-        </div>
         {storageError && (
           <p className="error storage-error" role="alert">
             Browser storage is unavailable. Changes will be lost when this page
@@ -370,7 +368,7 @@ function WorkspaceApp() {
             item={selected}
             drafts={workspace.drafts.filter((d) => d.inquiryId === selected.id)}
             notes={workspace.notes[selected.id] ?? []}
-            back={() => setDetail(null)}
+            back={() => navigate("Presentations")}
             compose={() => compose(selected.id)}
             edit={(draft) => setComposition({ kind: "edit", draft })}
             note={(text) => {
@@ -395,7 +393,7 @@ function WorkspaceApp() {
                 ...w,
                 archived: [...w.archived, selected.id],
               }));
-              setDetail(null);
+              navigate("Presentations");
               setToast(
                 "Conversation archived. Reset the sample workspace to restore it.",
               );
@@ -411,7 +409,12 @@ function WorkspaceApp() {
             search={() => setSearch(true)}
           />
         ) : page === "Presentations" ? (
-          <Requests items={items} open={open} notify={setToast} />
+          <Requests
+            items={items}
+            open={open}
+            notify={setToast}
+            exportTarget={exportTarget}
+          />
         ) : page === "Inbox" || page === "Drafts" ? (
           <Inbox
             key={page}
@@ -442,8 +445,6 @@ function WorkspaceApp() {
               })
             }
           />
-        ) : page === "Activity" ? (
-          <ActivityPage workspace={workspace} items={items} open={open} />
         ) : (
           <SettingsPage
             name={name}
