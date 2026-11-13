@@ -4,28 +4,43 @@ import {
   ArrowUpRight,
   Search,
   ShieldCheck,
-  FileText,
-  Clock3,
   Check,
   Copy,
 } from "lucide-react";
-import type { Draft, Inquiry, Workspace } from "../domain";
+import type { Inquiry } from "../domain";
 import { templates } from "../domain";
-import { Avatar, Modal, Empty } from "./ui";
+import { Avatar, Modal } from "./ui";
+import { Skeleton } from "./Skeleton";
 export function Clients({
   items,
   open,
+  live = false,
+  loading = false,
 }: {
   items: Inquiry[];
   open: (id: string) => void;
+  live?: boolean;
+  loading?: boolean;
 }) {
   const [query, setQuery] = useState("");
   return (
     <div className="list-page">
       <div className="page-heading">
-        <span className="pill">{items.length} sample clients</span>
+        <span className="pill">
+          {loading ? (
+            <Skeleton className="clients-skeleton-count" />
+          ) : (
+            items.length
+          )}{" "}
+          {live ? "request contacts" : "sample clients"}
+        </span>
       </div>
-      <section className="card">
+      <section className="card" aria-label="Clients" aria-busy={loading}>
+        {loading && (
+          <span className="sr-only" role="status">
+            Loading clients…
+          </span>
+        )}
         <div className="table-tools">
           <label className="search-field">
             <Search size={15} />
@@ -38,23 +53,34 @@ export function Clients({
           </label>
         </div>
         <div className="clients-grid">
-          {items
-            .filter((i) =>
-              `${i.name} ${i.organization} ${i.email}`
-                .toLowerCase()
-                .includes(query.toLowerCase()),
-            )
-            .map((i) => (
-              <button key={i.id} onClick={() => open(i.id)}>
-                <Avatar name={i.name} />
-                <div>
-                  <strong>{i.name}</strong>
-                  <p>{i.organization}</p>
-                  <small>{i.email}</small>
+          {loading
+            ? Array.from({ length: 8 }, (_, index) => (
+                <div className="client-skeleton" aria-hidden="true" key={index}>
+                  <Skeleton className="client-skeleton-avatar" />
+                  <div>
+                    <Skeleton className="client-skeleton-name" />
+                    <Skeleton className="client-skeleton-organization" />
+                    <Skeleton className="client-skeleton-email" />
+                  </div>
                 </div>
-                <ArrowUpRight size={14} />
-              </button>
-            ))}
+              ))
+            : items
+                .filter((i) =>
+                  `${i.name} ${i.organization} ${i.email}`
+                    .toLowerCase()
+                    .includes(query.toLowerCase()),
+                )
+                .map((i) => (
+                  <button key={i.id} onClick={() => open(i.id)}>
+                    <Avatar name={i.name} />
+                    <div>
+                      <strong>{i.name}</strong>
+                      <p>{i.organization}</p>
+                      <small>{i.email}</small>
+                    </div>
+                    <ArrowUpRight size={14} />
+                  </button>
+                ))}
         </div>
       </section>
     </div>
@@ -163,61 +189,6 @@ export function Templates({
           </div>
         </Modal>
       )}
-    </div>
-  );
-}
-export function ActivityPage({
-  workspace,
-  items,
-  open,
-}: {
-  workspace: Workspace;
-  items: Inquiry[];
-  open: (id: string) => void;
-}) {
-  return (
-    <div className="list-page narrow-page">
-      <section className="card activity-feed">
-        <h2>This workspace</h2>
-        {workspace.drafts.map((d) => (
-          <button key={d.id} onClick={() => open(d.inquiryId)}>
-            <span className="quick-icon">
-              <FileText size={16} />
-            </span>
-            <div>
-              <strong>
-                {d.status === "review"
-                  ? "Email ready for review"
-                  : "Email draft saved"}
-              </strong>
-              <p>{d.subject}</p>
-              <small>{new Date(d.updated).toLocaleString()}</small>
-            </div>
-            <ArrowUpRight size={14} />
-          </button>
-        ))}
-        {Object.entries(workspace.notes).flatMap(([id, notes]) =>
-          notes.map((n, index) => (
-            <button key={`${id}-${index}`} onClick={() => open(id)}>
-              <span className="quick-icon green">
-                <Clock3 size={16} />
-              </span>
-              <div>
-                <strong>
-                  Internal note added ·{" "}
-                  {items.find((i) => i.id === id)?.organization}
-                </strong>
-                <p>{n}</p>
-              </div>
-            </button>
-          )),
-        )}
-        {!workspace.drafts.length && !Object.keys(workspace.notes).length && (
-          <Empty title="Your next connection starts here.">
-            Saved drafts and team notes will appear in this activity feed.
-          </Empty>
-        )}
-      </section>
     </div>
   );
 }

@@ -4,7 +4,7 @@ Proposed staff workflows and review criteria. Updated November 10, 2026.
 
 The goal is a testable Calpulli presentation and email workspace that closely follows the refreshed Shopify admin shown in the supplied screenshots. The [style guide](style-guide.md) defines the visual system and its research sources.
 
-This document separates the frontend preview from the production integration. The preview uses fictional records and local state. Supabase sign-in can use an existing configured Auth project. It does not grant production API access, synchronize Gmail, or send client email.
+Approved staff load real presentation records through FastAPI after Supabase authentication and server-side staff authorization. The separate demo uses fictional records and browser state. The dashboard displays saved form answers and operational information, persists status and notes, and does not send email or synchronize Gmail. Proposed email workflows below remain future UI work unless marked implemented.
 
 ## Work model
 
@@ -15,6 +15,12 @@ The existing request states are `unknown`, `new`, `reviewing`, `proposal_sent`, 
 The existing email lifecycle is `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `SENDING`, `SENT`, `FAILED`, and `CANCELLED`. The frontend can use a separate demo-only **Simulated** label, but must never store that as an invented production backend state.
 
 Each compose session belongs to a request. It includes a recipient, subject, editable body, and an optional previous message for a reply. Request status and email status are separate. Sending a message does not silently move the request to another status.
+
+## Current presentation navigation
+
+Presentations is a main sidebar section whose parent opens the request index. Its children are Drafts, Clients, and Templates. These pages are scoped to presentation work, including client contact snapshots from requests. The standalone Activity page is removed for now; old Activity links return to Presentations, and each presentation retains its activity history. Submenu rows are compact and have no vertical guide. Inbox stays a separate top-level destination for a later organization-wide mailbox; its current screen still describes stored presentation conversations. Settings remains global. No shared contact system, mailbox ingestion or future module is added by this navigation change.
+
+Child routes use `/presentations/...`; legacy flat paths and existing hashes resolve to their corresponding child. The submenu has no disclosure arrow and stays expanded in the full sidebar. Clicking Presentations in the collapsed rail expands the sidebar and opens the index. The selected main section has a gray rectangle; selected submenu items use text emphasis without a filled background. Keyboard navigation, current-page semantics, and mobile navigation remain available.
 
 ## Navigation and first session
 
@@ -194,7 +200,7 @@ The frontend receives only the Supabase project URL and a publishable API key. S
 
 The presentation API verifies individual Supabase user JWTs and requires membership in the server-side `STAFF_USER_IDS` allowlist. The frontend sends its current session token to same-origin `/api/v1/...` paths and checks `/api/v1/auth/me` before opening the workspace. The shared internal token is no longer accepted.
 
-User token validation and the staff access policy are implemented. Before private records replace the fictional workspace, connect the business API responses and attach verified individual identity to persisted audit records. The frontend route guard only controls what the browser displays. Server authorization must protect every private read and mutation.
+User token validation, staff access policy, business-data loading and individual attribution for dashboard status/note changes are implemented. Email approval attribution remains a separate follow-up. The frontend route guard only controls what the browser displays. Server authorization must protect every private read and mutation.
 
 Production business requests stay behind FastAPI. Existing Supabase tables retain their restrictive browser-role permissions. Sign-in does not require opening browser access to presentation or email tables.
 
@@ -206,7 +212,7 @@ These are the existing application contracts or explicit gaps. Prefix the API pa
 | --- | --- | --- |
 | Presentation index | `GET /` | Use backend limit/offset and supported filters. |
 | Request detail | `GET /{inquiry_id}` | Preserve nullable historical fields. |
-| Request status and notes | `PATCH /{inquiry_id}` | Status changes require `expected_current_status`. |
+| Request status and notes | `PATCH /{inquiry_id}/workspace` | Status changes require `expected_current_status`; edits persist the staff UUID and do not recommend or dispatch email. |
 | Request timeline | `GET /{inquiry_id}/activities` | Display actual actors and timestamps. |
 | Request email history | `GET /{inquiry_id}/emails` | Includes recommendations and unresolved tasks. |
 | Prepare custom email | `POST /{inquiry_id}/email-events` | Use `special_situation`; follow custom approval rules. |

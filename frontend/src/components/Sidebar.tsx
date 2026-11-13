@@ -1,7 +1,6 @@
 import {
   Home,
   Inbox,
-  Users,
   FileText,
   Settings,
   Search,
@@ -9,24 +8,15 @@ import {
   PanelLeftOpen,
   ChevronDown,
   LogOut,
-  Mail,
-  LayoutTemplate,
-  Activity,
   CircleHelp,
   ArrowUpRight,
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { presentationChildren } from "../navigation";
 import type { Page } from "../domain";
 import logo from "../assets/Calpulli_Logo.png";
 import { Avatar } from "./ui";
-const primary = [
-  { name: "Home", icon: Home },
-  { name: "Presentations", icon: FileText },
-  { name: "Inbox", icon: Inbox },
-  { name: "Drafts", icon: Mail },
-  { name: "Clients", icon: Users },
-] satisfies { name: Page; icon: typeof Home }[];
 export function Sidebar({
   page,
   navigate,
@@ -53,6 +43,8 @@ export function Sidebar({
   collapsed: boolean;
 }) {
   const [account, setAccount] = useState(false);
+  const childActive = presentationChildren.includes(page);
+  const presentationActive = page === "Presentations" || childActive;
   return (
     <>
       <button
@@ -95,46 +87,73 @@ export function Sidebar({
           <kbd>⌘ K</kbd>
         </button>
         <nav aria-label="Main navigation">
-          {primary.map(({ name, icon: Icon }) => (
-            <button
-              key={name}
-              aria-label={name}
-              title={name}
-              className={`nav-item ${page === name ? "active" : ""}`}
-              aria-current={page === name ? "page" : undefined}
-              onClick={() => navigate(name)}
+          <button
+            className={`nav-item ${page === "Home" ? "active" : ""}`}
+            aria-label="Home"
+            title="Home"
+            aria-current={page === "Home" ? "page" : undefined}
+            onClick={() => navigate("Home")}
+          >
+            <Home size={16} />
+            <span>Home</span>
+          </button>
+          <div className="presentation-module">
+            <div className="module-nav-row">
+              <button
+                className={`nav-item ${presentationActive ? "active" : ""}`}
+                aria-label="Presentations"
+                title="Presentations"
+                aria-current={page === "Presentations" ? "page" : undefined}
+                aria-expanded={!collapsed}
+                aria-controls="presentation-tools"
+                onClick={() => {
+                  if (collapsed) close();
+                  navigate("Presentations");
+                }}
+              >
+                <FileText size={16} />
+                <span>Presentations</span>
+              </button>
+            </div>
+            <div
+              hidden={collapsed}
+              className="presentation-children"
+              id="presentation-tools"
+              role="group"
+              aria-label="Presentation tools"
             >
-              <Icon size={16} />
-              <span>{name}</span>
-              {name === "Inbox" && unread > 0 && <b>{unread}</b>}
-              {name === "Drafts" && drafts > 0 && <b>{drafts}</b>}
-            </button>
-          ))}
-          <div className="nav-section">
-            Workspace <ChevronDown size={11} />
+              {presentationChildren.map((child) => (
+                <button
+                  key={child}
+                  className={`nav-item nav-child ${page === child ? "active" : ""}`}
+                  aria-label={child}
+                  title={`Presentation ${child.toLowerCase()}`}
+                  aria-current={page === child ? "page" : undefined}
+                  onClick={() => navigate(child)}
+                >
+                  <span>{child}</span>
+                  {child === "Drafts" && drafts > 0 && <b>{drafts}</b>}
+                </button>
+              ))}
+            </div>
           </div>
-          {[
-            { name: "Templates", icon: LayoutTemplate },
-            { name: "Activity", icon: Activity },
-          ].map(({ name, icon: Icon }) => (
-            <button
-              key={name}
-              aria-label={name}
-              title={name}
-              className={`nav-item ${page === name ? "active" : ""}`}
-              onClick={() =>
-                navigate(name === "Templates" ? "Templates" : "Activity")
-              }
-            >
-              <Icon size={16} />
-              <span>{name}</span>
-            </button>
-          ))}
+          <button
+            className={`nav-item ${page === "Inbox" ? "active" : ""}`}
+            aria-label="Inbox"
+            title="Inbox"
+            aria-current={page === "Inbox" ? "page" : undefined}
+            onClick={() => navigate("Inbox")}
+          >
+            <Inbox size={16} />
+            <span>Inbox</span>
+            {unread > 0 && <b>{unread}</b>}
+          </button>
         </nav>
         <div className="sidebar-bottom">
           <button
             className={`nav-item ${page === "Settings" ? "active" : ""}`}
             onClick={() => navigate("Settings")}
+            aria-current={page === "Settings" ? "page" : undefined}
             aria-label="Settings"
             title="Settings"
           >

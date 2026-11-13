@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" /><title>Presentation navigation checks</title
+  ><style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+    }
+    iframe {
+      width: 1280px;
+      height: 850px;
+      border: 1px solid #ccc;
+    }
+    .pass {
+      color: green;
+    }
+    .fail {
+      color: #a00;
+    }
+  </style>
+  <h1>Presentation navigation checks</h1>
+  <p>
+    Uses the fictional demo workspace. No presentation records or emails are
+    changed.
+  </p>
+  <button id="run">Run navigation checks</button>
+  <section id="results" aria-live="polite">Ready.</section>
+  <iframe id="app" title="Workspace under test"></iframe>
+  <script type="module">
+    const frame = document.querySelector("#app"),
+      results = document.querySelector("#results");
+    let passed = 0;
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    async function until(fn, label) {
+      for (let i = 0; i < 100; i++) {
+        const value = fn();
+        if (value) return value;
+        await wait(100);
+      }
+      throw Error("Timed out: " + label);
+    }
+    const doc = () => frame.contentDocument,
+      text = () => doc()?.body.innerText || "";
+    function check(ok, label) {
+      if (!ok) throw Error(label);
+      passed++;
+      const item = document.createElement("li");
+      item.className = "pass";
+      item.textContent = "PASS " + label;
+      results.append(item);
+    }
+    async function click(name) {
+      const button = await until(
+        () =>
+          [...doc().querySelectorAll("button")].find(
+            (button) =>
+              (button.getAttribute("aria-label") ||
+                button.textContent.trim()) === name,
+          ),
+        name,
+      );
+      button.click();
+      await wait(150);
+    }
+    async function field(label, value) {
+      const input = await until(
+        () => doc().querySelector(`[aria-label="${label}"]`),
+        label,
+      );
+      const prototype =
+        input.tagName === "TEXTAREA"
+          ? frame.contentWindow.HTMLTextAreaElement.prototype
+          : input.tagName === "SELECT"
+            ? frame.contentWindow.HTMLSelectElement.prototype
+            : frame.contentWindow.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, "value").set.call(
+        input,
+        value,
+      );
+      input.dispatchEvent(
+        new frame.contentWindow.Event(
+          input.tagName === "SELECT" ? "change" : "input",
+          { bubbles: true },
+        ),
+      );
+      await wait(150);
+    }
+    async function load(path) {
+      frame.src = path;
+      await until(() => text().includes("Welcome back."), "signed-out login");
+      await click("Explore demo workspace");
+      await until(
+        () => doc().querySelector('nav[aria-label="Main navigation"]'),
+        "workspace navigation",
+      );
+    }
+    function button(name) {
+      return [...doc().querySelectorAll("button")].find(
+        (button) => button.getAttribute("aria-label") === name,
+      );
+    }
+    function visible(element) {
+      return Boolean(
+        element &&
+        element.getClientRects().length &&
+        frame.contentWindow.getComputedStyle(element).visibility !== "hidden",
+      );
+    }
+    const path = () => frame.contentWindow.location.pathname;
+    document.querySelector("#run").onclick = async () => {
+      results.textContent = "";
+      passed = 0;
+      try {
+        await load("/");
+        const nav = doc().querySelector('nav[aria-label="Main navigation"]');
+        const top = [...nav.children].map((element) =>
+          element.classList.contains("presentation-module")
+            ? "Presentations"
+            : element.getAttribute("aria-label"),
+        );
+        check(
+          top.join(",") === "Home,Presentations,Inbox",
+          "Main navigation orders Home, Presentations, and global Inbox",
+        );
+        check(
+          [...doc().querySelectorAll(".presentation-children button")]
+            .map((button) => button.getAttribute("aria-label"))
+            .join(",") === "Drafts,Clients,Templates",
+          "Presentation-specific pages are nested under the module",
+        );
+        check(
+          button("Presentations").getAttribute("aria-expanded") === "true",
+          "Presentation section starts expanded",
+        );
+        await click("Templates");
+        check(
+          path() === "/presentations/templates" &&
+            button("Templates").getAttribute("aria-current") === "page" &&
+            button("Presentations").classList.contains("active"),
+          "Nested Templates has a scoped route and both parent and child selection",
+        );
+        check(
+          !button("Presentations").hasAttribute("aria-current"),
+          "Only the selected child is marked as the current page",
+        );
+        check(
+          !doc().querySelector(".module-disclosure"),
+          "Presentation submenu has no disclosure arrow",
+        );
+        check(
+          frame.contentWindow.getComputedStyle(button("Presentations"))
+            .backgroundColor === "rgb(41, 41, 41)" &&
+            frame.contentWindow.getComputedStyle(button("Templates"))
+              .backgroundColor === "rgba(0, 0, 0, 0)",
+          "Only the main section has a gray selected rectangle",
+        );
+        await click("Search workspace");
+        await field("Search workspace records", "Clients");
+        const result = [
+          ...doc().querySelectorAll(".command-results button"),
+        ].find((element) => element.textContent.trim() === "Clients");
+        result.click();
+        await wait(150);
+        check(
+          path() === "/presentations/clients" && visible(button("Clients")),
+          "Navigating to a child automatically expands its module",
+        );
+        await click("Inbox");
+        check(
+          path() === "/inbox" &&
+            !button("Presentations").classList.contains("active"),
+          "Global Inbox stays separate from the presentation module",
+        );
+        frame.contentWindow.history.back();
+        await until(() => path() === "/presentations/clients", "history back");
+        check(
+          button("Clients").getAttribute("aria-current") === "page",
+          "Back restores the nested page and active state",
+        );
+        frame.contentWindow.history.forward();
+        await until(() => path() === "/inbox", "history forward");
+        check(
+          button("Inbox").getAttribute("aria-current") === "page",
+          "Forward restores the global page",
+        );
+        await click("Collapse sidebar");
+        check(
+          !visible(button("Templates")) &&
+            visible(button("Presentations")) &&
+            visible(button("Expand sidebar")),
+          "Collapsed icon rail keeps the module and expansion control while hiding children",
+        );
+        await click("Presentations");
+        check(
+          path() === "/presentations" &&
+            button("Presentations").getAttribute("aria-current") === "page" &&
+            visible(button("Templates")),
+          "The parent opens the presentation request index",
+        );
+        for (const [alias, canonical, label] of [
+          ["/drafts", "/presentations/drafts", "Drafts"],
+          ["/clients", "/presentations/clients", "Clients"],
+          ["/templates", "/presentations/templates", "Templates"],
+          ["/activity", "/presentations", "Presentations"],
+          ["/#templates", "/presentations/templates", "Templates"],
+        ]) {
+          await load(alias);
+          await until(() => path() === canonical, "canonical child URL");
+          check(
+            button(label).getAttribute("aria-current") === "page" &&
+              !frame.contentWindow.location.hash,
+            "Legacy route safely restores scoped " + label,
+          );
+        }
+        await load("/presentations/templates");
+        check(
+          path() === "/presentations/templates",
+          "Reloaded protected nested route returns to Templates after demo entry",
+        );
+        await load("/login?next=constructor");
+        check(
+          path() === "/",
+          "An inherited object property cannot become a login return route",
+        );
+        frame.style.width = "390px";
+        await wait(150);
+        check(
+          !visible(button("Templates")),
+          "Closed mobile navigation hides child links",
+        );
+        await click("Open navigation");
+        check(
+          visible(button("Templates")),
+          "Opening the mobile drawer exposes the nested pages",
+        );
+        await click("Templates");
+        check(
+          path() === "/presentations/templates" &&
+            !visible(button("Templates")) &&
+            doc().documentElement.scrollWidth <= 390,
+          "Mobile child navigation closes the drawer without horizontal overflow",
+        );
+        results.insertAdjacentHTML(
+          "afterbegin",
+          `<h2>${passed} navigation checks passed</h2>`,
+        );
+      } catch (error) {
+        const item = document.createElement("p");
+        item.className = "fail";
+        item.textContent = `FAIL after ${passed} checks: ${error.message}`;
+        results.append(item);
+      }
+    };
+  </script>
+</html>

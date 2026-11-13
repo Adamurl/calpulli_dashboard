@@ -257,6 +257,8 @@ export function LiveWorkspace({
           <Clients
             items={items}
             open={open}
+            live
+            loading={records.kind === "loading"}
           />
         ) : page === "Home" ? (
           <div className="list-page">
