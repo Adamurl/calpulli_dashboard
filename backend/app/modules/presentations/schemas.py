@@ -111,17 +111,77 @@ class PresentationPatch(BaseModel):
     status: PresentationStatus | None = None
     expected_current_status: PresentationStatus | None = None
     internal_notes: LongText | None = None
+    event_date: date | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    event_timezone: Annotated[str, Field(max_length=100)] | None = None
+    event_access: Literal["public", "private"] | None = None
+    event_setting: Literal["indoor", "outdoor", "unsure"] | None = None
+    event_types: list[EventType] | None = Field(default=None, max_length=9)
+    event_purpose: LongText | None = None
+    venue_address: ShortText | None = None
+    estimated_guests: Annotated[int, Field(ge=1, le=10000000, strict=True)] | None = None
+    audience_distance_12ft: Literal["yes", "no", "unsure"] | None = None
+    unavailable_logistics: LongText | None = None
+    organization_name: ShortText | None = None
+    contact_first_name: ShortText | None = None
+    contact_last_name: ShortText | None = None
+    contact_email: (
+        Annotated[str, Field(max_length=320, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")] | None
+    ) = None
+    contact_phone: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=100)]
+        | None
+    ) = None
+    organization_website: ShortText | None = None
+    referral_sources: list[ReferralSource] | None = Field(default=None, max_length=9)
+    referral_reference: ShortText | None = None
+    additional_notes: LongText | None = None
+
+    @field_validator("event_timezone")
+    @classmethod
+    def valid_timezone(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Use an IANA timezone") from None
+        return value
+
+    @field_validator("event_types", "referral_sources")
+    @classmethod
+    def unique_patch_selections(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            raise ValueError("Use an empty array to clear selections")
+        if len(value) != len(set(value)):
+            raise ValueError("Selections must be unique")
+        return value
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def local_patch_time(cls, value: time | None) -> time | None:
+        if value is not None and value.tzinfo is not None:
+            raise ValueError("Times must be local; supply event_timezone separately")
+        return value
 
     @model_validator(mode="after")
     def require_change(self) -> "PresentationPatch":
-        if self.status is None and self.internal_notes is None:
-            raise ValueError("Supply a status change or internal note")
+        data_fields = self.model_fields_set - {
+            "status",
+            "expected_current_status",
+            "internal_notes",
+        }
+        if self.status is None and self.internal_notes is None and not data_fields:
+            raise ValueError("Supply a status change, internal note, or presentation detail")
         if "status" in self.model_fields_set and self.status is None:
             raise ValueError("Status cannot be null")
         if "internal_notes" in self.model_fields_set and self.internal_notes is None:
             raise ValueError("Internal note cannot be null")
         if (self.status is None) != (self.expected_current_status is None):
             raise ValueError("Status changes require expected_current_status")
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValueError("End time must follow start time")
         return self
 
 

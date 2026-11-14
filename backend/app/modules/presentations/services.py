@@ -18,6 +18,10 @@ class PresentationConflict(Exception):
     pass
 
 
+class InvalidPresentationDetails(Exception):
+    pass
+
+
 def get_presentation(session: Session, request_id: UUID) -> PresentationRequest:
     result = session.get(PresentationRequest, request_id)
     if result is None:
@@ -111,6 +115,15 @@ def update_presentation(
         )
         if request is None:
             raise PresentationNotFound
+        if {"start_time", "end_time"} & payload.model_fields_set:
+            start = (
+                payload.start_time
+                if "start_time" in payload.model_fields_set
+                else request.start_time
+            )
+            end = payload.end_time if "end_time" in payload.model_fields_set else request.end_time
+            if start is not None and end is not None and end <= start:
+                raise InvalidPresentationDetails
         if payload.status is not None:
             if request.status != payload.expected_current_status:
                 raise PresentationConflict
@@ -134,6 +147,29 @@ def update_presentation(
                     request_id=request_id,
                     kind="note_added",
                     note=payload.internal_notes,
+                    actor_id=actor_id,
+                )
+            )
+        excluded = {"status", "expected_current_status", "internal_notes"}
+        submitted_fields = payload.model_dump(exclude_unset=True, exclude=excluded)
+        updated_fields = {
+            field: value
+            for field, value in submitted_fields.items()
+            if getattr(request, field) != value
+        }
+        for field, value in updated_fields.items():
+            setattr(request, field, value)
+        if "contact_first_name" in updated_fields or "contact_last_name" in updated_fields:
+            request.contact_full_name = " ".join(
+                part for part in (request.contact_first_name, request.contact_last_name) if part
+            )
+        if updated_fields:
+            session.add(
+                PresentationActivity(
+                    request_id=request_id,
+                    kind="details_updated",
+                    summary="Presentation details updated",
+                    note="Updated fields: " + ", ".join(sorted(updated_fields)),
                     actor_id=actor_id,
                 )
             )

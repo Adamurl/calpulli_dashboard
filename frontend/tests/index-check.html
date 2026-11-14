@@ -63,6 +63,13 @@
       await wait(150);
     }
     async function field(label, value) {
+      if (label === "Request status") {
+        doc().querySelector('[aria-label^="Request status:"]').click();
+        await wait(50);
+        doc().querySelector(`.status-picker input[value="${value}"]`).click();
+        await wait(150);
+        return;
+      }
       const input = await until(
         () => doc().querySelector(`[aria-label="${label}"]`),
         label,
@@ -144,7 +151,7 @@
           "Rows default to newest receipt without displaying IDs",
         );
         const period = doc().querySelector(".period-menu"),
-          summary = period.querySelector("summary");
+          summary = period.querySelector("[data-slot=collapsible-trigger]");
         const box = period.getBoundingClientRect(),
           control = summary.getBoundingClientRect();
         check(
@@ -306,7 +313,7 @@
         await wait(100);
         doc().querySelector("tbody .request-row td:last-child").click();
         await until(
-          () => doc().querySelector('[aria-label="Request status"]'),
+          () => doc().querySelector('[aria-label^="Request status:"]'),
           "selected request details",
         );
         await field("Request status", "reviewing");
@@ -338,7 +345,9 @@
         await until(tableReady, "table retry");
         check(Boolean(tableReady()), "Table errors can retry independently");
         fixture().statsFailure = true;
-        doc().querySelector(".period-menu summary").click();
+        doc()
+          .querySelector(".period-menu > [data-slot=collapsible-trigger]")
+          .click();
         doc().querySelector('input[name="stats-period"][value="7"]').click();
         await until(
           () => text().includes("Retry statistics"),
@@ -356,8 +365,9 @@
         );
         check(
           Boolean(tableReady()) &&
-            doc().querySelector(".period-menu summary").textContent.trim() ===
-              "7 days",
+            doc()
+              .querySelector(".period-menu > [data-slot=collapsible-trigger]")
+              .textContent.trim() === "7 days",
           "Analytics retry keeps the chosen period without reloading the table",
         );
         results.insertAdjacentHTML(

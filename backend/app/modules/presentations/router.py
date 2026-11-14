@@ -108,6 +108,8 @@ def update_request(
         raise HTTPException(404, "Presentation not found") from None
     except services.PresentationConflict:
         raise HTTPException(409, "Presentation status changed; reload before updating") from None
+    except services.InvalidPresentationDetails:
+        raise HTTPException(422, "End time must follow start time") from None
 
 
 @router.get("/{request_id}/activities", response_model=ActivityList)
@@ -142,6 +144,8 @@ def update_workspace_request(
         raise HTTPException(404, "Presentation not found") from None
     except services.PresentationConflict:
         raise HTTPException(409, "Presentation status changed; reload before updating") from None
+    except services.InvalidPresentationDetails:
+        raise HTTPException(422, "End time must follow start time") from None
 
 
 @router.get("/{request_id}/operations", response_model=OperationsRead)

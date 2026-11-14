@@ -3,7 +3,7 @@
 import csv
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -31,7 +31,11 @@ from app.modules.presentations.operations_service import (
     read_operations as read_business_operations,
 )
 from app.modules.presentations.schemas import PresentationPatch
-from app.modules.presentations.services import PresentationConflict, update_presentation
+from app.modules.presentations.services import (
+    InvalidPresentationDetails,
+    PresentationConflict,
+    update_presentation,
+)
 
 
 @compiles(JSONB, "sqlite")
@@ -275,3 +279,56 @@ def test_workspace_edit_commits_notes_and_actor_without_recommending_email(sessi
     }
     assert session.scalar(select(func.count()).select_from(EmailMessage)) == 0
     assert session.scalar(select(func.count()).select_from(EmailStaffTask)) == 0
+
+
+@pytest.mark.parametrize("patch", [{"start_time": "16:00"}, {"end_time": "13:00"}])
+def test_partial_time_edit_checks_saved_interval_and_rolls_back(session, patch):
+    request = PresentationRequest(
+        source="manual",
+        form_version="legacy_v1",
+        status="unknown",
+        start_time=time(14),
+        end_time=time(15),
+    )
+    session.add(request)
+    session.commit()
+    with pytest.raises(InvalidPresentationDetails):
+        update_presentation(
+            session,
+            request.id,
+            PresentationPatch(**patch, internal_notes="Must not persist"),
+            recommend_email=False,
+        )
+    session.refresh(request)
+    assert request.start_time == time(14)
+    assert request.end_time == time(15)
+    assert request.internal_notes is None
+    assert session.scalar(select(func.count()).select_from(PresentationActivity)) == 0
+
+
+def test_details_edit_updates_name_and_audits_without_changing_source_snapshot(session):
+    request = PresentationRequest(
+        source="manual",
+        form_version="legacy_v1",
+        status="unknown",
+        contact_full_name="Original Contact",
+        original_fields={"contact_first_name": "Original"},
+    )
+    session.add(request)
+    session.commit()
+    update_presentation(
+        session,
+        request.id,
+        PresentationPatch(
+            contact_first_name="Updated", contact_last_name="Contact", event_types=[]
+        ),
+        actor_id="verified-staff",
+        recommend_email=False,
+    )
+    session.refresh(request)
+    assert request.contact_full_name == "Updated Contact"
+    assert request.original_fields == {"contact_first_name": "Original"}
+    history = session.scalar(select(PresentationActivity))
+    assert history.kind == "details_updated"
+    assert history.actor_id == "verified-staff"
+    assert "Updated Contact" not in history.note

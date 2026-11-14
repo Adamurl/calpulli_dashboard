@@ -60,9 +60,11 @@ An email activity looks like this:
 | `created` | A current or historical inquiry was created |
 | `status_changed` | A real state change, with previous and new values |
 | `note_added` | Internal note replacement, with full note text |
+| `details_updated` | Presentation detail edits, with changed field names |
 | `email_recommended` | A workflow selected an email |
 | `email_blocked` | Required data or template readiness is missing |
 | `email_draft_created` | A workflow or send-again action created a draft |
+| `email_draft_updated` | Staff edited an unsent draft and reset approval |
 | `email_approved` | Staff approved the draft |
 | `email_cancelled` | Staff cancelled an unsent email |
 | `email_send_started` | A durable send claim committed before the provider call |

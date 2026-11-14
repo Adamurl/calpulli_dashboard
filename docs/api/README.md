@@ -39,7 +39,7 @@ from app.integrations.wix import WixFields
 from app.main import create_app
 from app.modules.health.router import HealthResponse
 from app.modules.presentations.email_schemas import (
-    DraftEdit, EmailRead, EventInput, TaskRead, TemplateEdit, TemplateRead,
+    DraftEdit, EmailRead, EventInput, ManualDraftCreate, TaskRead, TemplateEdit, TemplateRead,
 )
 from app.modules.presentations.index_schemas import (
     PresentationIndex, PresentationStatistics, StatisticSeries,
@@ -58,7 +58,7 @@ settings = Settings(
 app = create_app(settings)
 inputs = [
     NewPresentation, PresentationPatch, EventInput, DraftEdit,
-    TemplateEdit, WixFields,
+    TemplateEdit, ManualDraftCreate, WixFields,
 ]
 outputs = [
     AuthenticatedUser, HealthResponse, PresentationSummary, PresentationRead, PresentationList,

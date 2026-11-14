@@ -77,6 +77,10 @@ def test_new_form_rejects_invalid_or_server_owned_fields(
         {"status": None, "internal_notes": "test"},
         {"internal_notes": None},
         {"internal_notes": "   "},
+        {"event_types": None},
+        {"referral_sources": None},
+        {"start_time": "14:00Z", "end_time": "15:00"},
+        {"start_time": "14:00", "end_time": "15:00+01:00"},
     ],
 )
 def test_patch_requires_explicit_valid_change(payload: dict[str, object]) -> None:
@@ -239,7 +243,11 @@ def test_workspace_update_uses_verified_actor_without_dispatch(
 
 @pytest.mark.parametrize(
     ("failure", "status_code"),
-    [(services.PresentationNotFound, 404), (services.PresentationConflict, 409)],
+    [
+        (services.PresentationNotFound, 404),
+        (services.PresentationConflict, 409),
+        (services.InvalidPresentationDetails, 422),
+    ],
 )
 def test_workspace_update_errors_are_safe(
     monkeypatch: pytest.MonkeyPatch, staff_auth, failure, status_code

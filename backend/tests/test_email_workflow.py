@@ -485,6 +485,75 @@ def api_client(session, staff_auth):
         yield client, app
 
 
+def test_manual_draft_requires_staff_approval_and_does_not_send(api_client, inquiry):
+    client, app = api_client
+    path = f"/api/v1/presentations/{inquiry.id}/emails"
+    payload = {
+        "template_key": "inquiry_received",
+        "variables": {},
+        "reply_to_id": None,
+    }
+    assert client.post(path, json=payload).status_code == 401
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    response = client.post(path, headers=headers, json=payload)
+    assert response.status_code == 200
+    draft = response.json()
+    assert draft["requires_approval"] is True
+    assert draft["status"] == "PENDING_APPROVAL"
+    assert draft["source_body"]
+    assert draft["reply_to_id"] is None
+    assert app.state.email_provider.messages == []
+    assert client.post(path + f"/{draft['id']}/send", headers=headers).status_code == 409
+
+
+def test_manual_reply_rejects_unsent_or_other_inquiry_parent(session, inquiry):
+    parent = workflow.create_manual_draft(
+        session, inquiry.id, template_key="inquiry_received", variables={}
+    )
+    session.commit()
+    with pytest.raises(workflow.EmailConflict):
+        workflow.create_manual_draft(
+            session,
+            inquiry.id,
+            template_key="inquiry_received",
+            variables={},
+            reply_to_id=parent.id,
+        )
+    with pytest.raises(workflow.EmailNotFound):
+        workflow.create_manual_draft(
+            session, inquiry.id, template_key="inquiry_received", variables={}, reply_to_id=uuid4()
+        )
+
+
+def test_v2_seed_copy_has_only_supported_placeholders():
+    path = Path(email_registry.__file__).parents[3] / "alembic/data/email_templates_v2.json"
+    for template in json.loads(path.read_text()):
+        values = {name: "Fictional value" for name in email_registry.VARIABLES}
+        subject, body, _ = render_template(template["subject"], template["body_text"], values)
+        assert "[" not in subject + body
+
+
+def test_manual_send_again_retains_copy_only_variables_and_requires_approval(session, inquiry):
+    message = workflow.create_manual_draft(
+        session, inquiry.id, template_key="inquiry_received", variables={}
+    )
+    session.commit()
+    provider = MockEmailProvider()
+    for _ in range(2):
+        workflow.approve(session, message)
+        session.commit()
+        workflow.send(session, inquiry.id, message.id, provider)
+        message = workflow.send_again(session, message)
+        session.commit()
+        assert message.status == "PENDING_APPROVAL"
+        assert message.requires_approval is True
+        assert message.approved_at is None
+        assert message.missing_variables == []
+        with pytest.raises(workflow.EmailConflict):
+            workflow.send(session, inquiry.id, message.id, provider)
+    assert len(provider.messages) == 2
+
+
 def test_email_api_requires_staff_and_extra_resend_authorization(api_client, inquiry):
     client, app = api_client
     path = f"/api/v1/presentations/{inquiry.id}"

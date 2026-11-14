@@ -223,14 +223,17 @@
       "enum": [
         "inquiry_created",
         "missing_information",
+        "alternative_dates_proposed",
         "approved_for_call",
         "call_booked",
         "call_reminder_due",
         "call_completed",
         "contract_ready",
+        "quote_follow_up",
         "signed_and_paid",
         "final_logistics_needed",
         "event_details_complete",
+        "day_of_confirmation",
         "presentation_completed",
         "balance_overdue",
         "inquiry_declined",
@@ -373,6 +376,18 @@
           ],
           "title": "Recipient Name"
         },
+        "reply_to_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reply To Id"
+        },
         "requires_approval": {
           "title": "Requires Approval",
           "type": "boolean"
@@ -403,6 +418,28 @@
             }
           ],
           "title": "Sent By"
+        },
+        "source_body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Body"
+        },
+        "source_subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Subject"
         },
         "state_trigger": {
           "title": "State Trigger",
@@ -458,6 +495,8 @@
         "subject",
         "body_text",
         "body_html",
+        "source_subject",
+        "source_body",
         "variables",
         "missing_variables",
         "status",
@@ -468,6 +507,7 @@
         "sent_at",
         "provider_message_id",
         "provider_thread_id",
+        "reply_to_id",
         "error_code",
         "error_message",
         "retryable",
@@ -573,6 +613,43 @@
         "status"
       ],
       "title": "HealthResponse",
+      "type": "object"
+    },
+    "ManualDraftCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "reply_to_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply To Id"
+        },
+        "template_key": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Template Key",
+          "type": "string"
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 30,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "template_key"
+      ],
+      "title": "ManualDraftCreate",
       "type": "object"
     },
     "NewPresentation": {
@@ -1120,6 +1197,220 @@
     "PresentationPatch": {
       "additionalProperties": false,
       "properties": {
+        "additional_notes": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Additional Notes"
+        },
+        "audience_distance_12ft": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Audience Distance 12Ft"
+        },
+        "contact_email": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact Email"
+        },
+        "contact_first_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact First Name"
+        },
+        "contact_last_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact Last Name"
+        },
+        "contact_phone": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact Phone"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Time"
+        },
+        "estimated_guests": {
+          "anyOf": [
+            {
+              "maximum": 10000000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Guests"
+        },
+        "event_access": {
+          "anyOf": [
+            {
+              "enum": [
+                "public",
+                "private"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Access"
+        },
+        "event_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Date"
+        },
+        "event_purpose": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Purpose"
+        },
+        "event_setting": {
+          "anyOf": [
+            {
+              "enum": [
+                "indoor",
+                "outdoor",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Setting"
+        },
+        "event_timezone": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Timezone"
+        },
+        "event_types": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "k12_school",
+                  "college_university",
+                  "nonprofit",
+                  "government",
+                  "corporate",
+                  "cultural_organization",
+                  "funeral",
+                  "grand_opening",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "maxItems": 9,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Types"
+        },
         "expected_current_status": {
           "anyOf": [
             {
@@ -1156,6 +1447,88 @@
           "default": null,
           "title": "Internal Notes"
         },
+        "organization_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Name"
+        },
+        "organization_website": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Website"
+        },
+        "referral_reference": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Referral Reference"
+        },
+        "referral_sources": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "website",
+                  "instagram",
+                  "facebook",
+                  "tiktok",
+                  "word_of_mouth",
+                  "mexica_new_year",
+                  "previous_performance",
+                  "referral",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "maxItems": 9,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Referral Sources"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Time"
+        },
         "status": {
           "anyOf": [
             {
@@ -1177,6 +1550,34 @@
           ],
           "default": null,
           "title": "Status"
+        },
+        "unavailable_logistics": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable Logistics"
+        },
+        "venue_address": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Venue Address"
         }
       },
       "title": "PresentationPatch",

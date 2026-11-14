@@ -102,8 +102,15 @@ export const operationsSchema = z.object({
 export type Operations = z.infer<typeof operationsSchema>;
 export const emailSchema = z.object({
   id: z.uuid(),
+  template_key: z.string(),
+  state_trigger: z.string(),
+  triggering_event: z.string(),
   subject: z.string(),
   body_text: z.string(),
+  source_subject: nullableText,
+  source_body: nullableText,
+  variables: z.record(z.string(), z.string()),
+  missing_variables: z.array(z.string()),
   recipient_email: nullableText,
   recipient_name: nullableText,
   status: z.enum([
@@ -116,9 +123,43 @@ export const emailSchema = z.object({
     "CANCELLED",
   ]),
   created_at: z.string(),
+  sent_by: nullableText,
   sent_at: nullableText,
+  reply_to_id: nullableText,
+  provider_thread_id: nullableText,
+  error_message: nullableText,
+  retryable: z.boolean(),
 });
 export type EmailRecord = z.infer<typeof emailSchema>;
+export const emailTemplateSchema = z.object({
+  key: z.string(),
+  subject: z.string(),
+  body_text: z.string(),
+  ready_for_use: z.boolean(),
+  updated_by: nullableText,
+  updated_at: z.string(),
+});
+export type EmailTemplate = z.infer<typeof emailTemplateSchema>;
+export const emailVariableCatalogSchema = z.object({
+  available: z.array(z.string()),
+  auto_populated: z.array(z.string()),
+  staff_provided: z.array(z.string()),
+  workflows: z.array(
+    z.object({
+      event: z.string(),
+      template_key: z.string(),
+      sending_rule: z.enum(["automatic", "approval_required", "manual_only"]),
+      reason: z.string(),
+      required_variables: z.array(z.string()),
+    }),
+  ),
+});
+export type EmailVariableCatalog = z.infer<typeof emailVariableCatalogSchema>;
+export const emailCapabilitiesSchema = z.object({
+  can_send_again: z.boolean(),
+  delivery_mode: z.string(),
+});
+export type EmailCapabilities = z.infer<typeof emailCapabilitiesSchema>;
 export type LoadState<T> =
   | { kind: "loading" }
   | { kind: "error"; message: string }
@@ -175,6 +216,112 @@ export async function fetchEmails(id: string, signal: AbortSignal) {
         await apiFetch(`/api/v1/presentations/${id}/emails`, { signal })
       ).json(),
     ).messages;
+}
+export async function fetchEmailTemplates(signal?: AbortSignal) {
+  return emailTemplateSchema
+    .array()
+    .parse(
+      await (
+        await apiFetch("/api/v1/presentations/email-templates", { signal })
+      ).json(),
+    );
+}
+export async function fetchEmailVariableCatalog(signal?: AbortSignal) {
+  return emailVariableCatalogSchema.parse(
+    await (
+      await apiFetch("/api/v1/presentations/email-template-variables", {
+        signal,
+      })
+    ).json(),
+  );
+}
+export async function fetchEmailCapabilities(signal?: AbortSignal) {
+  return emailCapabilitiesSchema.parse(
+    await (
+      await apiFetch("/api/v1/presentations/email-capabilities", { signal })
+    ).json(),
+  );
+}
+export async function createEmailDraft(
+  id: string,
+  values: {
+    template_key: string;
+    variables: Record<string, string>;
+    reply_to_id: string | null;
+  },
+) {
+  return emailSchema.parse(
+    await (
+      await apiFetch(`/api/v1/presentations/${id}/emails`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      })
+    ).json(),
+  );
+}
+export async function updateEmailDraft(
+  inquiryId: string,
+  messageId: string,
+  values: {
+    subject: string;
+    body_text: string;
+    variables: Record<string, string>;
+    recipient_email: string;
+    reply_to_id: string | null;
+  },
+) {
+  return emailSchema.parse(
+    await (
+      await apiFetch(`/api/v1/presentations/${inquiryId}/emails/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      })
+    ).json(),
+  );
+}
+export async function approveEmail(inquiryId: string, messageId: string) {
+  return emailSchema.parse(
+    await (
+      await apiFetch(
+        `/api/v1/presentations/${inquiryId}/emails/${messageId}/approve`,
+        { method: "POST" },
+      )
+    ).json(),
+  );
+}
+export async function sendEmail(inquiryId: string, messageId: string) {
+  return emailSchema.parse(
+    await (
+      await apiFetch(
+        `/api/v1/presentations/${inquiryId}/emails/${messageId}/send`,
+        {
+          method: "POST",
+        },
+      )
+    ).json(),
+  );
+}
+export async function updateEmailTemplate(
+  template: Pick<
+    EmailTemplate,
+    "key" | "subject" | "body_text" | "ready_for_use"
+  >,
+) {
+  return emailTemplateSchema.parse(
+    await (
+      await apiFetch(`/api/v1/presentations/email-templates/${template.key}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: template.subject,
+          body_text: template.body_text,
+          ready_for_use: template.ready_for_use,
+        }),
+      })
+    ).json(),
+  );
 }
 export async function fetchPresentations(
   signal: AbortSignal,

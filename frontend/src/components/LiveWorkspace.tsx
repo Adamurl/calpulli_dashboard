@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { staffDisplayName } from "../staff";
+import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   Menu,
@@ -21,7 +22,7 @@ import { Sidebar } from "./Sidebar";
 import { LivePresentationIndex } from "./LivePresentationIndex";
 import { fetchPresentationIndex } from "../indexData";
 import { LiveDetail } from "./LiveDetail";
-import { Clients } from "./WorkspacePages";
+import { Clients, LiveTemplates } from "./WorkspacePages";
 import { Modal } from "./ui";
 
 const icons = {
@@ -52,15 +53,14 @@ export function LiveWorkspace({
     kind: "loading",
   });
   const [attempt, setAttempt] = useState(0);
-  const [indexVisited, setIndexVisited] = useState(
-    page === "Presentations" && !detail,
-  );
+  const [indexVisited, setIndexVisited] = useState(page === "Presentations");
   const [mobile, setMobile] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState("");
   const [indexRevision, setIndexRevision] = useState(0);
+  const [indexOrder, setIndexOrder] = useState<string[]>([]);
   const [savedPresentation, setSavedPresentation] =
     useState<Presentation | null>(null);
   const [searchRecords, setSearchRecords] = useState<LoadState<Inquiry[]>>({
@@ -113,7 +113,7 @@ export function LiveWorkspace({
     };
   }, [search, query, session.user.id]);
   useEffect(() => {
-    if (page === "Presentations" && !detail) setIndexVisited(true);
+    if (page === "Presentations") setIndexVisited(true);
   }, [page, detail]);
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
@@ -132,7 +132,15 @@ export function LiveWorkspace({
   }, [toast]);
   const items = records.kind === "ready" ? records.data : [];
   const email = session.user.email || "Staff account";
-  const name = session.user.email?.split("@")[0] || "Staff";
+  const name = staffDisplayName(session.user);
+  const rememberIndexIds = useCallback(
+    (ids: string[]) => setIndexOrder(ids),
+    [],
+  );
+  const currentIndex = detail ? indexOrder.indexOf(detail) : -1;
+  const previousId = currentIndex > 0 ? indexOrder[currentIndex - 1] : null;
+  const nextId =
+    currentIndex >= 0 ? (indexOrder[currentIndex + 1] ?? null) : null;
   function go(next: Page) {
     setMobile(false);
     navigate(next);
@@ -148,8 +156,13 @@ export function LiveWorkspace({
     <LiveDetail
       key={detail}
       id={detail}
+      staffName={name}
       saved={savedPresentation?.id === detail ? savedPresentation : null}
       back={() => go("Presentations")}
+      previousId={previousId}
+      nextId={nextId}
+      move={open}
+      notify={setToast}
       updated={(data) => {
         setSavedPresentation(data);
         const item = toInquiry(data);
@@ -190,7 +203,9 @@ export function LiveWorkspace({
         }}
       />
       <main className="workspace">
-        <header className="topbar">
+        <header
+          className={`topbar ${!detail && page === "Templates" ? "templates-topbar" : ""}`}
+        >
           <div>
             <button
               className="icon-button menu-toggle"
@@ -202,20 +217,32 @@ export function LiveWorkspace({
             >
               <Menu size={18} />
             </button>
-            <h1 className="page-title">
-              <Icon size={17} aria-hidden="true" />
-              {detail ? `Presentation #${detail.slice(0, 8)}` : page}
-            </h1>
+            {!detail && page === "Templates" ? (
+              <div className="templates-heading">
+                <h1>Email templates</h1>
+                <p>
+                  Edit the reusable messages staff can choose for each
+                  presentation.
+                </p>
+              </div>
+            ) : (
+              <h1 className="page-title">
+                <Icon size={17} aria-hidden="true" />
+                {detail ? `Presentation #${detail.slice(0, 8)}` : page}
+              </h1>
+            )}
           </div>
           <div>
             <div className="header-export" ref={setExportTarget} />
-            <button
-              className="icon-button"
-              aria-label="Search workspace"
-              onClick={() => setSearch(true)}
-            >
-              <Search size={17} />
-            </button>
+            {!detail && (
+              <button
+                className="icon-button"
+                aria-label="Search workspace"
+                onClick={() => setSearch(true)}
+              >
+                <Search size={17} />
+              </button>
+            )}
           </div>
         </header>
         {page === "Presentations" ? (
@@ -227,6 +254,8 @@ export function LiveWorkspace({
                   notify={setToast}
                   exportTarget={detail ? null : exportTarget}
                   revision={indexRevision}
+                  visibleIdsChanged={rememberIndexIds}
+                  detailMode={Boolean(detail)}
                 />
               </div>
             )}
@@ -355,12 +384,14 @@ export function LiveWorkspace({
               </p>
               <h2>Email channel</h2>
               <p>
-                Existing message history is available in each presentation.
-                Composing, approval, and sending are not enabled in this
-                workspace yet.
+                Staff can edit templates and create approval-gated drafts in a
+                presentation’s Email thread. Delivery behavior is shown before
+                sending, including mock or test delivery mode.
               </p>
             </section>
           </div>
+        ) : page === "Templates" ? (
+          <LiveTemplates notify={setToast} />
         ) : (
           <div className="list-page">
             <section className="card detail-facts">

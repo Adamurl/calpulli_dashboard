@@ -10,11 +10,17 @@ from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.modules.presentations import email_service as service
 from app.modules.presentations.email_models import EmailMessage, EmailStaffTask, EmailTemplate
-from app.modules.presentations.email_registry import STATE_EVENTS, WORKFLOWS
+from app.modules.presentations.email_registry import (
+    AUTO_POPULATED_VARIABLES,
+    STATE_EVENTS,
+    VARIABLES,
+    WORKFLOWS,
+)
 from app.modules.presentations.email_schemas import (
     DraftEdit,
     EmailRead,
     EventInput,
+    ManualDraftCreate,
     TaskRead,
     TemplateEdit,
     TemplateRead,
@@ -63,6 +69,25 @@ def capabilities(
 @router.get("/email-templates", response_model=list[TemplateRead])
 def templates(session: Db):
     return list(session.scalars(select(EmailTemplate).order_by(EmailTemplate.key)))
+
+
+@router.get("/email-template-variables")
+def template_variables():
+    return {
+        "available": sorted(VARIABLES),
+        "auto_populated": sorted(AUTO_POPULATED_VARIABLES),
+        "staff_provided": sorted(VARIABLES - AUTO_POPULATED_VARIABLES),
+        "workflows": [
+            {
+                "event": event.value,
+                "template_key": rule.template_key,
+                "sending_rule": rule.sending_rule.value,
+                "reason": rule.reason,
+                "required_variables": list(rule.required_variables),
+            }
+            for event, rule in WORKFLOWS.items()
+        ],
+    }
 
 
 @router.put("/email-templates/{key}", response_model=TemplateRead)
@@ -114,6 +139,20 @@ def panel(inquiry_id: UUID, session: Db):
             ],
             "tasks": [TaskRead.model_validate(t) for t in tasks],
         }
+
+
+@router.post("/{inquiry_id}/emails", response_model=EmailRead)
+def create_manual_email(inquiry_id: UUID, payload: ManualDraftCreate, session: Db):
+    with email_errors(session):
+        message = service.create_manual_draft(
+            session,
+            inquiry_id,
+            template_key=payload.template_key,
+            variables=payload.variables,
+            reply_to_id=payload.reply_to_id,
+        )
+        session.commit()
+        return EmailRead.model_validate(message)
 
 
 @router.post("/{inquiry_id}/email-events", response_model=EmailRead)

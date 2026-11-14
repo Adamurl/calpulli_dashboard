@@ -15,7 +15,9 @@ The prefix below is `/api/v1/presentations`. An action root is `/{inquiry_id}/em
 | Method | Path below prefix | Input | HTTP 200 output |
 | --- | --- | --- | --- |
 | GET | `/email-capabilities` | Optional resend header | Capability object |
+| GET | `/email-template-variables` | No body | Supported, auto-populated, staff-provided variables and workflow metadata |
 | GET | `/{inquiry_id}/emails` | Inquiry UUID | Panel object |
+| POST | `/{inquiry_id}/emails` | `ManualDraftCreate` JSON | Approval-required `EmailRead` draft |
 | POST | `/{inquiry_id}/email-events` | `EventInput` JSON | `EmailRead` |
 | PATCH | `/{inquiry_id}/emails/{message_id}` | `DraftEdit` JSON | `EmailRead` |
 | POST | Action root + `/refresh` | No body | `EmailRead` |
@@ -26,6 +28,8 @@ The prefix below is `/api/v1/presentations`. An action root is `/{inquiry_id}/em
 | POST | Action root + `/send-again` | Resend header; no body | New `EmailRead` draft |
 
 No-body actions require neither a JSON object nor `Content-Type`. Email list, tasks, and registry data are unpaginated. The route has no email deletion or staff-task mutation endpoint.
+
+`ManualDraftCreate` accepts `template_key`, optional `variables`, and optional `reply_to_id`. It creates a unique staff-written message with `requires_approval=true`. A reply target must be a sent message for the same inquiry, recipient, and provider thread. The created message still requires normal editing, approval, and explicit send actions. Manual drafts require the variables referenced by their chosen copy and always require staff approval. Multiple staff-written messages may use the same template; workflow-triggered events retain their existing idempotency key.
 
 HTTP success does not establish mail delivery. `/send`, `/retry`, and event dispatch can return an email with `status=FAILED` after a handled provider failure. Clients must inspect `status`, `error_code`, `error_message`, `retryable`, and `delivery_unknown`. Unexpected provider or persistence errors can instead return HTTP 500.
 
@@ -109,7 +113,7 @@ Edits require an unattempted message in `DRAFT`, `PENDING_APPROVAL`, or `APPROVE
 }
 ```
 
-Recipient replacements must pass the provider-compatible email shape check. `reply_to_id` selects a sent message from the same inquiry with a stored thread ID and the same recipient. The parent subject overrides the supplied subject. Later edits retain that subject for the reply. There is no supported API action to clear an established reply target.
+Recipient replacements must pass the provider-compatible email shape check. `reply_to_id` selects a sent message from the same inquiry with a stored thread ID and the same recipient. The parent subject overrides the supplied subject. Later edits retain that subject for the reply. There is no supported API action to clear an established reply target. Each draft edit adds an `email_draft_updated` entry to presentation activity.
 
 ## Action eligibility and side effects
 
@@ -145,6 +149,8 @@ Every key below appears in action responses, including nullable keys:
 | `subject` | string | Yes | — |
 | `body_text` | string | Yes | — |
 | `body_html` | string | Yes | — |
+| `source_subject` | string or null | Yes | Template source before variable rendering |
+| `source_body` | string or null | Yes | Template body source before variable rendering |
 | `variables` | object with string values | Yes | — |
 | `missing_variables` | array of string | Yes | — |
 | `status` | `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `SENDING`, `SENT`, `FAILED`, `CANCELLED` | Yes | — |
@@ -155,6 +161,7 @@ Every key below appears in action responses, including nullable keys:
 | `sent_at` | string (date-time) or null | Yes | — |
 | `provider_message_id` | string or null | Yes | — |
 | `provider_thread_id` | string or null | Yes | — |
+| `reply_to_id` | UUID or null | Yes | Parent sent message for a provider-thread reply |
 | `error_code` | string or null | Yes | — |
 | `error_message` | string or null | Yes | — |
 | `retryable` | boolean | Yes | — |
@@ -217,7 +224,7 @@ A complete review draft response is:
 
 ## Panel output
 
-`GET /{inquiry_id}/emails` returns the following object. It only reads data and does not create recommendations, dispatch mail, or contact Gmail.
+`GET /{inquiry_id}/emails` returns the following object. It only reads data and does not create recommendations, dispatch mail, or contact Gmail. Its messages include `reason` in addition to the standard `EmailRead` fields.
 
 | Field | Value |
 | --- | --- |
@@ -225,7 +232,7 @@ A complete review draft response is:
 | `recommended_email` | Template key from state mapping, or null |
 | `reason` | State recommendation reason, or no-rule explanation |
 | `events` | All registry entries with `event`, `template_key`, `sending_rule`, `reason` |
-| `messages` | All inquiry email records, newest `created_at` first |
+| `messages` | All inquiry email records, newest `created_at` first, plus workflow reason |
 | `tasks` | Unresolved `TaskRead` objects; no specified ordering |
 
 Each panel message contains all `EmailRead` keys plus `source_subject: string or null`, `source_body: string or null`, `reply_to_id: UUID or null`, and `reason: string`. Use source fields for editing and rendered fields for preview. Ties in message creation timestamps have no secondary sort.

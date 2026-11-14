@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Collapsible and status spacing checks</title>
+  <style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+    }
+    iframe {
+      width: 1280px;
+      height: 950px;
+      border: 1px solid #ccc;
+    }
+    .pass {
+      color: #28632d;
+    }
+    .fail {
+      color: #a00;
+    }
+    li {
+      margin: 8px 0;
+    }
+  </style>
+  <h1>Collapsible and status spacing checks</h1>
+  <p>Fictional Auth and API data only.</p>
+  <button id="run">Run collapsible checks</button>
+  <section id="results" aria-live="polite">Ready.</section>
+  <iframe id="app" title="Workspace under test"></iframe>
+  <script type="module">
+    const frame = document.querySelector("#app"),
+      results = document.querySelector("#results");
+    const doc = () => frame.contentDocument,
+      wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const style = (el) => frame.contentWindow.getComputedStyle(el);
+    const button = (text) =>
+      [...doc().querySelectorAll("button")].find(
+        (el) => el.textContent.trim() === text,
+      );
+    let passed = 0,
+      run = 0;
+    async function until(test, label) {
+      for (let i = 0; i < 200; i++) {
+        if (test()) return;
+        await wait(100);
+      }
+      throw Error(`Timed out: ${label}`);
+    }
+    function check(condition, label) {
+      if (!condition) throw Error(label);
+      passed++;
+      const item = document.createElement("li");
+      item.className = "pass";
+      item.textContent = `PASS ${label}`;
+      results.append(item);
+    }
+    async function load(path) {
+      const token = String(++run);
+      frame.src = `/tests/live-fixture.html?run=${token}&path=${path}`;
+      await until(
+        () =>
+          frame.contentWindow.fixture?.run === token &&
+          doc().querySelector(".workspace"),
+        "workspace",
+      );
+    }
+    document.querySelector("#run").onclick = async () => {
+      passed = 0;
+      results.textContent = "";
+      try {
+        await load("/presentations/11111111-1111-4111-8111-111111111111");
+        await until(
+          () => doc().querySelectorAll(".disclosure-trigger").length === 2,
+          "disclosures",
+        );
+        const disclosures = [...doc().querySelectorAll(".disclosure-trigger")];
+        check(
+          disclosures.every(
+            (el) =>
+              el.dataset.slot === "collapsible-trigger" &&
+              el.getAttribute("aria-expanded") === "false",
+          ),
+          "Detail disclosures use shadcn and start closed",
+        );
+        check(
+          disclosures.every(
+            (el) =>
+              style(el).paddingTop === "14px" &&
+              style(el).paddingBottom === "14px",
+          ) &&
+            Math.abs(
+              disclosures[0].getBoundingClientRect().height -
+                disclosures[1].getBoundingClientRect().height,
+            ) < 1,
+          "Top and bottom disclosure spacing is consistent",
+        );
+        const status = doc().querySelector(".status-picker-trigger"),
+          bounds = status.getBoundingClientRect();
+        check(
+          style(status).paddingLeft === style(status).paddingRight &&
+            Math.abs(
+              status.querySelector("span").getBoundingClientRect().left -
+                bounds.left -
+                (bounds.right -
+                  status.querySelector("svg").getBoundingClientRect().right),
+            ) < 1,
+          "Status text and arrow have matching edge insets",
+        );
+        disclosures[0].click();
+        await until(
+          () => disclosures[0].getAttribute("aria-expanded") === "true",
+          "open operations",
+        );
+        check(
+          doc()
+            .getElementById(disclosures[0].getAttribute("aria-controls"))
+            .textContent.includes("Three reserved spaces"),
+          "Operational details expand with their existing data",
+        );
+        disclosures[0].click();
+        await until(
+          () => disclosures[0].getAttribute("aria-expanded") === "false",
+          "closed operations",
+        );
+        check(
+          disclosures[0].getAttribute("aria-expanded") === "false",
+          "Operational details collapse again",
+        );
+        disclosures[1].click();
+        await until(
+          () => disclosures[1].getAttribute("aria-expanded") === "true",
+          "event logistics",
+        );
+        check(
+          doc()
+            .getElementById(disclosures[1].getAttribute("aria-controls"))
+            .textContent.includes("Fixture form notes"),
+          "Event logistics retain their content",
+        );
+        status.click();
+        await until(
+          () => doc().querySelector(".status-picker input"),
+          "status choices",
+        );
+        check(
+          doc().querySelectorAll(".status-picker input").length === 8 &&
+            status.getAttribute("aria-expanded") === "true",
+          "Status disclosure offers all accessible radio choices",
+        );
+        doc().querySelector(".status-picker input[value=reviewing]").click();
+        await until(
+          () => status.textContent === "In review" && !status.disabled,
+          "saved status",
+        );
+        check(
+          frame.contentWindow.fixture.detail.status === "reviewing" &&
+            status.getAttribute("aria-expanded") === "false",
+          "Status saves through existing API and closes",
+        );
+        frame.contentWindow.fixture.conflict = true;
+        status.click();
+        await until(
+          () => doc().querySelector(".status-picker input[value=booked]"),
+          "booked choice",
+        );
+        doc().querySelector(".status-picker input[value=booked]").click();
+        await until(
+          () => doc().body.textContent.includes("This request changed"),
+          "conflict",
+        );
+        check(
+          status.textContent === "In review",
+          "Status conflicts preserve the server value",
+        );
+        frame.contentWindow.fixture.conflict = false;
+        status.click();
+        await until(
+          () => status.getAttribute("aria-expanded") === "true",
+          "status reopen",
+        );
+        status.dispatchEvent(
+          new frame.contentWindow.KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+          }),
+        );
+        await wait(50);
+        check(
+          status.getAttribute("aria-expanded") === "false" &&
+            doc().activeElement === status,
+          "Escape closes status choices and returns focus",
+        );
+        await load("/presentations");
+        await until(
+          () => doc().querySelector(".period-menu > button"),
+          "statistics period",
+        );
+        const period = doc().querySelector(".period-menu > button");
+        period.click();
+        await until(
+          () => doc().querySelector('.period-menu input[value="7"]'),
+          "period options",
+        );
+        doc().querySelector('.period-menu input[value="7"]').click();
+        await wait(100);
+        check(
+          period.textContent === "7 days" &&
+            period.getAttribute("aria-expanded") === "false",
+          "Statistics period uses Collapsible and closes after selection",
+        );
+        const columns = button("Columns");
+        columns.click();
+        await until(
+          () => doc().querySelector(".column-menu label"),
+          "column options",
+        );
+        const first = doc().querySelector(".column-menu input"),
+          before = first.checked;
+        first.click();
+        await wait(50);
+        check(
+          first.checked !== before &&
+            columns.getAttribute("aria-expanded") === "true",
+          "Column picker preserves checkbox selection",
+        );
+        columns.click();
+        const account = doc().querySelector(".account-button");
+        account.click();
+        await until(
+          () => doc().querySelector(".account-menu"),
+          "account disclosure",
+        );
+        check(
+          account.getAttribute("aria-expanded") === "true" &&
+            doc()
+              .querySelector(".account-menu")
+              .textContent.includes("Log out"),
+          "Account disclosure retains its actions",
+        );
+        account.click();
+        doc().querySelector(".sidebar .collapse").click();
+        await wait(50);
+        const tools = doc().querySelector(".presentation-children");
+        check(
+          style(tools).display === "none",
+          "Sidebar presentation tools collapse",
+        );
+        doc().querySelector(".sidebar .collapse").click();
+        await wait(50);
+        check(
+          style(tools).display !== "none",
+          "Sidebar presentation tools expand again",
+        );
+        check(
+          !doc().querySelector("details"),
+          "Native details controls have been migrated",
+        );
+        results.insertAdjacentHTML(
+          "afterbegin",
+          `<h2>${passed} collapsible checks passed</h2>`,
+        );
+      } catch (error) {
+        const item = document.createElement("p");
+        item.className = "fail";
+        item.textContent = `FAIL after ${passed} checks: ${error.message}`;
+        results.append(item);
+      }
+    };
+  </script>
+</html>

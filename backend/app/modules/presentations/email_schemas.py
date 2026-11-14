@@ -72,6 +72,19 @@ class DraftEdit(BaseModel):
         return EventInput.known_variables(value)
 
 
+class ManualDraftCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    template_key: str = Field(min_length=1, max_length=60)
+    variables: dict[str, str] = Field(default_factory=dict, max_length=30)
+    reply_to_id: UUID | None = None
+
+    @field_validator("variables")
+    @classmethod
+    def known_variables(cls, value: dict[str, str]) -> dict[str, str]:
+        return EventInput.known_variables(value)
+
+
 class EmailRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,6 +99,8 @@ class EmailRead(BaseModel):
     subject: str
     body_text: str
     body_html: str
+    source_subject: str | None
+    source_body: str | None
     variables: dict[str, str]
     missing_variables: list[str]
     status: Literal[
@@ -98,6 +113,7 @@ class EmailRead(BaseModel):
     sent_at: datetime | None
     provider_message_id: str | None
     provider_thread_id: str | None
+    reply_to_id: UUID | None
     error_code: str | None
     error_message: str | None
     retryable: bool

@@ -120,7 +120,8 @@ class PresentationActivity(Base):
         CheckConstraint(
             "kind IN ('created','status_changed','note_added','email_recommended','email_blocked',"
             "'email_draft_created','email_approved','email_cancelled','email_send_started',"
-            "'email_sent','email_send_failed','email_send_retried')",
+            "'email_sent','email_send_failed','email_send_retried','details_updated',"
+            "'email_draft_updated')",
             name="kind_allowed",
         ),
         Index("ix_presentation_activities_request_created", "request_id", "created_at", "id"),

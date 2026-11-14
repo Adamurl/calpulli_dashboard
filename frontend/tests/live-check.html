@@ -63,6 +63,13 @@
       await wait(150);
     }
     async function field(label, value) {
+      if (label === "Request status") {
+        doc().querySelector('[aria-label^="Request status:"]').click();
+        await wait(50);
+        doc().querySelector(`.status-picker input[value="${value}"]`).click();
+        await wait(150);
+        return;
+      }
       const input = await until(
         () => doc().querySelector(`[aria-label="${label}"]`),
         label,
@@ -206,8 +213,8 @@
         await field("Request status", "booked");
         await until(() => text().includes("This request changed"), "conflict");
         check(
-          doc().querySelector('[aria-label="Request status"]').value ===
-            "reviewing",
+          doc().querySelector('[aria-label^="Request status:"]').textContent ===
+            "In review",
           "Conflict retains server status and explains reload",
         );
         frame.contentWindow.fixture.conflict = false;
