@@ -1,3 +1,5 @@
+import json
+import logging
 from collections.abc import Iterator
 from uuid import uuid4
 
@@ -6,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.core.logging import JsonFormatter
 from app.integrations import wix
 from app.main import create_app
 from app.modules.presentations.services import PresentationConflict
@@ -130,3 +133,104 @@ def test_invalid_json_and_form_are_safe(webhook_client: TestClient) -> None:
     assert invalid.status_code == 422
     assert "private-invalid-email" not in invalid.text
     assert TEST_SECRET not in invalid.text
+
+
+def test_validation_logs_identify_fields_without_exposing_answers(
+    webhook_client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = fields()
+    del payload["end_time"]
+    payload["estimated_guests"] = "private-guest-answer"
+    payload["event_types"] = ["private-event-answer"]
+    payload["contact_email"] = "private-invalid-email"
+    payload["event_timezone"] = "private-invalid-timezone"
+    payload["private-unknown-key"] = "private-extra-answer"
+    with caplog.at_level(logging.WARNING, logger="calpulli.wix"):
+        response = webhook_client.post(
+            "/api/v1/integrations/wix/presentations",
+            json={"data": payload},
+            headers={"Authorization": "Bearer private-header"},
+        )
+    assert response.status_code == 422
+    entries = [
+        json.loads(JsonFormatter().format(r)) for r in caplog.records if r.name == "calpulli.wix"
+    ]
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["event"] == "wix_webhook_rejected"
+    assert entry["webhook_reason"] == "invalid_submission"
+    assert entry["request_id"] == response.json()["error"]["request_id"]
+    assert entry["request_id"] == response.headers["x-request-id"]
+    assert entry["status_code"] == 422
+    assert {"field": "data.end_time", "code": "missing"} in entry["validation_errors"]
+    assert {"field": "data.estimated_guests", "code": "int_type"} in entry["validation_errors"]
+    assert {"field": "data.event_types", "code": "literal_error"} in entry["validation_errors"]
+    assert {"field": "data.<unknown>", "code": "extra_forbidden"} in entry["validation_errors"]
+    assert entry["validation_error_count"] == 6
+    serialized = json.dumps(entry) + response.text
+    for secret in [
+        TEST_SECRET,
+        "private-",
+        "sample@example.org",
+        "fictional-submission",
+        "fictional-form",
+    ]:
+        assert secret not in serialized
+
+
+def test_validation_logs_are_bounded_and_unknown_keys_are_redacted(
+    webhook_client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = fields() | {f"private-key-{i}": "private-value" for i in range(100)}
+    with caplog.at_level(logging.WARNING, logger="calpulli.wix"):
+        response = webhook_client.post(
+            "/api/v1/integrations/wix/presentations", json={"data": payload}
+        )
+    assert response.status_code == 422
+    record = next(r for r in caplog.records if r.name == "calpulli.wix")
+    entry = json.loads(JsonFormatter().format(record))
+    assert entry["validation_error_count"] == 100
+    assert len(entry["validation_errors"]) == wix.MAX_LOGGED_ERRORS
+    assert "private-" not in JsonFormatter().format(record)
+
+
+@pytest.mark.parametrize(
+    ("body", "status", "reason"),
+    [
+        (b"{", 400, "invalid_json"),
+        (b'{"data": []}', 422, "expected_data_object"),
+        (b'{"data": {"webhook_token": "private-wrong-token"}}', 401, "invalid_webhook_token"),
+    ],
+)
+def test_rejection_logs_are_safe_and_correlated(
+    webhook_client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+    body: bytes,
+    status: int,
+    reason: str,
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="calpulli.wix"):
+        response = webhook_client.post("/api/v1/integrations/wix/presentations", content=body)
+    assert response.status_code == status
+    entry = json.loads(
+        JsonFormatter().format(next(r for r in caplog.records if r.name == "calpulli.wix"))
+    )
+    assert entry["webhook_reason"] == reason
+    assert entry["request_id"] == response.headers["x-request-id"]
+    assert "validation_errors" not in entry
+    assert "private-wrong-token" not in json.dumps(entry)
+
+
+def test_model_validation_log_does_not_include_exception_context(
+    webhook_client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = fields() | {"end_time": "13:00"}
+    with caplog.at_level(logging.WARNING, logger="calpulli.wix"):
+        response = webhook_client.post(
+            "/api/v1/integrations/wix/presentations", json={"data": payload}
+        )
+    assert response.status_code == 422
+    record = next(r for r in caplog.records if r.name == "calpulli.wix")
+    entry = json.loads(JsonFormatter().format(record))
+    assert entry["validation_errors"] == [{"field": "data.<model>", "code": "value_error"}]
+    assert "13:00" not in json.dumps(entry)

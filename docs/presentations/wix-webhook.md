@@ -80,6 +80,29 @@ A first submission creates a new presentation request and recommends `inquiry_re
 
 These webhook validation failures use `http_422`, unlike FastAPI request-model failures on presentation/email routes, which use `validation_error`. Messages use the shared safe reason phrase rather than detailed validation output.
 
+### Diagnosing rejected requests in Vercel
+
+Search runtime logs for `wix_webhook_rejected` or the response's `request_id`. The warning uses logger `calpulli.wix` and shares the request ID with the existing `request_completed` event and HTTP response. `webhook_reason` distinguishes missing configuration, malformed JSON, invalid envelope, incorrect token, invalid submission, unexpected form, conflicting retry, oversized body, and initial database failure. HTTP response bodies remain unchanged.
+
+Validation warnings include up to 25 field/code entries and the total error count. For example:
+
+```json
+{
+  "event": "wix_webhook_rejected",
+  "status_code": 422,
+  "webhook_reason": "invalid_submission",
+  "validation_error_count": 2,
+  "validation_errors": [
+    {"field": "data.end_time", "code": "missing"},
+    {"field": "data.estimated_guests", "code": "int_type"}
+  ]
+}
+```
+
+`missing` identifies an omitted required field. `list_type` expects an array; `int_type` expects a JSON integer. `literal_error` identifies an unsupported choice; `date_from_datetime_parsing` and `time_parsing` identify invalid date/time formats. `value_error` indicates a custom validator, such as an invalid timezone or reversed/non-local times. Model-wide failures use `data.<model>`. Unexpected field names use `data.<unknown>` so arbitrary input keys cannot expose personal data in logs.
+
+Logs exclude submitted values, tokens, form/submission IDs, headers, raw validation messages, exception context, and payload bodies. They diagnose the contract without recording the submission. Post-commit email-dispatch exceptions still use the existing generic request-failure log.
+
 Retries must reuse the same form/submission identity. A response can fail after the inquiry commits; a retry then returns the duplicate acknowledgement. That duplicate acknowledgement does not resume a pending email send. There is no background worker or webhook retry scheduler in this application.
 
 Verification: `backend/tests/test_wix_webhook.py` and presentation database replay tests. Normalized contract tests do not establish that the real Wix Automation uses this mapping; live preview/delivery still require review.

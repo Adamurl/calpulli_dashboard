@@ -6,16 +6,18 @@ from logging.config import dictConfig
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        return json.dumps(
-            {
-                "timestamp": datetime.now(UTC).isoformat(),
-                "level": record.levelname,
-                "logger": record.name,
-                "event": record.getMessage(),
-                "request_id": getattr(record, "request_id", None),
-                "status_code": getattr(record, "status_code", None),
-            }
-        )
+        payload = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "event": record.getMessage(),
+            "request_id": getattr(record, "request_id", None),
+            "status_code": getattr(record, "status_code", None),
+        }
+        for field in ("webhook_reason", "validation_errors", "validation_error_count"):
+            if hasattr(record, field):
+                payload[field] = getattr(record, field)
+        return json.dumps(payload)
 
 
 def configure_logging(level: str) -> None:
