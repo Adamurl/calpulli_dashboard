@@ -78,6 +78,13 @@
       await wait(100);
     }
     async function field(label, value) {
+      if (label === "Request status") {
+        doc().querySelector('[aria-label^="Request status:"]').click();
+        await wait(50);
+        doc().querySelector(`.status-picker input[value="${value}"]`).click();
+        await wait(150);
+        return;
+      }
       const input = await until(
         () =>
           [...doc().querySelectorAll("input,textarea,select")].find(
@@ -236,15 +243,18 @@
           "Single page title with icon",
         );
         check(
-          doc().querySelector(".period-menu summary").textContent === "Today",
+          doc().querySelector(".period-menu > [data-slot=collapsible-trigger]")
+            .textContent === "Today",
           "Statistics default to Today",
         );
-        doc().querySelector(".period-menu summary").click();
+        doc()
+          .querySelector(".period-menu > [data-slot=collapsible-trigger]")
+          .click();
         doc().querySelector('input[name="stats-period"][value="7"]').click();
         await wait(100);
         check(
-          doc().querySelector(".period-menu summary").textContent ===
-            "7 days" &&
+          doc().querySelector(".period-menu > [data-slot=collapsible-trigger]")
+            .textContent === "7 days" &&
             doc().querySelectorAll(".request-stat svg").length === 4 &&
             !doc().querySelector(".period-menu").open,
           "Seven-day selection updates statistics and closes menu",
@@ -272,12 +282,14 @@
             expected,
           "Statistics count actual sample receipt dates",
         );
-        doc().querySelector(".period-menu summary").click();
+        doc()
+          .querySelector(".period-menu > [data-slot=collapsible-trigger]")
+          .click();
         doc().querySelector('input[name="stats-period"][value="30"]').click();
         await wait(100);
         check(
-          doc().querySelector(".period-menu summary").textContent ===
-            "30 days" &&
+          doc().querySelector(".period-menu > [data-slot=collapsible-trigger]")
+            .textContent === "30 days" &&
             doc()
               .querySelector(".request-stat svg")
               .getAttribute("aria-label")
@@ -324,7 +336,9 @@
           doc().querySelector("thead input").indeterminate,
           "Partial selection is indicated",
         );
-        doc().querySelector(".column-menu summary").click();
+        doc()
+          .querySelector(".column-menu > [data-slot=collapsible-trigger]")
+          .click();
         const organization = [
           ...doc().querySelectorAll(".column-menu label"),
         ].find((label) => label.textContent === "Organization");
@@ -337,7 +351,9 @@
           "Column visibility updates table",
         );
         organization.querySelector("input").click();
-        doc().querySelector(".column-menu summary").click();
+        doc()
+          .querySelector(".column-menu > [data-slot=collapsible-trigger]")
+          .click();
         await field("Rows per page", "10");
         await field("Search presentations", "no matching presentation");
         check(
@@ -452,7 +468,7 @@
           "Review draft persists across reload",
         );
         await nav("Templates");
-        await click("Preview & personalize");
+        await click("A warm welcome");
         await click("Use this template");
         check(
           doc().querySelector("textarea").value.includes("Hello Elena"),

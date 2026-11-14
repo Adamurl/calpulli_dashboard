@@ -168,7 +168,9 @@ Create, detail, and patch return all summary fields plus these fields:
 | `expected_current_status` | `unknown`, `new`, `reviewing`, `proposal_sent`, `booked`, `completed`, `declined`, `cancelled` or null | No | default `null` |
 | `internal_notes` | string or null | No | min length `1`; max length `10000`; default `null` |
 
-At least one non-null status or internal note is required. An explicit null status or internal note is invalid. Notes use trimmed, nonblank text of up to 10,000 characters. A note-only patch omits both status fields. A status patch requires `expected_current_status`; supplying that field without a status is invalid.
+At least one status, internal note, or presentation detail is required. An explicit null status or internal note is invalid. Notes use trimmed, nonblank text of up to 10,000 characters. A note-only patch omits both status fields. A status patch requires `expected_current_status`; supplying that field without a status is invalid.
+
+The patch also accepts the scheduling, event, venue, contact, organization, referral, and additional-note fields declared in [PresentationPatch](../api/schema-catalog.json#/$defs/PresentationPatch). Omitted fields remain unchanged. Nullable detail fields can be cleared with null. Clear `event_types` and `referral_sources` with an empty array; explicit null is rejected. Times must be local without an offset. The resulting interval, including an unchanged stored time, must have its end after its start when either time changes. Contact name edits rebuild `contact_full_name`. Detail edits retain `original_fields` and append a `details_updated` activity containing the changed field names.
 
 ```json
 {"status":"reviewing","expected_current_status":"new","internal_notes":"Staff reviewed the inquiry."}
@@ -197,7 +199,7 @@ Verification: `test_presentations.py`, `test_presentations_database.py`, and `te
 
 ## Dashboard edits
 
-The workspace PATCH accepts the same status and internal-note inputs as the existing PATCH. Status changes still require `expected_current_status` and return 409 if another update changed the status. Each saved status change and note records the verified staff UUID as `actor_id`. Each submitted note remains a separate activity; `internal_notes` holds the latest note.
+The workspace PATCH accepts the same status, internal-note, and presentation-detail inputs as the existing PATCH. Status changes still require `expected_current_status` and return 409 if another update changed the status. Each saved change records the verified staff UUID as `actor_id`. Each submitted note remains a separate activity; `internal_notes` holds the latest note.
 
 Workspace edits neither call email recommendation nor dispatch delivery. The original PATCH retains its existing email workflow behavior. The dashboard uses the workspace endpoint exclusively. Operations remain read-only; a missing operations record is distinct from a database or authorization error.
 

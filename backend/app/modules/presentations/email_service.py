@@ -87,16 +87,61 @@ def valid_recipient(value: str | None) -> TypeGuard[str]:
 
 
 def inquiry_variables(inquiry: PresentationRequest) -> dict[str, str]:
+    presentation_details = inquiry.event_purpose or ", ".join(inquiry.event_types)
     values = {
         "Name": inquiry.contact_first_name or inquiry.contact_full_name,
         "Organization": inquiry.organization_name,
         "Event Description": inquiry.event_purpose,
+        "Presentation Details": presentation_details,
         "Requested Date": str(inquiry.event_date) if inquiry.event_date else None,
         "Time": str(inquiry.start_time) if inquiry.start_time else None,
         "Time Zone": inquiry.event_timezone,
         "Location": inquiry.venue_address,
     }
     return {k: v for k, v in values.items() if v}
+
+
+def create_manual_draft(
+    session: Session,
+    inquiry_id: UUID,
+    *,
+    template_key: str,
+    variables: dict[str, str],
+    reply_to_id: UUID | None = None,
+) -> EmailMessage:
+    inquiry = lock_inquiry(session, inquiry_id)
+    template = session.get(EmailTemplate, template_key)
+    if template is None:
+        raise EmailNotFound
+    parent = get_message(session, inquiry_id, reply_to_id) if reply_to_id else None
+    if parent and (
+        parent.status != "SENT"
+        or not parent.provider_thread_id
+        or parent.recipient_email != inquiry.contact_email
+    ):
+        raise EmailConflict("A reply requires a sent message in the same customer thread")
+    message_id = uuid4()
+    message = EmailMessage(
+        id=message_id,
+        inquiry_id=inquiry.id,
+        presentation_id=inquiry.id,
+        template_key=template.key,
+        state_trigger=EmailEvent.SPECIAL_SITUATION.value,
+        triggering_event=f"manual:{message_id}",
+        recipient_email=inquiry.contact_email,
+        recipient_name=inquiry.contact_full_name,
+        variables={**inquiry_variables(inquiry), **variables},
+        requires_approval=True,
+        rfc_message_id=f"<{message_id}@calpulli.invalid>",
+        reply_to_id=parent.id if parent else None,
+    )
+    session.add(message)
+    session.flush()
+    if parent:
+        message.source_subject = parent.subject
+    refresh_preview(session, message)
+    activity(session, message, "email_draft_created", "Staff created an email draft")
+    return message
 
 
 def refresh_preview(
@@ -110,7 +155,9 @@ def refresh_preview(
     message.source_subject = source_subject
     message.source_body = source_body
     rule = WORKFLOWS[EmailEvent(message.state_trigger)]
-    required = set(rule.required_variables) | template_variables(source_subject, source_body)
+    required = template_variables(source_subject, source_body)
+    if not message.triggering_event.startswith("manual:"):
+        required |= set(rule.required_variables)
     missing = sorted(key for key in required if not message.variables.get(key, "").strip())
     if template is None or not template.ready_for_use:
         missing.append("Template ready for use")
@@ -236,6 +283,7 @@ def edit_draft(session: Session, message: EmailMessage, edit: DraftEdit) -> None
     message.approved_by = None
     message.requires_approval = True
     refresh_preview(session, message, subject=edit.subject, body=edit.body_text)
+    activity(session, message, "email_draft_updated", "Staff updated an email draft")
 
 
 def approve(session: Session, message: EmailMessage) -> None:
@@ -295,36 +343,39 @@ def send(
     if template is None or not template.ready_for_use:
         raise EmailConflict("Template is not ready for use")
     # All senders serialize on the inquiry, including resends and retries.
-    processing = session.scalar(
-        select(EmailMessage.id).where(
-            EmailMessage.inquiry_id == inquiry_id,
-            EmailMessage.template_key == message.template_key,
-            EmailMessage.status == "SENDING",
-            EmailMessage.id != message.id,
+    if not message.triggering_event.startswith("manual:"):
+        processing = session.scalar(
+            select(EmailMessage.id).where(
+                EmailMessage.inquiry_id == inquiry_id,
+                EmailMessage.template_key == message.template_key,
+                EmailMessage.status == "SENDING",
+                EmailMessage.id != message.id,
+            )
         )
-    )
-    if processing:
-        raise EmailConflict("An equivalent workflow email is already sending")
-    previous = session.scalar(
-        select(EmailMessage.id).where(
-            EmailMessage.inquiry_id == inquiry_id,
-            EmailMessage.template_key == message.template_key,
-            EmailMessage.status == "SENT",
-            EmailMessage.id != message.id,
+        if processing:
+            raise EmailConflict("An equivalent workflow email is already sending")
+        previous = session.scalar(
+            select(EmailMessage.id).where(
+                EmailMessage.inquiry_id == inquiry_id,
+                EmailMessage.template_key == message.template_key,
+                EmailMessage.status == "SENT",
+                EmailMessage.id != message.id,
+            )
         )
-    )
-    if previous and not message.resend_of_id:
-        raise EmailConflict("An equivalent workflow email has already been sent or is sending")
-    uncertain = session.scalar(
-        select(EmailMessage.id).where(
-            EmailMessage.inquiry_id == inquiry_id,
-            EmailMessage.template_key == message.template_key,
-            EmailMessage.delivery_unknown.is_(True),
-            EmailMessage.id != message.id,
+        if previous and not message.resend_of_id:
+            raise EmailConflict("An equivalent workflow email has already been sent or is sending")
+        uncertain = session.scalar(
+            select(EmailMessage.id).where(
+                EmailMessage.inquiry_id == inquiry_id,
+                EmailMessage.template_key == message.template_key,
+                EmailMessage.delivery_unknown.is_(True),
+                EmailMessage.id != message.id,
+            )
         )
-    )
-    if uncertain:
-        raise EmailConflict("Reconcile uncertain delivery before sending another workflow email")
+        if uncertain:
+            raise EmailConflict(
+                "Reconcile uncertain delivery before sending another workflow email"
+            )
     if re.search(r"\[[^\[\]]+\]", message.subject + message.body_text):
         raise EmailConflict("Unrendered template variables remain")
     parent = get_message(session, inquiry_id, message.reply_to_id) if message.reply_to_id else None
@@ -419,7 +470,11 @@ def send_again(session: Session, original: EmailMessage) -> EmailMessage:
         presentation_id=original.presentation_id,
         template_key=original.template_key,
         state_trigger=original.state_trigger,
-        triggering_event=f"resend:{new_id}",
+        triggering_event=(
+            f"manual:{new_id}"
+            if original.triggering_event.startswith("manual:")
+            else f"resend:{new_id}"
+        ),
         recipient_email=original.recipient_email,
         recipient_name=original.recipient_name,
         variables=dict(original.variables),

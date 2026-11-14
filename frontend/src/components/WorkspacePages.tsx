@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Mail,
   ArrowUpRight,
@@ -6,11 +6,23 @@ import {
   ShieldCheck,
   Check,
   Copy,
+  RefreshCw,
 } from "lucide-react";
 import type { Inquiry } from "../domain";
 import { templates } from "../domain";
 import { Avatar, Modal } from "./ui";
 import { Skeleton } from "./Skeleton";
+import {
+  fetchEmailTemplates,
+  fetchEmailVariableCatalog,
+  updateEmailTemplate,
+  errorMessage,
+} from "../presentations";
+import type {
+  EmailTemplate,
+  EmailVariableCatalog,
+  LoadState,
+} from "../presentations";
 export function Clients({
   items,
   open,
@@ -103,36 +115,52 @@ export function Templates({
       <div className="page-heading">
         <span className="pill">Reference copy · Not activated</span>
       </div>
-      <div className="template-grid">
-        {templates.map((t, index) => (
-          <section className="card template-card" key={t.name}>
-            <span className={`template-illustration template-${index}`}>
-              <Mail size={35} strokeWidth={1} />
-              <span className="stamp">c</span>
-            </span>
-            <div>
-              <span className="eyebrow">{t.stage}</span>
-              <h2>{t.name}</h2>
-              <p>{t.body.split("\n\n")[1]}</p>
-              <button
-                className="button"
-                onClick={() => {
-                  setSelected(t);
-                  setSubject(t.subject);
-                  setBody(t.body);
-                }}
-              >
-                Preview & personalize
-                <ArrowUpRight size={14} />
-              </button>
-            </div>
-          </section>
-        ))}
-      </div>
-      <p className="notice">
-        Templates here are sample copy. Backend automation templates require
-        separate staff review and activation.
-      </p>
+      <section
+        className="card template-table-wrap"
+        aria-label="Sample templates"
+      >
+        <table className="template-table">
+          <thead>
+            <tr>
+              <th scope="col">Template</th>
+              <th scope="col">Purpose</th>
+              <th scope="col">Email policy</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last edited</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((template) => {
+              const edit = () => {
+                setSelected(template);
+                setSubject(template.subject);
+                setBody(template.body);
+              };
+              return (
+                <tr key={template.name} onClick={edit}>
+                  <th scope="row">
+                    <button
+                      className="text-button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        edit();
+                      }}
+                    >
+                      {template.name}
+                    </button>
+                  </th>
+                  <td>{template.stage}</td>
+                  <td>Manual</td>
+                  <td>
+                    <span className="badge template-inactive">Inactive</span>
+                  </td>
+                  <td>Sample copy</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
       {selected && (
         <Modal title={selected.name} close={() => setSelected(null)} wide>
           <div className="composer-body">
@@ -192,6 +220,235 @@ export function Templates({
     </div>
   );
 }
+
+function readableKey(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+export function LiveTemplates({
+  notify,
+}: {
+  notify: (message: string) => void;
+}) {
+  const [templates, setTemplates] = useState<LoadState<EmailTemplate[]>>({
+    kind: "loading",
+  });
+  const [variables, setVariables] = useState<EmailVariableCatalog | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [selected, setSelected] = useState<EmailTemplate | null>(null);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [readyForUse, setReadyForUse] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    setTemplates({ kind: "loading" });
+    Promise.all([
+      fetchEmailTemplates(controller.signal),
+      fetchEmailVariableCatalog(controller.signal),
+    ])
+      .then(([items, catalog]) => {
+        if (controller.signal.aborted) return;
+        setTemplates({ kind: "ready", data: items });
+        setVariables(catalog);
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          setTemplates({ kind: "error", message: errorMessage(error) });
+      });
+    return () => controller.abort();
+  }, [attempt]);
+  async function saveTemplate() {
+    if (!selected || saving) return;
+    setSaving(true);
+    try {
+      const updated = await updateEmailTemplate({
+        key: selected.key,
+        subject,
+        body_text: body,
+        ready_for_use: readyForUse,
+      });
+      setTemplates((current) =>
+        current.kind === "ready"
+          ? {
+              kind: "ready",
+              data: current.data.map((item) =>
+                item.key === updated.key ? updated : item,
+              ),
+            }
+          : current,
+      );
+      setSelected(null);
+      notify("Template saved.");
+    } catch (error) {
+      notify(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="list-page live-templates">
+      {templates.kind === "error" ? (
+        <section className="card data-error" role="alert">
+          <p>{templates.message}</p>
+          <button
+            className="button"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            <RefreshCw size={14} /> Try again
+          </button>
+        </section>
+      ) : (
+        <section
+          className="card template-table-wrap"
+          aria-label="Email templates"
+          aria-busy={templates.kind === "loading"}
+        >
+          {templates.kind === "loading" && (
+            <span className="sr-only" role="status">
+              Loading email templates…
+            </span>
+          )}
+          <table className="template-table">
+            <thead>
+              <tr>
+                <th scope="col">Template</th>
+                <th scope="col">Purpose</th>
+                <th scope="col">Email policy</th>
+                <th scope="col">Status</th>
+                <th scope="col">Last edited</th>
+              </tr>
+            </thead>
+            <tbody>
+              {templates.kind === "loading"
+                ? Array.from({ length: 6 }, (_, index) => (
+                    <tr key={index} aria-hidden="true">
+                      {Array.from({ length: 5 }, (_, column) => (
+                        <td key={column}>
+                          <Skeleton className="template-cell-skeleton" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : templates.data.map((template) => {
+                    const workflows =
+                      variables?.workflows.filter(
+                        (workflow) => workflow.template_key === template.key,
+                      ) ?? [];
+                    const policies = [
+                      ...new Set(
+                        workflows.map(
+                          (workflow) =>
+                            ({
+                              automatic: "Automatic",
+                              approval_required: "Staff approval",
+                              manual_only: "Manual",
+                            })[workflow.sending_rule],
+                        ),
+                      ),
+                    ];
+                    const edit = () => {
+                      setSelected(template);
+                      setSubject(template.subject);
+                      setBody(template.body_text);
+                      setReadyForUse(template.ready_for_use);
+                    };
+                    return (
+                      <tr key={template.key} onClick={edit}>
+                        <th scope="row">
+                          <button
+                            className="text-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              edit();
+                            }}
+                          >
+                            {readableKey(template.key)}
+                          </button>
+                        </th>
+                        <td>{template.subject}</td>
+                        <td>
+                          {policies.length ? policies.join(" / ") : "Manual"}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${template.ready_for_use ? "template-active" : "template-inactive"}`}
+                          >
+                            {template.ready_for_use ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td>
+                          <time dateTime={template.updated_at}>
+                            {new Date(template.updated_at).toLocaleDateString(
+                              [],
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
+                          </time>
+                        </td>
+                      </tr>
+                    );
+                  })}
+            </tbody>
+          </table>
+        </section>
+      )}
+      {selected && (
+        <Modal
+          title={`Edit ${readableKey(selected.key)}`}
+          close={() => setSelected(null)}
+          wide
+        >
+          <div className="composer-body live-template-editor">
+            <label>
+              Subject
+              <input
+                maxLength={998}
+                value={subject}
+                onChange={(event) => setSubject(event.target.value)}
+              />
+            </label>
+            <label>
+              Message
+              <textarea
+                rows={14}
+                maxLength={30000}
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+              />
+            </label>
+            <label className="template-activation">
+              <input
+                type="checkbox"
+                checked={readyForUse}
+                onChange={(event) => setReadyForUse(event.target.checked)}
+              />
+              Active
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button className="button" onClick={() => setSelected(null)}>
+              Cancel
+            </button>
+            <button
+              className="button primary"
+              disabled={saving || !subject.trim() || !body.trim()}
+              onClick={() => void saveTemplate()}
+            >
+              {saving ? "Saving…" : "Save template"}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 export function SettingsPage({
   name,
   email,

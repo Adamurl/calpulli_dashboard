@@ -115,3 +115,59 @@ To repeat the manual detail checks, run the frontend locally, open `/tests/detai
 Clients now renders contact-shaped skeletons with an announced busy state while its existing data loader runs. Its search input and query survive loading. Activity is removed from workspace navigation and rendering; old flat, nested, and fragment links return to Presentations. Per-presentation activity history remains available. Submenu rows are 28 pixels tall without vertical margins or a guide line. Main statistics numbers align with the right edge of their headings, with change indicators to the left.
 
 `npm run build` and `npm run format:check` passed. The route suites passed 46 navigation assertions and 28 detail-route assertions. In Safari, the actual React app's fictional-data runner at `/tests/clients-check.html` reported **13 clients checks passed**. It checked loading announcements, placeholders, retained search, compact submenu spacing, removed Activity navigation, preserved detail activity, old-route redirects, exact heading/value alignment, and mobile overflow. New Playwright scenarios in `tests/clients-loading.spec.ts` were added but were not executed here; Chrome's startup failure from the prior check remains unresolved. Reduced-motion browser emulation is therefore not claimed. No dependencies, backend code, or external data changed in this task.
+
+## Templates and presentation details, November 12, 2026
+
+The live and sample Templates pages now use compact tables. Live rows expose workflow policies, active status and saved edit dates, and open the editor through pointer clicks or template-name buttons. The page heading sits beside workspace search; the TEST_INQUIRY preview button was removed. Variable catalogs and trigger/approval notices were removed from this page; editable message placeholders remain.
+
+Contact and event facts appear above presentation activity tabs. Payment facts remain visible alongside them, with operational and event logistics under collapsed disclosures. The note composer displays the logged-in staff member's initials and a container focus indicator. Event types use accessible toggle buttons. The event-date field now uses the reusable light DatePicker backed by react-day-picker 9 and date-fns 4; both dependencies and the npm lockfile were updated.
+
+Observed verification:
+
+- `npm run build`, `npm run format:check`, and `git diff --check` passed. Existing nonfatal Zod annotation and bundle-size advisories remain.
+- Safari ran the real React app with fictional Auth/API boundaries through `tests/presentation-polish-check.html` and reported **29 polish checks passed**. These cover table skeletons and labels, row editing and saving, template header layout, contact/event/payment visibility, collapsed operations, removed provenance/referral/raw-submission displays, composer focus and avatar geometry, staff identity and fallback names, chip selection, calendar selection and date-only save payloads, focus return, mobile calendar/editor fit, and the sample table/editor.
+- Native Safari arrow-key and Enter interactions selected a calendar date and returned focus to its trigger. Escape closed the calendar while retaining the editor. Desktop detail placement was inspected through a screenshot.
+- A focused independent read-only review of the changed components and final layout found no actionable issues.
+- `npx playwright test tests/presentation-polish.spec.ts --workers=1` was attempted. Installed Chrome aborted with SIGABRT before assertions. The Playwright suite is not claimed as passing; the Safari runner supplied the observed browser coverage. The new keyboard/clearing Playwright scenario remains unexecuted past browser startup.
+
+No backend source was changed by this task, so backend checks were not rerun. Pre-existing backend and frontend email/navigation changes were preserved. No production records, external services, credentials, deployment or Git remote state were changed.
+
+Model the Domain kept workflow policies derived from the existing typed catalog. Prove It Works required the observed browser checks in addition to compilation.
+
+### Detail skeleton and avatar follow-up
+
+The presentation skeleton now mirrors the current page: contact/event overview cards before two tabs, comment composer and timeline, and client/status/payment sidebar placeholders. Fact skeletons use the same definition-list layout and field counts as loaded cards. Toolbar and disclosure placeholders match the current detail controls. The comment initials avatar uses the same 9px rounded corners as other avatars. Browser coverage was expanded to check placeholder visibility, field counts and order, loaded-card widths, mobile skeleton fit, and the rounded-square comment avatar.
+
+### Calendar reference follow-up
+
+The calendar now matches the supplied compact reference: a white rounded border, abbreviated month/year dropdowns between navigation arrows, muted outside dates, and a black rounded-square selected day. Clearing is available beside the date field, keeping the calendar card compact. The selected appearance was visually inspected in Safari, and native keyboard selection worked. The final expanded Safari runner reported **35 polish checks passed**, including matching detail skeletons, rounded comment avatars, calendar styling and clearing. Build, formatting and diff checks passed after these follow-ups; the earlier Chrome startup limitation remains.
+
+### shadcn CLI installation
+
+Ran `npx shadcn@latest add calendar` from `frontend/` successfully with the Base UI / Nova preset after adding the required Tailwind 4 Vite integration and `@/` import alias. The CLI generated `src/components/ui/calendar.tsx`, `src/components/ui/button.tsx`, `src/lib/utils.ts`, and `components.json`. `DatePicker` now renders that generated `Calendar`. The CLI upgraded React DayPicker to 10.0.2. Its generated day button needed its existing ref attached to preserve keyboard focus.
+
+The Tailwind entry scans only generated UI components, omits the global preflight reset, and scopes theme values to the calendar. Scoped table resets keep existing global app table styling out of the calendar. Unused CLI, animation and optional font dependencies were removed; npm reported zero vulnerabilities for the resulting dependency tree.
+
+The production build, formatting and diff checks passed. The prior 35-check Safari pass predates this CLI replacement. During the replacement check, the runner stopped on a race that inspected comment skeleton initials before the record loaded; its wait now excludes the presentation skeleton. The subsequent browser rerun could not be completed: native window capture returned `cgWindowNotFound` for Safari and Chrome, and Playwright Chrome still aborted with SIGABRT before assertions, including outside the sandbox. No passing full-browser result is claimed for the generated-calendar replacement. The runner now targets the generated calendar's date buttons and selected-day attributes.
+
+## Collapsible controls and spacing, November 13, 2026
+
+Ran `npx shadcn@latest add collapsible --yes` successfully using the existing Base UI configuration. The generated primitive now backs presentation operational/event disclosures, both live and sample status controls, calendar expansion, statistics period and column pickers, and sidebar disclosures. No native `details` elements remain in application components. Status uses labeled radio choices and preserves the existing save callbacks and conflict behavior.
+
+Disclosure triggers have equal 14px top/bottom padding. Status text and its right chevron have equal 14px horizontal padding. A focused independent read-only review found no actionable defects. `npm run build`, `npm run format:check`, and `git diff --check` passed. Safari's fictional-data runner at `/tests/collapsible-check.html` reported **16 collapsible checks passed**, covering disclosure spacing, status insets, expansion, status save/conflict behavior, Escape focus return, period/column choices, and sidebar/account controls. Older preview processes were found serving cached source, so checks used a newly started Vite server. The existing Chrome startup limitation was not retested.
+
+The broader presentation runner exposed the previous calendar integration's table-height leakage and larger default day size. Calendar table cells now reset inherited height/sticky-header styles, and the generated calendar uses a scoped compact cell-size override. This preserves the previously requested compact calendar styling without extending Tailwind scanning to the rest of the app.
+
+Final regression observation: Safari's `/tests/presentation-polish-check.html` reported **35 polish checks passed** against the final source after the Collapsible migration and scoped calendar sizing fixes. Together with the 16 disclosure checks, this provides 51 observed checks for the current controls. The new browser server used a separate temporary Vite cache to avoid older preview processes serving stale transformed modules. Five modified HTML runners also passed inline JavaScript syntax checks through `node --check`. The production build, formatting and diff checks passed again after the final source edits. No backend or external data was changed.
+
+## Commit packaging and webhook probe, November 13, 2026
+
+The final source passed locked offline uv sync, backend Ruff lint and format checks, and all 276 backend tests against a newly created local PostgreSQL database ending in `_test`. Alembic upgrade, metadata drift check, downgrade to 0005, and re-upgrade passed on that isolated database. The inherited unrelated test database was unreachable; the successful run used the dedicated database instead. No application database was modified.
+
+The frontend production build and Prettier checks passed. Node route tests reported 46 navigation assertions and 28 detail navigation assertions. Playwright was attempted with one worker and stopped at the first test because installed Chrome aborted with SIGABRT before browser assertions. Prior Safari observations above remain historical observations, not a new browser run.
+
+Independent source review found and prompted fixes for explicit null selections, timezone-bearing local times, partial time edits, and manual email drafts incorrectly requiring workflow-only variables. Regression tests cover those failures, audit snapshot preservation, and manual draft authorization and approval. Literal email addresses and website signatures in the new template seed no longer use variable brackets. Migration downgrade restores the earlier activity constraint and refuses rollback when new activity kinds would lose audit compatibility.
+
+An empty POST to the production Wix receiver returned HTTP 503 with the safe `http_503` error. The current receiver returns that error when its Wix token or form ID is missing. No real form answers, credentials, application records, or outgoing messages were sent. Wix native payload mapping and delivery remain pending a fictional Preview request body and server configuration.
+
+Final frontend review also caught saved email drafts reopening from rendered text. The editor now restores `source_subject` and `source_body`, retaining placeholder inputs across saves. A fictional browser regression covers reopen, variable edit, save, rendered preview, and a second reopen. That new browser regression remains unverified because Chrome aborts before assertions. The first two exported commits each passed an independent production build.

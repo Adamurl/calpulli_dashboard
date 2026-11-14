@@ -21,21 +21,22 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to sign in with an e
 
 After login, the frontend sends the session JWT to `/api/v1/auth/me` and opens the workspace only after the backend verifies staff approval. Configure the backend's Supabase URL, publishable key, and `STAFF_USER_IDS` using the [staff authentication instructions](../README.md#supabase-staff-authentication). For local login, run FastAPI on port 8000; Vite proxies `/api` to it. Demo mode makes no protected API calls.
 
-Approved staff load real presentation records through the same-origin FastAPI service. The Presentations index independently requests one server-filtered, receipt-sorted page and aggregated statistics. Opening a presentation loads the core record first, then activities and read-only operations independently. Conversation history loads on the first visit to its tab. Each pending section has a skeleton and its own retry control. Status changes and internal notes persist through the workspace endpoint with the verified staff UUID, without recommending or sending email. The demo uses a separate `calpulli-demo-v1` browser store. Real business records stay in memory and never enter that sample store. Existing public and server environment settings are reused; no additional environment variables are required.
+Approved staff load real presentation records through the same-origin FastAPI service. The Presentations index independently requests one server-filtered, receipt-sorted page and aggregated statistics. Opening a presentation loads the core record, activity, and read-only operations independently. The detail page keeps presentation data alongside two tabs: Activity and Email thread. The Activity timeline records notes, status changes, edited presentation details, and email workflow events. Email history loads when its tab opens. Status changes and detail edits do not send email automatically from the workspace endpoint. The demo uses a separate `calpulli-demo-v1` browser store. Real business records stay in memory and never enter that sample store. Existing public and server environment settings are reused; no additional environment variables are required.
 
 Home lives at `/`. Signed-out visitors go to `/login`; protected deep links return to the requested page after login. Presentations is the main business section, with Drafts, Clients, and Templates beneath it. Those pages use `/presentations/drafts`, `/presentations/clients`, and `/presentations/templates`; old flat links remain aliases. The standalone Activity page is removed for now. Its old URLs redirect to Presentations, while individual presentation activity histories remain available. Home, Inbox, and Settings stay global. Workspace navigation supports reload, Back, and Forward. Legacy links such as `/#inbox` migrate to `/inbox`. The login return path is restricted to workspace pages.
 
-Individual presentations use `/presentations/[id]`. Direct links retain their destination through login and staff verification. Browser history restores details or the index, and returning to a previously opened index preserves its filters. Opening a detail URL directly skips index, statistics, and overview reads. The persistent **Reload request** button is removed; failed sections offer targeted retries.
+Individual presentations use `/presentations/[id]`. Direct links retain their destination through login and staff verification. Browser history restores details or the index, and returning to a previously opened index preserves its filters. A direct detail view loads its request, activity, and operations; it also loads one hidden index page for the previous/next controls, while skipping statistics and overview reads. The persistent **Reload request** button is removed; failed sections offer targeted retries.
 
 ## Features to review
 
 - Desktop sidebar with a persistent collapsed icon rail, mobile drawer, bottom account menu, logout, search with Cmd/Ctrl+K, notifications. Presentations has an automatically expanded submenu without an arrow. Gray selection backgrounds appear only on main navigation sections.
-- Live presentation overview, search, client snapshots, full details, saved status changes and notes. Demo Home retains its sample overview.
+- Live presentation overview, search, client snapshots, full details, saved status/detail changes, and notes. The detail header has previous/next controls for the visible index page. Demo Home retains its sample overview.
 - Clients keeps its search field visible while contact-shaped skeletons load. Search text remains intact when contacts arrive. The presentation submenu uses compact rows without a vertical guide. Main statistics values align with the right edge of their headings; change indicators sit to the left.
 - Presentation table with independent table/statistics skeletons, status tabs, debounced server search, receipt-date sorting, whole-row navigation, page selection, column visibility, page-size controls and server pagination. Status is the rightmost column; request UUIDs and arrow controls are omitted. Export loads the full filtered set only when requested.
-- Client conversations, personal email composer, editable saved drafts, review queue, and internal notes.
-- Read-only payment, engagement, invoice, COI, attendance, and logistics information where an operations record exists. Historical assumptions remain labeled. Templates and composing remain demo-only.
-- Draft review saves the message for review. No messages are sent or synchronized.
+- Live email template editing, workflow trigger/readiness labels, customer/staff variable reference.
+- Live email drafts and explicit approval-gated send/reply actions from each presentation's Email thread. Replies continue the saved Gmail provider thread. Delivery mode is shown before sending; mock and redirected test deliveries are labeled. Incoming customer replies are not synchronized into the dashboard.
+- Read-only payment, engagement, invoice, COI, attendance, and logistics information where an operations record exists. Historical assumptions remain labeled.
+- Saving a draft does not send it. Manual sends require staff approval. Activating templates marked Automatic enables their registered automatic workflows; the template editor displays that behavior before activation.
 
 ## Verify
 
@@ -92,3 +93,17 @@ VITE_SUPABASE_URL=http://127.0.0.1:5182 VITE_SUPABASE_PUBLISHABLE_KEY=fictional-
 ```
 
 Open `http://127.0.0.1:5175/tests/recovery-check.html` and click **Run recovery checks**. These development-only files are excluded from the Vite production build. Do not use the fictional environment values in a deployment. This checks the real SDK against a mocked Auth network boundary; it does not verify live mail delivery or real-account password changes.
+
+### Template and presentation editing
+
+Templates use a compact table with workflow email policies, active status, and last edit dates. Select a row or its template-name button to edit; the heading sits beside workspace search. Template placeholders remain editable in subject and message text. Contact, event, and payment facts are visible on presentation details, with other operations under a disclosure. Activity composers use the signed-in staff profile name and initials. Event types are toggle chips.
+
+The reusable `DatePicker` uses the generated shadcn `Calendar`, React DayPicker 10 and date-fns 4 for the current event-date field. It preserves date-only API values, supports keyboard navigation, month/year selection and clearing, and returns focus to its trigger after selection or Escape. Its calendar uses a light theme.
+
+To verify with fictional Auth/API boundaries, open `/tests/presentation-polish-check.html` in the local development server and choose **Run polish checks**, or run `npx playwright test tests/presentation-polish.spec.ts`. These fixtures are excluded from the production build.
+
+The shadcn calendar was added from `frontend/` with `npx shadcn@latest add calendar` using the Base UI / Nova preset. `components.json` and the `@/` alias support future component installation. Tailwind 4 compiles only the generated UI directory; `src/shadcn.css` excludes the global reset and scopes theme variables to the calendar so existing app styles remain intact. The generated calendar forwards its day-button ref to preserve keyboard focus. The CLI, unused animation helpers and optional font are not runtime dependencies.
+
+### Collapsible controls
+
+`npx shadcn@latest add collapsible` installs the Base UI Collapsible primitive used by detail disclosures, the status chooser, calendar panel, statistics period and column pickers, and sidebar disclosures. The status chooser uses labeled radio choices and the existing status-save handler. Its text and chevron have equal horizontal insets. Detail disclosure triggers use matching top/bottom padding and show keyboard focus. Run `/tests/collapsible-check.html` on the local development server to check these controls with fictional data.

@@ -175,11 +175,13 @@
       expires_in: 3600,
       user: {
         id,
-        email: "fixture-staff@example.org",
+        email: parameters.get("staff-email") || "fixture-staff@example.org",
         aud: "authenticated",
         role: "authenticated",
         app_metadata: {},
-        user_metadata: {},
+        user_metadata: parameters.has("staff-name")
+          ? { full_name: parameters.get("staff-name") }
+          : {},
         created_at: stamp,
       },
     };
@@ -226,6 +228,45 @@
       session = signedOutSession;
       for (const callback of listeners) callback("SIGNED_IN", session);
     };
+    const emailTemplates = [
+      "inquiry_received",
+      "schedule_call",
+      "contract_and_payment",
+      "booking_confirmed",
+    ].map((key, index) => ({
+      key,
+      subject: `TEST_INQUIRY ${key.replaceAll("_", " ")}`,
+      body_text: "Hello [Name],\n\nThank you for contacting [Organization].",
+      ready_for_use: index !== 1,
+      updated_by: null,
+      updated_at: stamp,
+    }));
+    const emailMessages = parameters.has("email-draft")
+      ? [
+          {
+            id: "44444444-4444-4444-8444-444444444444",
+            template_key: "inquiry_received",
+            state_trigger: "special_situation",
+            triggering_event: "manual:fictional-draft",
+            subject: "Hello Test",
+            body_text: "Thanks, Test",
+            source_subject: "Hello [Name]",
+            source_body: "Thanks, [Name]",
+            variables: { Name: "Test" },
+            missing_variables: [],
+            recipient_email: "fictional@example.invalid",
+            recipient_name: "Test",
+            status: "PENDING_APPROVAL",
+            created_at: stamp,
+            sent_by: null,
+            sent_at: null,
+            reply_to_id: null,
+            provider_thread_id: null,
+            error_message: null,
+            retryable: false,
+          },
+        ]
+      : [];
     window.fetch = async (input, options = {}) => {
       const url = new URL(
         typeof input === "string"
@@ -252,6 +293,64 @@
         authorization: headers.get("Authorization"),
         body: options.body,
       });
+      if (url.pathname === "/api/v1/presentations/email-templates") {
+        await delay(
+          Number(parameters.get("template-delay") || 0),
+          options.signal,
+          calls.at(-1),
+        );
+        return reply(200, emailTemplates);
+      }
+      if (url.pathname === "/api/v1/presentations/email-template-variables") {
+        return reply(200, {
+          available: ["Name", "Organization"],
+          auto_populated: ["Name", "Organization"],
+          staff_provided: [],
+          workflows: emailTemplates.slice(0, 3).map((template, index) => ({
+            event: template.key,
+            template_key: template.key,
+            sending_rule: ["automatic", "approval_required", "manual_only"][
+              index
+            ],
+            reason: "Fictional workflow",
+            required_variables: [],
+          })),
+        });
+      }
+      if (url.pathname === "/api/v1/presentations/email-capabilities") {
+        return reply(200, {
+          can_send_again: false,
+          delivery_mode: "Fictional mock delivery",
+        });
+      }
+      if (options.method === "PATCH" && /\/emails\/[^/]+$/.test(url.pathname)) {
+        const message = emailMessages.find((entry) =>
+          url.pathname.endsWith(`/${entry.id}`),
+        );
+        if (!message) return reply(404, {});
+        const patch = JSON.parse(options.body);
+        Object.assign(message, {
+          source_subject: patch.subject,
+          source_body: patch.body_text,
+          subject: patch.subject.replaceAll("[Name]", patch.variables.Name),
+          body_text: patch.body_text.replaceAll("[Name]", patch.variables.Name),
+          variables: patch.variables,
+        });
+        return reply(200, message);
+      }
+      if (
+        url.pathname.startsWith("/api/v1/presentations/email-templates/") &&
+        options.method === "PUT"
+      ) {
+        const template = emailTemplates.find((entry) =>
+          url.pathname.endsWith(`/${entry.key}`),
+        );
+        if (!template) return reply(404, {});
+        Object.assign(template, JSON.parse(options.body), {
+          updated_at: new Date().toISOString(),
+        });
+        return reply(200, template);
+      }
       if (url.pathname === "/api/v1/auth/me") {
         if (window.fixture.authDelay)
           await new Promise((resolve) =>
@@ -402,7 +501,7 @@
         await delay(window.fixture.emailDelay, options.signal, calls.at(-1));
         return window.fixture.emailFailure
           ? reply(503, {})
-          : reply(200, { messages: [] });
+          : reply(200, { messages: emailMessages });
       }
       const requestedId = /^\/api\/v1\/presentations\/([^/]+)$/.exec(
         url.pathname,

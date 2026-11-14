@@ -20,11 +20,15 @@ export function LivePresentationIndex({
   notify,
   exportTarget,
   revision = 0,
+  visibleIdsChanged,
+  detailMode,
 }: {
   open: (id: string) => void;
   notify: (message: string) => void;
   exportTarget: HTMLElement | null;
   revision?: number;
+  visibleIdsChanged: (ids: string[]) => void;
+  detailMode: boolean;
 }) {
   const [filters, setFilters] = useState<IndexQuery>({
     query: "",
@@ -78,6 +82,7 @@ export function LivePresentationIndex({
     return () => controller.abort();
   }, [key, normalizedQuery, tableAttempt, revision]);
   useEffect(() => {
+    if (detailMode) return;
     const controller = new AbortController();
     setStats({ days, state: { kind: "loading" } });
     fetchPresentationStatistics(days, controller.signal)
@@ -93,11 +98,18 @@ export function LivePresentationIndex({
           });
       });
     return () => controller.abort();
-  }, [days, statsAttempt, revision]);
+  }, [days, statsAttempt, revision, detailMode]);
   const tableState: LoadState<IndexPage> =
     table.key === key && normalizedQuery === debounced
       ? table.state
       : { kind: "loading" };
+  const visibleIdKey =
+    tableState.kind === "ready"
+      ? tableState.data.items.map((item) => item.id).join("\u0000")
+      : "";
+  useEffect(() => {
+    visibleIdsChanged(visibleIdKey ? visibleIdKey.split("\u0000") : []);
+  }, [visibleIdKey, visibleIdsChanged]);
   const statsState: LoadState<Analytics> =
     stats.days === days ? stats.state : { kind: "loading" };
   async function exportData(selected: string[], signal: AbortSignal) {

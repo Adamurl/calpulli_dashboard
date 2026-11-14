@@ -16,14 +16,17 @@ class SendingRule(StrEnum):
 class EmailEvent(StrEnum):
     INQUIRY_CREATED = "inquiry_created"
     MISSING_INFORMATION = "missing_information"
+    ALTERNATIVE_DATES_PROPOSED = "alternative_dates_proposed"
     APPROVED_FOR_CALL = "approved_for_call"
     CALL_BOOKED = "call_booked"
     CALL_REMINDER_DUE = "call_reminder_due"
     CALL_COMPLETED = "call_completed"
     CONTRACT_READY = "contract_ready"
+    QUOTE_FOLLOW_UP = "quote_follow_up"
     SIGNED_AND_PAID = "signed_and_paid"
     FINAL_LOGISTICS_NEEDED = "final_logistics_needed"
     EVENT_DETAILS_COMPLETE = "event_details_complete"
+    DAY_OF_CONFIRMATION = "day_of_confirmation"
     PRESENTATION_COMPLETED = "presentation_completed"
     BALANCE_OVERDUE = "balance_overdue"
     INQUIRY_DECLINED = "inquiry_declined"
@@ -48,6 +51,12 @@ WORKFLOWS = MappingProxyType(
             SendingRule.APPROVAL,
             "Staff identified missing information.",
             ("Name", "Presentation Details", "Details Form Link"),
+        ),
+        EmailEvent.ALTERNATIVE_DATES_PROPOSED: WorkflowRule(
+            "alternative_dates",
+            SendingRule.APPROVAL,
+            "Staff proposed alternate dates or times.",
+            ("Name", "Event Name", "Proposed Options"),
         ),
         EmailEvent.APPROVED_FOR_CALL: WorkflowRule(
             "schedule_call",
@@ -79,6 +88,12 @@ WORKFLOWS = MappingProxyType(
             "Staff prepared the contract for review.",
             ("Name", "Contract Link", "Deposit Amount", "Payment Instructions", "Due Date"),
         ),
+        EmailEvent.QUOTE_FOLLOW_UP: WorkflowRule(
+            "quote_follow_up",
+            SendingRule.APPROVAL,
+            "Staff approved a follow-up on an unanswered quote.",
+            ("Name", "Event Name"),
+        ),
         EmailEvent.SIGNED_AND_PAID: WorkflowRule(
             "booking_confirmed",
             SendingRule.AUTOMATIC,
@@ -106,6 +121,20 @@ WORKFLOWS = MappingProxyType(
                 "Changing Room Information",
                 "Day-of Contact",
                 "Calpulli Contact",
+                "Calpulli Phone",
+            ),
+        ),
+        EmailEvent.DAY_OF_CONFIRMATION: WorkflowRule(
+            "day_of_confirmation",
+            SendingRule.APPROVAL,
+            "Staff reviewed the day-of event details.",
+            (
+                "Name",
+                "Event Name",
+                "Time",
+                "Location",
+                "Arrival Time",
+                "Day-of Contact",
                 "Calpulli Phone",
             ),
         ),
@@ -149,6 +178,7 @@ VARIABLES = frozenset(
         "Organization",
         "Event Name",
         "Event Description",
+        "Proposed Options",
         "Requested Date",
         "Alternate Date",
         "Location",
@@ -173,6 +203,22 @@ VARIABLES = frozenset(
         "Logistics Form Link",
         "Feedback Form Link",
         "Balance Amount",
+        "Quoted Amount",
+        "Quote and Contract Links",
+        "Invoice Number",
+        "Optional Explanation",
+    }
+)
+AUTO_POPULATED_VARIABLES = frozenset(
+    {
+        "Name",
+        "Organization",
+        "Event Description",
+        "Requested Date",
+        "Location",
+        "Time",
+        "Time Zone",
+        "Presentation Details",
     }
 )
 TOKEN = re.compile(r"\[([^\[\]]+)\]")

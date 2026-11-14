@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Templates and presentation polish checks</title>
+  <style>
+    body {
+      font: 14px system-ui;
+      margin: 20px;
+    }
+    iframe {
+      width: 1280px;
+      height: 950px;
+      border: 1px solid #ccc;
+    }
+    .pass {
+      color: #28632d;
+    }
+    .fail {
+      color: #a00;
+    }
+    li {
+      margin: 8px 0;
+    }
+  </style>
+  <h1>Templates and presentation polish checks</h1>
+  <p>Fictional Auth and API boundaries only. No external writes.</p>
+  <button id="run">Run polish checks</button>
+  <section id="results" aria-live="polite">Ready.</section>
+  <iframe id="app" title="Workspace under test"></iframe>
+  <script type="module">
+    const frame = document.querySelector("#app"),
+      results = document.querySelector("#results");
+    const doc = () => frame.contentDocument;
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let passed = 0,
+      run = 0;
+    async function until(predicate, label) {
+      for (let i = 0; i < 150; i++) {
+        if (predicate()) return;
+        await wait(100);
+      }
+      throw Error(`Timed out: ${label}`);
+    }
+    function check(condition, label) {
+      if (!condition) throw Error(label);
+      passed++;
+      const li = document.createElement("li");
+      li.className = "pass";
+      li.textContent = `PASS ${label}`;
+      results.append(li);
+    }
+    async function load(path, parameters = "") {
+      const token = String(++run);
+      frame.src = `/tests/live-fixture.html?run=${token}&path=${path}&${parameters}`;
+      await until(
+        () =>
+          frame.contentWindow.fixture?.run === token &&
+          doc().querySelector(".workspace"),
+        "workspace",
+      );
+    }
+    function button(text) {
+      return [...doc().querySelectorAll("button")].find(
+        (el) => el.textContent.trim() === text,
+      );
+    }
+    function input(el, value) {
+      const proto =
+        el.tagName === "TEXTAREA"
+          ? frame.contentWindow.HTMLTextAreaElement.prototype
+          : frame.contentWindow.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
+      el.dispatchEvent(
+        new frame.contentWindow.Event("input", { bubbles: true }),
+      );
+    }
+    const style = (el) => frame.contentWindow.getComputedStyle(el);
+    document.querySelector("#run").onclick = async () => {
+      results.textContent = "";
+      passed = 0;
+      try {
+        await load(
+          "/presentations/11111111-1111-4111-8111-111111111111",
+          "detail-delay=1800",
+        );
+        await until(
+          () => doc().querySelector(".presentation-skeleton"),
+          "detail skeleton",
+        );
+        const pending = doc().querySelector(".presentation-skeleton");
+        const cards = [
+          ...pending.querySelectorAll(".presentation-overview .detail-facts"),
+        ];
+        check(
+          cards.length === 2 &&
+            cards[0].querySelectorAll(".fact-pair").length === 6 &&
+            cards[1].querySelectorAll(".fact-pair").length === 10 &&
+            pending.querySelectorAll(".detail-tabs .skeleton").length === 2 &&
+            pending
+              .querySelector(".detail-tabs")
+              .previousElementSibling.classList.contains(
+                "presentation-overview",
+              ),
+          "Detail skeleton matches overview fields and two tabs",
+        );
+        check(
+          pending
+            .querySelector(".client-sidebar .detail-facts")
+            .querySelectorAll(".fact-pair").length === 9 &&
+            !!pending.querySelector(".note-composer .avatar") &&
+            [...pending.querySelectorAll(".skeleton")].every(
+              (el) => el.getBoundingClientRect().height > 0,
+            ),
+          "Detail skeleton includes payment, status and comment shapes with visible placeholders",
+        );
+        const widths = cards.map((el) => el.getBoundingClientRect().width);
+        await until(
+          () => !doc().querySelector(".presentation-skeleton"),
+          "loaded detail",
+        );
+        check(
+          [
+            ...doc().querySelectorAll(".presentation-overview .detail-facts"),
+          ].every(
+            (el, index) =>
+              Math.abs(el.getBoundingClientRect().width - widths[index]) < 1,
+          ),
+          "Skeleton cards keep the loaded overview widths",
+        );
+        frame.style.width = "390px";
+        await load(
+          "/presentations/11111111-1111-4111-8111-111111111111",
+          "detail-delay=1800",
+        );
+        await until(
+          () => doc().querySelector(".presentation-skeleton"),
+          "mobile detail skeleton",
+        );
+        check(
+          doc().documentElement.scrollWidth <= 390 &&
+            doc().querySelectorAll(
+              ".presentation-skeleton .presentation-overview .detail-facts",
+            ).length === 2,
+          "Updated detail skeleton fits mobile",
+        );
+        frame.style.width = "1280px";
+        await load("/presentations/templates", "template-delay=1500");
+        await until(
+          () => doc().querySelector(".template-table .skeleton"),
+          "table placeholders",
+        );
+        check(
+          doc().querySelectorAll(".template-table tbody tr").length === 6,
+          "Table-shaped loading rows",
+        );
+        check(
+          doc()
+            .querySelector(".template-table-wrap")
+            .getAttribute("aria-busy") === "true",
+          "Template loading announced",
+        );
+        check(
+          [...doc().querySelectorAll(".template-table thead th")]
+            .map((el) => el.textContent)
+            .join(",") === "Template,Purpose,Email policy,Status,Last edited",
+          "Requested table columns",
+        );
+        await until(() => button("Inquiry received"), "loaded templates");
+        const rows = [...doc().querySelectorAll(".template-table tbody tr")];
+        check(
+          rows.length === 4 &&
+            rows[0].textContent.includes("Automatic") &&
+            rows[1].textContent.includes("Staff approval") &&
+            rows[2].textContent.includes("Manual") &&
+            rows[3].textContent.includes("Manual"),
+          "Workflow policies and manual fallback",
+        );
+        check(
+          rows[0].textContent.includes("Active") &&
+            rows[1].textContent.includes("Inactive") &&
+            rows.every((row) => row.querySelector("time[datetime]")),
+          "Status and last edited dates",
+        );
+        check(
+          !doc().querySelector(".variable-reference"),
+          "Variable catalog removed",
+        );
+        rows[0].querySelector("td").click();
+        await until(
+          () => doc().querySelector(".live-template-editor"),
+          "row editor",
+        );
+        check(
+          doc()
+            .querySelector(".live-template-editor textarea")
+            .value.includes("[Name]") &&
+            !doc().querySelector(".variable-chips"),
+          "Editable variables retained without catalog",
+        );
+        check(
+          !doc().querySelector(".live-template-editor .notice"),
+          "Automatic-trigger notice removed",
+        );
+        input(
+          doc().querySelector(".live-template-editor input"),
+          "Updated TEST_INQUIRY subject",
+        );
+        doc().querySelector(".template-activation input").click();
+        button("Save template").click();
+        await until(
+          () => !doc().querySelector(".live-template-editor"),
+          "saved editor",
+        );
+        check(
+          doc()
+            .querySelector(".template-table tbody tr")
+            .textContent.includes("Updated TEST_INQUIRY subject") &&
+            doc()
+              .querySelector(".template-table tbody tr")
+              .textContent.includes("Inactive"),
+          "Table reflects saved content and status",
+        );
+        check(
+          doc().querySelector(".topbar h1").textContent === "Email templates" &&
+            ![...doc().querySelectorAll("button")].some((el) =>
+              el.textContent.includes("Preview TEST_INQUIRY"),
+            ),
+          "Template heading shares the search bar without a preview button",
+        );
+        button("Inquiry received").focus();
+        check(
+          doc().activeElement === button("Inquiry received"),
+          "Template editor reachable with keyboard focus",
+        );
+        await load(
+          "/presentations/11111111-1111-4111-8111-111111111111",
+          "staff-email=adamurlnum2@example.invalid",
+        );
+        await until(
+          () =>
+            !doc().querySelector(".presentation-skeleton") &&
+            doc().querySelector(".note-composer"),
+          "presentation activity",
+        );
+        check(
+          doc().querySelector(".note-composer .avatar").textContent === "AG" &&
+            doc()
+              .querySelector(".account-button")
+              .textContent.includes("Adam Gonzales"),
+          "Account name and composer initials",
+        );
+        const contact = [...doc().querySelectorAll(".detail-facts")].find(
+          (el) => el.textContent.includes("Contact and organization"),
+        );
+        check(
+          [
+            "First name",
+            "Last name",
+            "Email",
+            "Phone",
+            "Organization",
+            "Website",
+          ].every((label) =>
+            [...contact.querySelectorAll("dt")].some(
+              (el) => el.textContent === label,
+            ),
+          ) && !contact.closest(".record-details"),
+          "Contact fields visible outside disclosures",
+        );
+        const event = [...doc().querySelectorAll(".detail-facts")].find((el) =>
+          el.textContent.includes("Event and venue"),
+        );
+        check(
+          event.textContent.includes(
+            "A fictional cultural education request",
+          ) && !event.closest(".record-details"),
+          "Event information visible",
+        );
+        await until(
+          () => doc().body.textContent.includes("1200.00"),
+          "payment facts",
+        );
+        const payment = [...doc().querySelectorAll(".detail-facts")].find(
+          (el) => el.textContent.includes("Payment and paperwork"),
+        );
+        check(
+          !payment.closest(".record-details") &&
+            payment.textContent.includes("1200.00"),
+          "Core payment facts visible",
+        );
+        check(
+          doc()
+            .querySelector(".record-details > button")
+            .getAttribute("aria-expanded") === "false" &&
+            !doc().querySelector(".original-submission") &&
+            !doc().body.textContent.includes("Referral sources") &&
+            !doc().body.textContent.includes("fictional-operations.csv"),
+          "Operations collapsed and provenance clutter removed",
+        );
+        const composer = doc().querySelector(".note-composer"),
+          avatar = composer.querySelector(".avatar"),
+          note = composer.querySelector("textarea");
+        note.focus();
+        check(
+          style(note).resize === "none" &&
+            style(note).outlineStyle === "none" &&
+            style(composer).outlineStyle === "solid",
+          "Composer focus indicator replaces native textarea box",
+        );
+        const avatarRect = avatar.getBoundingClientRect(),
+          noteRect = note.getBoundingClientRect(),
+          composerRect = composer.getBoundingClientRect();
+        check(
+          avatarRect.left >= composerRect.left &&
+            avatarRect.right <= noteRect.left &&
+            avatarRect.width === 32 &&
+            style(avatar).borderRadius === "9px",
+          "Rounded square avatar fits beside note",
+        );
+        button("Edit").click();
+        await until(
+          () => doc().querySelector(".presentation-edit-form"),
+          "edit modal",
+        );
+        const chip = button("k12 school");
+        chip.click();
+        await wait(50);
+        check(
+          chip.getAttribute("aria-pressed") === "true" &&
+            !chip.querySelector("input") &&
+            style(chip).borderRadius === "999px",
+          "Event type chips expose selection without checkboxes",
+        );
+        chip.click();
+        await wait(50);
+        check(
+          chip.getAttribute("aria-pressed") === "false",
+          "Event type chips deselect",
+        );
+        doc().querySelector(".date-picker-trigger").click();
+        await until(() => doc().querySelector("button[data-day]"), "calendar");
+        check(
+          doc().querySelector(".date-picker-calendar").getAttribute("role") ===
+            "region" &&
+            style(doc().querySelector(".date-picker-calendar")).colorScheme ===
+              "light",
+          "Accessible light calendar",
+        );
+        const day = [...doc().querySelectorAll("button[data-day]")].find(
+          (el) => el.textContent === "15",
+        );
+        day.click();
+        await wait(50);
+        check(
+          !doc().querySelector(".date-picker-calendar") &&
+            doc()
+              .querySelector(".date-picker-trigger")
+              .textContent.includes("15"),
+          "Calendar selection updates date and closes",
+        );
+        check(
+          doc().activeElement === doc().querySelector(".date-picker-trigger"),
+          "Calendar returns focus to trigger",
+        );
+        doc().querySelector(".date-picker-trigger").click();
+        await until(
+          () => doc().querySelector('button[data-selected-single="true"]'),
+          "selected calendar date",
+        );
+        const calendar = doc().querySelector(".date-picker-calendar");
+        const selectedDay = calendar.querySelector(
+          'button[data-selected-single="true"]',
+        );
+        check(
+          style(selectedDay).backgroundColor === "rgb(17, 17, 17)" &&
+            style(selectedDay).color === "rgb(255, 255, 255)" &&
+            calendar.getBoundingClientRect().width <= 180 &&
+            calendar.querySelector('[data-slot="calendar"]') !== null,
+          "Calendar matches compact black selection and surrounding arrows",
+        );
+        doc().querySelector('[aria-label="Clear date"]').click();
+        await wait(50);
+        check(
+          doc()
+            .querySelector(".date-picker-trigger")
+            .textContent.includes("Choose date") &&
+            !doc().querySelector(".date-picker-calendar"),
+          "Date can be cleared outside the calendar",
+        );
+        doc().querySelector(".date-picker-trigger").click();
+        await until(
+          () => doc().querySelector("button[data-day]"),
+          "calendar reselection",
+        );
+        [...doc().querySelectorAll("button[data-day]")]
+          .find((el) => el.textContent === "15")
+          .click();
+        await wait(50);
+        button("Save changes").click();
+        await until(
+          () => !doc().querySelector(".presentation-edit-form"),
+          "saved presentation",
+        );
+        const patch = frame.contentWindow.fixture.calls.findLast(
+          (call) => call.method === "PATCH" && JSON.parse(call.body).event_date,
+        );
+        check(
+          /^\d{4}-\d{2}-15$/.test(JSON.parse(patch.body).event_date),
+          "Selected calendar date saves as a date-only value",
+        );
+        await load(
+          "/presentations/11111111-1111-4111-8111-111111111111",
+          "staff-name=Taylor%20Rivera",
+        );
+        await until(
+          () =>
+            !doc().querySelector(".presentation-skeleton") &&
+            doc().querySelector(".note-composer"),
+          "profile identity",
+        );
+        check(
+          doc().querySelector(".note-composer .avatar").textContent === "TR",
+          "Other staff use auth profile names",
+        );
+        await load(
+          "/presentations/11111111-1111-4111-8111-111111111111",
+          "staff-email=casey.jones@example.invalid",
+        );
+        await until(
+          () =>
+            !doc().querySelector(".presentation-skeleton") &&
+            doc().querySelector(".note-composer"),
+          "fallback identity",
+        );
+        check(
+          doc().querySelector(".note-composer .avatar").textContent === "CJ",
+          "Readable username fallback supplies initials",
+        );
+        frame.style.width = "390px";
+        button("Edit").click();
+        await until(
+          () => doc().querySelector(".presentation-edit-form"),
+          "mobile editor",
+        );
+        doc().querySelector(".date-picker-trigger").click();
+        await until(
+          () => doc().querySelector("button[data-day]"),
+          "mobile calendar",
+        );
+        check(
+          doc().documentElement.scrollWidth <= 390 &&
+            doc().querySelector("dialog").scrollWidth <=
+              doc().querySelector("dialog").clientWidth,
+          "Calendar and editor fit mobile",
+        );
+        frame.style.width = "1280px";
+        const token = String(++run);
+        frame.src = `/tests/live-fixture.html?run=${token}&path=/&signed-out=1`;
+        await until(
+          () =>
+            frame.contentWindow.fixture?.run === token &&
+            button("Explore demo workspace"),
+          "demo entry",
+        );
+        button("Explore demo workspace").click();
+        await until(() => button("Templates"), "demo navigation");
+        button("Templates").click();
+        await until(
+          () => doc().querySelector(".template-table"),
+          "sample template table",
+        );
+        check(
+          doc().querySelectorAll(".template-table tbody tr").length === 3 &&
+            !doc().querySelector(".template-card"),
+          "Demo uses the compact template table",
+        );
+        button("A warm welcome").click();
+        await until(
+          () => doc().querySelector("dialog textarea"),
+          "sample template editor",
+        );
+        check(
+          doc()
+            .querySelector("dialog textarea")
+            .value.includes("Hello [Name]") && !!button("Use this template"),
+          "Demo table opens editable sample copy",
+        );
+        results.insertAdjacentHTML(
+          "afterbegin",
+          `<h2>${passed} polish checks passed</h2>`,
+        );
+      } catch (error) {
+        const p = document.createElement("p");
+        p.className = "fail";
+        p.textContent = `FAIL after ${passed} checks: ${error.message}`;
+        results.append(p);
+      }
+    };
+  </script>
+</html>

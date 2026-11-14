@@ -1,0 +1,104 @@
+[
+  {
+    "key": "inquiry_received",
+    "subject": "We received your presentation inquiry",
+    "body_text": "Hello [Name],\n\nThank you for reaching out to Calpulli Tonalehqueh and considering us for your event. We received your presentation inquiry and our team will review it.\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\npresentations@aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "more_information_needed",
+    "subject": "More information for your presentation inquiry",
+    "body_text": "Hello [Name],\n\nTo continue reviewing your inquiry, please share: [Presentation Details]. You can use this form: [Details Form Link].\n\nTlazohcamati,\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "schedule_call",
+    "subject": "Schedule a conversation about [Event Name]",
+    "body_text": "Hello [Name],\n\nThank you for your interest in having Calpulli Tonalehqueh participate in [Event Name]. We would love to schedule a brief call to learn more about your event and review logistics.\n\nPlease select a convenient time: [Booking Link]\n\nWe look forward to speaking with you!\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "meeting_confirmation",
+    "subject": "Your conversation with Calpulli is scheduled",
+    "body_text": "Hello [Name],\n\nYour call is scheduled for [Requested Date] at [Time] [Time Zone]. Join here: [Google Meet Link]. To reschedule: [Reschedule Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "meeting_reminder",
+    "subject": "Reminder: your conversation with Calpulli",
+    "body_text": "Hello [Name],\n\nYour call is coming up on [Requested Date] at [Time] [Time Zone]. Join here: [Google Meet Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "conversation_follow_up",
+    "subject": "Following up on our conversation about [Event Name]",
+    "body_text": "Hello [Name],\n\nThank you for taking the time to speak with us about [Event Name]. We appreciate the opportunity to learn more about your event.\n\nHere are the details for your review: [Presentation Details].\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "contract_and_payment",
+    "subject": "Your presentation quote and agreement for [Event Name]",
+    "body_text": "Hello [Name],\n\nThank you for speaking with us about [Event Name]. We have prepared a presentation quote and agreement for your review.\n\nEvent: [Event Name]\nDate: [Requested Date]\nLocation: [Location]\nPresentation: [Presentation Details]\nQuoted amount: [Quoted Amount]\n\nDocuments: [Quote and Contract Links]\n\nPlease review the documents and let us know if you have questions or requested changes. Your booking is not confirmed until the agreement is finalized.\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "booking_confirmed",
+    "subject": "Your Calpulli presentation booking is confirmed",
+    "body_text": "Hello [Name],\n\nWe are pleased to confirm Calpulli Tonalehqueh for your presentation on [Requested Date] at [Location].\n\nTlazohcamati,\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "final_logistics_request",
+    "subject": "Final logistics for your Calpulli presentation",
+    "body_text": "Hello [Name],\n\nPlease complete the logistics form by [Due Date]: [Logistics Form Link].\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "final_confirmation",
+    "subject": "Final details for your Calpulli presentation",
+    "body_text": "Hello [Name],\n\nWe look forward to joining you for your presentation. Please review the final details.\n\nDate: [Requested Date]\nTime: [Time] [Time Zone]\nLocation: [Location]\nArrival: [Arrival Time]\nParking: [Parking Instructions]\nChanging room: [Changing Room Information]\nDay-of contact: [Day-of Contact]\nCalpulli contact: [Calpulli Contact], [Calpulli Phone]\n\nPlease let us know if anything needs updating.\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "thank_you_feedback",
+    "subject": "Thank you for welcoming Calpulli to [Event Name]",
+    "body_text": "Hello [Name],\n\nOn behalf of Calpulli Tonalehqueh, thank you for inviting us to participate in [Event Name]! We appreciate the opportunity to share our culture, traditions, and dances with your community.\n\nWe would love to hear your feedback: [Feedback Form Link]\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "payment_reminder",
+    "subject": "Presentation balance reminder for [Event Name]",
+    "body_text": "Hello [Name],\n\nWe are following up regarding the outstanding payment for [Event Name].\n\nOutstanding balance: [Balance Amount]\nPayment due date: [Due Date]\nInvoice reference: [Invoice Number]\n\nIf payment has already been sent, please disregard this reminder and let us know so we can update our records.\n\nThank you for your continued support!\n\nCalpulli Tonalehqueh\npresentations@aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "decline_or_referral",
+    "subject": "An update on your presentation inquiry",
+    "body_text": "Hello [Name],\n\nThank you for reaching out to Calpulli Tonalehqueh and considering us for your upcoming event, [Event Name].\n\nUnfortunately, we are unable to accommodate your presentation request at this time. [Optional Explanation]\n\nWe sincerely appreciate your interest in our cultural presentations and hope there may be an opportunity to collaborate in the future.\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\npresentations@aztecadancers.com\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "custom_follow_up",
+    "subject": "Following up on your presentation inquiry",
+    "body_text": "Hello [Name],\n\n[Presentation Details]\n\nTlazohcamati,\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "alternative_dates",
+    "subject": "Alternative dates for [Event Name]",
+    "body_text": "Hello [Name],\n\nThank you for your interest in inviting Calpulli Tonalehqueh to [Event Name]. We would love to explore participating, but may need to adjust the proposed date or time based on our group's availability.\n\nWould any of these alternatives work for your event?\n\n[Proposed Options]\n\nPlease let us know if one of these options works or if there is flexibility in your event schedule.\n\nTlazohcamati,\n\nCalpulli Tonalehqueh\nwww.aztecadancers.com",
+    "ready_for_use": false
+  },
+  {
+    "key": "quote_follow_up",
+    "subject": "Following up on the presentation proposal for [Event Name]",
+    "body_text": "Hello [Name],\n\nWe wanted to follow up regarding the presentation proposal and agreement we shared for [Event Name]. Please let us know if you have had an opportunity to review the documents or if there are any questions we can help answer.\n\nWe would be happy to discuss any details before moving forward.\n\nTlazohcamati,\n\nCalpulli Tonalehqueh",
+    "ready_for_use": false
+  },
+  {
+    "key": "day_of_confirmation",
+    "subject": "We look forward to seeing you today for [Event Name]",
+    "body_text": "Hello [Name],\n\nWe look forward to joining you today for [Event Name]! Here are the final details:\n\nPresentation time: [Time]\nLocation: [Location]\nOur expected arrival: [Arrival Time]\nOnsite contact: [Day-of Contact]\nContact phone: [Calpulli Phone]\n\nIf there are any last-minute changes, please let us know as soon as possible.\n\nThank you, and we look forward to seeing you soon!\n\nCalpulli Tonalehqueh\npresentations@aztecadancers.com",
+    "ready_for_use": false
+  }
+]
