@@ -21,10 +21,12 @@ export function Avatar({
   return (
     <span className={`avatar ${small ? "small" : ""}`}>
       {name
-        .split(" ")
+        .trim()
+        .split(/\s+/)
         .map((n) => n[0])
         .slice(0, 2)
-        .join("")}
+        .join("")
+        .toUpperCase()}
     </span>
   );
 }

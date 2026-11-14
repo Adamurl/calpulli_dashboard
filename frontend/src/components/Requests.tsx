@@ -1,4 +1,9 @@
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
+import {
   Search,
   ArrowDown,
   ArrowUp,
@@ -346,12 +351,12 @@ export function Requests({
               }}
             />
           </label>
-          <details className="column-menu">
-            <summary className="button compact">
+          <Collapsible className="column-menu">
+            <CollapsibleTrigger className="button compact">
               <Columns3 size={14} />
               Columns
-            </summary>
-            <div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
               {optionalColumns.map((column) => (
                 <label key={column.id}>
                   <input
@@ -368,8 +373,8 @@ export function Requests({
                   {column.label}
                 </label>
               ))}
-            </div>
-          </details>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
         {loading && (
           <span className="sr-only" role="status">

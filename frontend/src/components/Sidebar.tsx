@@ -1,4 +1,9 @@
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
+import {
   Home,
   Inbox,
   FileText,
@@ -97,7 +102,7 @@ export function Sidebar({
             <Home size={16} />
             <span>Home</span>
           </button>
-          <div className="presentation-module">
+          <Collapsible className="presentation-module" open={!collapsed}>
             <div className="module-nav-row">
               <button
                 className={`nav-item ${presentationActive ? "active" : ""}`}
@@ -115,8 +120,8 @@ export function Sidebar({
                 <span>Presentations</span>
               </button>
             </div>
-            <div
-              hidden={collapsed}
+            <CollapsibleContent
+              keepMounted
               className="presentation-children"
               id="presentation-tools"
               role="group"
@@ -135,8 +140,8 @@ export function Sidebar({
                   {child === "Drafts" && drafts > 0 && <b>{drafts}</b>}
                 </button>
               ))}
-            </div>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
           <button
             className={`nav-item ${page === "Inbox" ? "active" : ""}`}
             aria-label="Inbox"
@@ -172,8 +177,8 @@ export function Sidebar({
             <span>Visit Calpulli</span>
             <ArrowUpRight size={13} />
           </a>
-          {account && (
-            <div className="account-menu">
+          <Collapsible open={account} onOpenChange={setAccount}>
+            <CollapsibleContent className="account-menu">
               <strong>{name}</strong>
               <small>{email}</small>
               <button
@@ -187,22 +192,20 @@ export function Sidebar({
               <button onClick={logout}>
                 <LogOut size={14} /> Log out
               </button>
-            </div>
-          )}
-          <button
-            className="account-button"
-            onClick={() => setAccount(!account)}
-            aria-label={`${name} Calpulli Tonalehqueh`}
-            title="Account"
-            aria-expanded={account}
-          >
-            <Avatar name={name} small />
-            <span>
-              <b>{name}</b>
-              <small>Calpulli Tonalehqueh</small>
-            </span>
-            <ChevronDown size={13} />
-          </button>
+            </CollapsibleContent>
+            <CollapsibleTrigger
+              className="account-button"
+              aria-label={`${name} Calpulli Tonalehqueh`}
+              title="Account"
+            >
+              <Avatar name={name} small />
+              <span>
+                <b>{name}</b>
+                <small>Calpulli Tonalehqueh</small>
+              </span>
+              <ChevronDown size={13} />
+            </CollapsibleTrigger>
+          </Collapsible>
         </div>
       </aside>
     </>
