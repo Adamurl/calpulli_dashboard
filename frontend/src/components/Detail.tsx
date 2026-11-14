@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Draft, Inquiry } from "../domain";
-import { statusLabels } from "../domain";
+import { StatusPicker } from "./StatusPicker";
 import { dateLabel } from "../data";
 import { Badge, Avatar } from "./ui";
 export function Detail({
@@ -303,25 +303,7 @@ export function Detail({
             </p>
           </section>
           <section>
-            <label>
-              Status
-              <select
-                aria-label="Request status"
-                value={item.status}
-                onChange={(e) => {
-                  const found = Object.keys(statusLabels).find(
-                    (s) => s === e.target.value,
-                  );
-                  if (found) status(found as Inquiry["status"]);
-                }}
-              >
-                {Object.entries(statusLabels).map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <StatusPicker value={item.status} onChange={status} />
             <small className="muted">
               Changes affect this sample workspace only.
             </small>

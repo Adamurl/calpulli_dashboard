@@ -1,3 +1,8 @@
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
 import { CalendarDays, ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Inquiry } from "../domain";
@@ -91,7 +96,8 @@ type Props =
     };
 export function RequestStats(props: Props) {
   const [localDays, setLocalDays] = useState<StatisticsDays>(1);
-  const menu = useRef<HTMLDetailsElement>(null);
+  const menu = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const days = props.remote ? props.remote.days : localDays;
   const period = periods.find((option) => option.days === days) ?? periods[0];
   const state = props.remote
@@ -106,47 +112,50 @@ export function RequestStats(props: Props) {
       aria-label="Presentation statistics by received date"
       aria-busy={state.kind === "loading"}
     >
-      <details
+      <Collapsible
         className="period-menu"
-        ref={menu}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
         onKeyDown={(event) => {
           if (event.key === "Escape" && menu.current) {
-            menu.current.open = false;
-            menu.current.querySelector("summary")?.focus();
+            setMenuOpen(false);
+            menu.current.focus();
           }
         }}
       >
-        <summary>
+        <CollapsibleTrigger ref={menu}>
           <CalendarDays size={13} />
           <span>{days === 1 ? "Today" : `${days} days`}</span>
           <ChevronDown size={12} />
-        </summary>
-        <fieldset>
-          <legend className="sr-only">Statistics period</legend>
-          {periods.map((option) => (
-            <label key={option.days}>
-              <input
-                type="radio"
-                name="stats-period"
-                value={option.days}
-                checked={days === option.days}
-                onChange={() => {
-                  if (props.remote) props.remote.change(option.days);
-                  else setLocalDays(option.days);
-                  if (menu.current) {
-                    menu.current.open = false;
-                    menu.current.querySelector("summary")?.focus();
-                  }
-                }}
-              />
-              <span>
-                {option.label}
-                <small>{option.comparison}</small>
-              </span>
-            </label>
-          ))}
-        </fieldset>
-      </details>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <fieldset>
+            <legend className="sr-only">Statistics period</legend>
+            {periods.map((option) => (
+              <label key={option.days}>
+                <input
+                  type="radio"
+                  name="stats-period"
+                  value={option.days}
+                  checked={days === option.days}
+                  onChange={() => {
+                    if (props.remote) props.remote.change(option.days);
+                    else setLocalDays(option.days);
+                    if (menu.current) {
+                      setMenuOpen(false);
+                      menu.current.focus();
+                    }
+                  }}
+                />
+                <span>
+                  {option.label}
+                  <small>{option.comparison}</small>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        </CollapsibleContent>
+      </Collapsible>
       {state.kind === "loading" && (
         <span className="sr-only" role="status">
           Loading presentation statistics…

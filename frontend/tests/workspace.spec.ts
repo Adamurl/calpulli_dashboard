@@ -43,9 +43,8 @@ test("login boundary, shell, request filters and client detail", async ({
   await expect(
     page.getByRole("heading", { name: "Elena Morales", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Request status" })
-    .selectOption("reviewing");
+  await page.getByRole("button", { name: /^Request status:/ }).click();
+  await page.getByRole("radio", { name: "In review", exact: true }).check();
   await expect(page.locator(".detail-title h2")).toContainText("In review");
   await page
     .getByRole("textbox", { name: "Internal note" })
@@ -129,7 +128,7 @@ test("mobile navigation, template workflow and account logout", async ({
     .click();
   await page.getByRole("button", { name: "Templates", exact: true }).click();
   await page
-    .getByRole("button", { name: "Preview & personalize", exact: true })
+    .getByRole("button", { name: "A warm welcome", exact: true })
     .first()
     .click();
   await page
@@ -211,7 +210,7 @@ test("collapsed navigation and data table controls", async ({ page }) => {
     .getByRole("checkbox", { name: "Select all presentations on this page" })
     .check();
   await expect(page.getByText(/5 of .*row\(s\) selected/)).toBeVisible();
-  await page.locator("summary").filter({ hasText: "Columns" }).click();
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
   await page
     .getByRole("checkbox", { name: "Organization", exact: true })
     .uncheck();
@@ -221,7 +220,7 @@ test("collapsed navigation and data table controls", async ({ page }) => {
   await page
     .getByRole("checkbox", { name: "Organization", exact: true })
     .check();
-  await page.locator("summary").filter({ hasText: "Columns" }).click();
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Search presentations" })
     .fill("no matching presentation");
@@ -249,14 +248,20 @@ test("split login and statistics period controls", async ({ page }) => {
   await page
     .getByRole("button", { name: "Presentations", exact: true })
     .click();
-  await expect(page.locator(".period-menu summary")).toHaveText("Today");
-  await page.locator(".period-menu summary").click();
+  await expect(
+    page.locator(".period-menu > [data-slot=collapsible-trigger]"),
+  ).toHaveText("Today");
+  await page.locator(".period-menu > [data-slot=collapsible-trigger]").click();
   await page.getByRole("radio", { name: /Last 7 days/ }).check();
-  await expect(page.locator(".period-menu summary")).toHaveText("7 days");
+  await expect(
+    page.locator(".period-menu > [data-slot=collapsible-trigger]"),
+  ).toHaveText("7 days");
   await expect(page.locator(".request-stat svg")).toHaveCount(4);
-  await page.locator(".period-menu summary").click();
+  await page.locator(".period-menu > [data-slot=collapsible-trigger]").click();
   await page.getByRole("radio", { name: /Last 30 days/ }).check();
-  await expect(page.locator(".period-menu summary")).toHaveText("30 days");
+  await expect(
+    page.locator(".period-menu > [data-slot=collapsible-trigger]"),
+  ).toHaveText("30 days");
   expect(
     (await page.locator(".list-page").boundingBox())?.width,
   ).toBeGreaterThan(1600);
