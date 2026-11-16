@@ -66,8 +66,7 @@ export function LiveWorkspace({
   const [searchRecords, setSearchRecords] = useState<LoadState<Inquiry[]>>({
     kind: "loading",
   });
-  const needsOverview =
-    !detail && (page === "Home" || page === "Clients" || page === "Inbox");
+  const needsOverview = !detail && (page === "Home" || page === "Inbox");
   const [exportTarget, setExportTarget] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!needsOverview) return;
@@ -263,9 +262,7 @@ export function LiveWorkspace({
           </>
         ) : detail ? (
           detailView
-        ) : needsOverview &&
-          records.kind === "loading" &&
-          page !== "Clients" ? (
+        ) : needsOverview && records.kind === "loading" ? (
           <div className="list-page" role="status">
             Loading presentations…
           </div>
@@ -283,12 +280,7 @@ export function LiveWorkspace({
             </section>
           </div>
         ) : page === "Clients" ? (
-          <Clients
-            items={items}
-            open={open}
-            live
-            loading={records.kind === "loading"}
-          />
+          <Clients items={items} open={open} live />
         ) : page === "Home" ? (
           <div className="list-page">
             <section className="live-overview">

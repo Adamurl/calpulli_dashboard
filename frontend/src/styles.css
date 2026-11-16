@@ -4565,3 +4565,23 @@ input[type="checkbox"]:indeterminate::after {
     transition: none;
   }
 }
+
+.clients-card {
+  min-width: 0;
+}
+.clients-card .client-skeleton {
+  display: table-row;
+}
+.clients-table {
+  min-width: 850px;
+}
+.clients-table td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+.clients-table td:nth-child(4),
+.clients-table td:nth-child(5) {
+  white-space: nowrap;
+}
+.clients-card .data-pagination .page-buttons button {
+  display: inline-flex;
+}

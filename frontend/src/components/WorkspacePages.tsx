@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import {
   Mail,
   ArrowUpRight,
-  Search,
   ShieldCheck,
   Check,
   Copy,
   RefreshCw,
 } from "lucide-react";
-import type { Inquiry } from "../domain";
 import { templates } from "../domain";
 import { Avatar, Modal } from "./ui";
 import { Skeleton } from "./Skeleton";
@@ -23,81 +21,7 @@ import type {
   EmailVariableCatalog,
   LoadState,
 } from "../presentations";
-export function Clients({
-  items,
-  open,
-  live = false,
-  loading = false,
-}: {
-  items: Inquiry[];
-  open: (id: string) => void;
-  live?: boolean;
-  loading?: boolean;
-}) {
-  const [query, setQuery] = useState("");
-  return (
-    <div className="list-page">
-      <div className="page-heading">
-        <span className="pill">
-          {loading ? (
-            <Skeleton className="clients-skeleton-count" />
-          ) : (
-            items.length
-          )}{" "}
-          {live ? "request contacts" : "sample clients"}
-        </span>
-      </div>
-      <section className="card" aria-label="Clients" aria-busy={loading}>
-        {loading && (
-          <span className="sr-only" role="status">
-            Loading clients…
-          </span>
-        )}
-        <div className="table-tools">
-          <label className="search-field">
-            <Search size={15} />
-            <input
-              aria-label="Search clients"
-              placeholder="Search people and organizations"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="clients-grid">
-          {loading
-            ? Array.from({ length: 8 }, (_, index) => (
-                <div className="client-skeleton" aria-hidden="true" key={index}>
-                  <Skeleton className="client-skeleton-avatar" />
-                  <div>
-                    <Skeleton className="client-skeleton-name" />
-                    <Skeleton className="client-skeleton-organization" />
-                    <Skeleton className="client-skeleton-email" />
-                  </div>
-                </div>
-              ))
-            : items
-                .filter((i) =>
-                  `${i.name} ${i.organization} ${i.email}`
-                    .toLowerCase()
-                    .includes(query.toLowerCase()),
-                )
-                .map((i) => (
-                  <button key={i.id} onClick={() => open(i.id)}>
-                    <Avatar name={i.name} />
-                    <div>
-                      <strong>{i.name}</strong>
-                      <p>{i.organization}</p>
-                      <small>{i.email}</small>
-                    </div>
-                    <ArrowUpRight size={14} />
-                  </button>
-                ))}
-        </div>
-      </section>
-    </div>
-  );
-}
+export { Clients } from "./Clients";
 export function Templates({
   useTemplate,
   notify,
