@@ -757,17 +757,8 @@
           },
           "event_types": {
             "items": {
-              "enum": [
-                "k12_school",
-                "college_university",
-                "nonprofit",
-                "government",
-                "corporate",
-                "cultural_organization",
-                "funeral",
-                "grand_opening",
-                "other"
-              ],
+              "maxLength": 500,
+              "minLength": 1,
               "type": "string"
             },
             "maxItems": 9,
@@ -1363,17 +1354,8 @@
             "anyOf": [
               {
                 "items": {
-                  "enum": [
-                    "k12_school",
-                    "college_university",
-                    "nonprofit",
-                    "government",
-                    "corporate",
-                    "cultural_organization",
-                    "funeral",
-                    "grand_opening",
-                    "other"
-                  ],
+                  "maxLength": 500,
+                  "minLength": 1,
                   "type": "string"
                 },
                 "maxItems": 9,

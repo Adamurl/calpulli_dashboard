@@ -3,29 +3,75 @@
 import json
 import logging
 from secrets import compare_digest
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, get_args
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_session
 from app.modules.presentations.email_service import dispatch_automatic
-from app.modules.presentations.schemas import NewPresentation
+from app.modules.presentations.schemas import EventType, NewPresentation, ReferralSource
 from app.modules.presentations.services import PresentationConflict, create_presentation
 
 router = APIRouter(prefix="/integrations/wix", tags=["wix"])
 MAX_BODY_BYTES = 65536
 MAX_LOGGED_ERRORS = 25
 logger = logging.getLogger("calpulli.wix")
+EVENT_TYPE_CHOICES = {
+    **{value: value for value in get_args(EventType)},
+    "k-12 school": "k12_school",
+    "college / university": "college_university",
+    "non-profit organization": "nonprofit",
+    "city / government": "government",
+    "corporate event": "corporate",
+    "cultural organization": "cultural_organization",
+    "grand opening": "grand_opening",
+}
+REFERRAL_CHOICES = {
+    **{value: value for value in get_args(ReferralSource)},
+    "tik-tok": "tiktok",
+    "word of mouth": "word_of_mouth",
+    "mexica new year": "mexica_new_year",
+    "previous performance": "previous_performance",
+}
+
+
+def normalize_choice(value: Any, choices: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        value = value.strip()
+        return choices.get(value.casefold(), value)
+    return value
 
 
 class WixFields(NewPresentation):
     form_id: str = Field(min_length=1, max_length=200)
     submission_id: str = Field(min_length=1, max_length=200)
+
+    @field_validator("event_access", "event_setting", "audience_distance_12ft", mode="before")
+    @classmethod
+    def normalize_single_choice(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            value = value.strip().casefold()
+            return "unsure" if value == "not sure yet" else value
+        return value
+
+    @field_validator("event_types", mode="before")
+    @classmethod
+    def normalize_event_types(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [normalize_choice(item, EVENT_TYPE_CHOICES) for item in value]
+        return value
+
+    @field_validator("referral_sources", mode="before")
+    @classmethod
+    def normalize_referrals(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [normalize_choice(item, REFERRAL_CHOICES) for item in value]
+        return value
 
 
 def rejection(

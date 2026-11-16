@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.db.session import build_engine, get_session
+from app.integrations.wix import WixFields, persist_submission
 from app.main import create_app
 from app.modules.presentations.email_models import EmailMessage, EmailStaffTask
 from app.modules.presentations.models import PresentationActivity, PresentationRequest
@@ -26,6 +27,42 @@ from tests.conftest import STAFF_ID
 
 TOKEN = "fictional-integration-token-32-characters"
 pytestmark = pytest.mark.integration
+
+
+def test_wix_choices_and_custom_event_types_persist_and_replay(pg_session, payload):
+    values = payload.model_dump() | {
+        "form_id": "fictional-choice-form",
+        "submission_id": "fictional-choice-submission",
+        "event_access": "Public",
+        "event_setting": "Not sure yet",
+        "audience_distance_12ft": "Yes",
+        "event_types": ["Cultural Organization", "Other: Community celebration"],
+    }
+    request_id, created = persist_submission(pg_session, WixFields.model_validate(values))
+    assert created
+    record = pg_session.get(PresentationRequest, request_id)
+    assert record.event_types == ["cultural_organization", "Other: Community celebration"]
+    assert record.original_fields["event_types"] == record.event_types
+    assert record.event_access == "public"
+    assert record.event_setting == "unsure"
+    assert record.audience_distance_12ft == "yes"
+    replay_id, created = persist_submission(pg_session, WixFields.model_validate(values))
+    assert not created
+    assert replay_id == request_id
+    assert (
+        pg_session.scalar(
+            select(func.count())
+            .select_from(PresentationActivity)
+            .where(
+                PresentationActivity.request_id == request_id,
+                PresentationActivity.kind == "created",
+            )
+        )
+        == 1
+    )
+    changed = values | {"event_types": ["Other: Different celebration"]}
+    with pytest.raises(PresentationConflict):
+        persist_submission(pg_session, WixFields.model_validate(changed))
 
 
 @pytest.fixture

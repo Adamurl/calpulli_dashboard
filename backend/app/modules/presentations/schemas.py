@@ -51,7 +51,7 @@ class NewPresentation(BaseModel):
     event_timezone: Annotated[str, Field(max_length=100)] = "America/Los_Angeles"
     event_access: Literal["public", "private"] | None = None
     event_setting: Literal["indoor", "outdoor", "unsure"] | None = None
-    event_types: list[EventType] = Field(min_length=1, max_length=9)
+    event_types: list[ShortText] = Field(min_length=1, max_length=9)
     event_purpose: LongText
     venue_address: ShortText
     estimated_guests: Annotated[int, Field(ge=1, le=10000000, strict=True)]
@@ -117,7 +117,7 @@ class PresentationPatch(BaseModel):
     event_timezone: Annotated[str, Field(max_length=100)] | None = None
     event_access: Literal["public", "private"] | None = None
     event_setting: Literal["indoor", "outdoor", "unsure"] | None = None
-    event_types: list[EventType] | None = Field(default=None, max_length=9)
+    event_types: list[ShortText] | None = Field(default=None, max_length=9)
     event_purpose: LongText | None = None
     venue_address: ShortText | None = None
     estimated_guests: Annotated[int, Field(ge=1, le=10000000, strict=True)] | None = None

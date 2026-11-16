@@ -141,7 +141,7 @@ def test_validation_logs_identify_fields_without_exposing_answers(
     payload = fields()
     del payload["end_time"]
     payload["estimated_guests"] = "private-guest-answer"
-    payload["event_types"] = ["private-event-answer"]
+    payload["event_types"] = [{"private-event-answer": "private-value"}]
     payload["contact_email"] = "private-invalid-email"
     payload["event_timezone"] = "private-invalid-timezone"
     payload["private-unknown-key"] = "private-extra-answer"
@@ -164,7 +164,7 @@ def test_validation_logs_identify_fields_without_exposing_answers(
     assert entry["status_code"] == 422
     assert {"field": "data.end_time", "code": "missing"} in entry["validation_errors"]
     assert {"field": "data.estimated_guests", "code": "int_type"} in entry["validation_errors"]
-    assert {"field": "data.event_types", "code": "literal_error"} in entry["validation_errors"]
+    assert {"field": "data.event_types", "code": "string_type"} in entry["validation_errors"]
     assert {"field": "data.<unknown>", "code": "extra_forbidden"} in entry["validation_errors"]
     assert entry["validation_error_count"] == 6
     serialized = json.dumps(entry) + response.text
@@ -234,3 +234,142 @@ def test_model_validation_log_does_not_include_exception_context(
     entry = json.loads(JsonFormatter().format(record))
     assert entry["validation_errors"] == [{"field": "data.<model>", "code": "value_error"}]
     assert "13:00" not in json.dumps(entry)
+
+
+@pytest.mark.parametrize(
+    ("field", "label", "expected"),
+    [
+        ("event_access", "Public", "public"),
+        ("event_access", "Private", "private"),
+        ("event_setting", "Indoor", "indoor"),
+        ("event_setting", "Outdoor", "outdoor"),
+        ("event_setting", "Not sure yet", "unsure"),
+        ("audience_distance_12ft", "Yes", "yes"),
+        ("audience_distance_12ft", "No", "no"),
+        ("audience_distance_12ft", "Not sure yet", "unsure"),
+    ],
+)
+def test_wix_radio_labels_are_normalized(field: str, label: str, expected: str) -> None:
+    payload = fields()
+    payload.pop("webhook_token")
+    payload[field] = label
+    assert getattr(wix.WixFields.model_validate(payload), field) == expected
+
+
+def test_wix_checkbox_labels_and_other_descriptions_reach_persistence(
+    webhook_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.presentations.schemas import NewPresentation
+
+    captured = []
+
+    def store(session, submission):
+        payload = NewPresentation.model_validate(
+            submission.model_dump(exclude={"form_id", "submission_id"})
+        )
+        captured.append(payload)
+        return uuid4(), True
+
+    monkeypatch.setattr(wix, "persist_submission", store)
+    monkeypatch.setattr(wix, "dispatch_automatic", lambda *args: None)
+    payload = fields() | {
+        "event_access": " Public ",
+        "event_setting": "Not sure yet",
+        "audience_distance_12ft": "Not sure yet",
+        "event_types": ["Cultural Organization", " Other: Community celebration "],
+        "referral_sources": ["Word of Mouth", "Tik-Tok"],
+    }
+    response = webhook_client.post("/api/v1/integrations/wix/presentations", json={"data": payload})
+    assert response.status_code == 201
+    assert captured[0].event_access == "public"
+    assert captured[0].event_setting == "unsure"
+    assert captured[0].audience_distance_12ft == "unsure"
+    assert captured[0].event_types == ["cultural_organization", "Other: Community celebration"]
+    assert captured[0].referral_sources == ["word_of_mouth", "tiktok"]
+
+
+@pytest.mark.parametrize(
+    ("field", "labels", "expected"),
+    [
+        (
+            "event_types",
+            [
+                "K-12 School",
+                "College / University",
+                "Non-Profit Organization",
+                "City / Government",
+                "Corporate Event",
+                "Cultural Organization",
+                "Funeral",
+                "Grand Opening",
+                "Other",
+            ],
+            [
+                "k12_school",
+                "college_university",
+                "nonprofit",
+                "government",
+                "corporate",
+                "cultural_organization",
+                "funeral",
+                "grand_opening",
+                "other",
+            ],
+        ),
+        (
+            "referral_sources",
+            [
+                "Website",
+                "Instagram",
+                "Facebook",
+                "Tik-Tok",
+                "Word of Mouth",
+                "Mexica New Year",
+                "Previous Performance",
+                "Referral",
+                "Other",
+            ],
+            [
+                "website",
+                "instagram",
+                "facebook",
+                "tiktok",
+                "word_of_mouth",
+                "mexica_new_year",
+                "previous_performance",
+                "referral",
+                "other",
+            ],
+        ),
+    ],
+)
+def test_all_visible_wix_checkbox_options(field, labels, expected):
+    payload = fields()
+    payload.pop("webhook_token")
+    payload[field] = labels
+    result = wix.WixFields.model_validate(payload)
+    assert getattr(result, field) == expected
+    payload[field] = [label.upper() for label in labels]
+    assert getattr(wix.WixFields.model_validate(payload), field) == expected
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {"event_access": "Unknown"},
+        {"event_setting": "Somewhere"},
+        {"audience_distance_12ft": True},
+        {"event_types": "Cultural Organization"},
+        {"event_types": [""]},
+        {"event_types": [123]},
+        {"event_types": ["Cultural Organization", "cultural_organization"]},
+        {"event_types": ["x" * 501]},
+        {"event_types": [str(i) for i in range(10)]},
+        {"referral_sources": ["not-a-supported-referral"]},
+    ],
+)
+def test_wix_choice_normalization_keeps_invalid_input_rejected(webhook_client, invalid):
+    response = webhook_client.post(
+        "/api/v1/integrations/wix/presentations", json={"data": fields() | invalid}
+    )
+    assert response.status_code == 422

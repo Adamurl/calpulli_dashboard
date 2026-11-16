@@ -51,7 +51,7 @@ An empty successful response is:
 | `event_timezone` | string | No | max length `100`; default `"America/Los_Angeles"` |
 | `event_access` | `public`, `private` or null | No | default `null` |
 | `event_setting` | `indoor`, `outdoor`, `unsure` or null | No | default `null` |
-| `event_types` | array of `k12_school`, `college_university`, `nonprofit`, `government`, `corporate`, `cultural_organization`, `funeral`, `grand_opening`, `other` | Yes | min items `1`; max items `9` |
+| `event_types` | array of nonblank strings; standard codes or custom event descriptions | Yes | min items `1`; max items `9`; each item max length `500` |
 | `event_purpose` | string | Yes | min length `1`; max length `10000` |
 | `venue_address` | string | Yes | min length `1`; max length `500` |
 | `estimated_guests` | integer | Yes | minimum `1`; maximum `10000000` |
@@ -73,7 +73,7 @@ Required keys and nullable values are separate concepts. These constraints come 
 - `start_time` and `end_time` are local times without UTC offsets. The end must follow the start on the same day. Overnight scheduling is unsupported.
 - `event_timezone` must resolve as an IANA timezone. The API does not require the event to be in the future.
 - `estimated_guests` requires a JSON integer, not a numeric string or boolean.
-- `event_types` has 1–9 unique selections. `referral_sources` defaults to an empty list and permits up to nine unique selections.
+- `event_types` has 1–9 unique, trimmed, nonblank text selections of up to 500 characters each. Standard presets are `k12_school`, `college_university`, `nonprofit`, `government`, `corporate`, `cultural_organization`, `funeral`, `grand_opening`, and `other`. Custom text such as `Other: Community celebration` is preserved. Presentation patches accept the same text values, including when editing an existing custom category. `referral_sources` defaults to an empty list and permits up to nine unique selections from its fixed vocabulary.
 - Blank optional organization, website, reference, and additional-note values normalize to null. The website field is text, not a URL-validated type.
 - Email uses the schema's shape check. Phone is trimmed text of 3–100 characters, not a verified telephone number.
 - Clients cannot set status, source, source identity, original fields, or IDs during creation.

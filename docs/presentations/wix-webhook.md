@@ -52,6 +52,22 @@ A complete synthetic body is:
 
 `WixFields` is included in the [schema catalog](../api/schema-catalog.json). The streaming webhook route has no declared OpenAPI body model, so the OpenAPI snapshot alone does not describe this envelope.
 
+### Wix choice labels
+
+The Wix adapter trims and compares choice labels without case sensitivity. It normalizes the displayed form choices before validating and saving the inquiry. Manual presentation endpoints retain their lowercase radio-choice contract.
+
+| Wix field | Wix labels | Stored values |
+| --- | --- | --- |
+| `event_access` | Public, Private | `public`, `private` |
+| `event_setting` | Indoor, Outdoor, Not sure yet | `indoor`, `outdoor`, `unsure` |
+| `audience_distance_12ft` | Yes, No, Not sure yet | `yes`, `no`, `unsure` |
+| `event_types` | K-12 School, College / University, Non-Profit Organization, City / Government, Corporate Event, Cultural Organization, Funeral, Grand Opening, Other | `k12_school`, `college_university`, `nonprofit`, `government`, `corporate`, `cultural_organization`, `funeral`, `grand_opening`, `other` |
+| `referral_sources` | Website, Instagram, Facebook, Tik-Tok, Word of Mouth, Mexica New Year, Previous Performance, Referral, Other | `website`, `instagram`, `facebook`, `tiktok`, `word_of_mouth`, `mexica_new_year`, `previous_performance`, `referral`, `other` |
+
+Checkbox values must remain JSON arrays, even for one selection. Existing canonical codes also work. Unrecognized event-type text, including `Other: ...` descriptions, is preserved with surrounding whitespace removed. Event types permit at most nine unique, nonblank strings of up to 500 characters each; objects, numbers, and blank selections are rejected. Referral values remain restricted to the documented choices; use `referral_reference` for free-text referral details. Unknown radio choices remain invalid. The adapter does not invent missing required answers or change webhook credentials and form/submission IDs.
+
+The stored `original_fields` snapshot contains these normalized answers, including custom event-type text. Identical retries normalize to the same snapshot, while changed custom text under the same submission ID remains a conflicting retry.
+
 ## Outputs and idempotency
 
 | Situation | HTTP status | JSON body |

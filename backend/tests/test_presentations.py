@@ -43,6 +43,14 @@ def test_new_form_keeps_required_data_and_optional_blanks(form_data: dict[str, o
     assert payload.referral_sources == []
 
 
+def test_custom_event_types_are_preserved_when_creating_and_editing(form_data):
+    categories = ["cultural_organization", "Other: Community celebration", "Museum opening"]
+    payload = NewPresentation.model_validate(form_data | {"event_types": categories})
+    assert payload.event_types == categories
+    edit = PresentationPatch(event_types=payload.event_types)
+    assert edit.model_dump(exclude_unset=True) == {"event_types": categories}
+
+
 @pytest.mark.parametrize(
     "invalid",
     [
@@ -51,7 +59,9 @@ def test_new_form_keeps_required_data_and_optional_blanks(form_data: dict[str, o
         {"estimated_guests": "50"},
         {"event_types": []},
         {"event_types": ["other", "other"]},
-        {"event_types": ["invented"]},
+        {"event_types": [123]},
+        {"event_types": ["   "]},
+        {"event_types": ["x" * 501]},
         {"referral_sources": ["website", "website"]},
         {"event_purpose": "   "},
         {"event_timezone": "not/a/timezone"},
