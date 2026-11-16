@@ -46,7 +46,15 @@ def test_wix_choices_and_custom_event_types_persist_and_replay(pg_session, paylo
     assert record.event_access == "public"
     assert record.event_setting == "unsure"
     assert record.audience_distance_12ft == "yes"
-    replay_id, created = persist_submission(pg_session, WixFields.model_validate(values))
+    duplicate_choices = values | {
+        "event_types": [
+            "Cultural Organization",
+            "cultural_organization",
+            "Other: Community celebration",
+            " Other: Community celebration ",
+        ]
+    }
+    replay_id, created = persist_submission(pg_session, WixFields.model_validate(duplicate_choices))
     assert not created
     assert replay_id == request_id
     assert (

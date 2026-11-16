@@ -63,7 +63,10 @@ class WixFields(NewPresentation):
     @classmethod
     def normalize_event_types(cls, value: Any) -> Any:
         if isinstance(value, list):
-            return [normalize_choice(item, EVENT_TYPE_CHOICES) for item in value]
+            normalized = [normalize_choice(item, EVENT_TYPE_CHOICES) for item in value]
+            if all(isinstance(item, str) for item in normalized):
+                return list(dict.fromkeys(normalized))
+            return normalized
         return value
 
     @field_validator("referral_sources", mode="before")

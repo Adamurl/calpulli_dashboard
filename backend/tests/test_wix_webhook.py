@@ -276,7 +276,13 @@ def test_wix_checkbox_labels_and_other_descriptions_reach_persistence(
         "event_access": " Public ",
         "event_setting": "Not sure yet",
         "audience_distance_12ft": "Not sure yet",
-        "event_types": ["Cultural Organization", " Other: Community celebration "],
+        "event_types": [
+            "Cultural Organization",
+            "cultural_organization",
+            "CULTURAL ORGANIZATION",
+            " Other: Community celebration ",
+            "Other: Community celebration",
+        ],
         "referral_sources": ["Word of Mouth", "Tik-Tok"],
     }
     response = webhook_client.post("/api/v1/integrations/wix/presentations", json={"data": payload})
@@ -362,7 +368,6 @@ def test_all_visible_wix_checkbox_options(field, labels, expected):
         {"event_types": "Cultural Organization"},
         {"event_types": [""]},
         {"event_types": [123]},
-        {"event_types": ["Cultural Organization", "cultural_organization"]},
         {"event_types": ["x" * 501]},
         {"event_types": [str(i) for i in range(10)]},
         {"referral_sources": ["not-a-supported-referral"]},

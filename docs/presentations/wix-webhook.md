@@ -66,7 +66,9 @@ The Wix adapter trims and compares choice labels without case sensitivity. It no
 
 Checkbox values must remain JSON arrays, even for one selection. Existing canonical codes also work. Unrecognized event-type text, including `Other: ...` descriptions, is preserved with surrounding whitespace removed. Event types permit at most nine unique, nonblank strings of up to 500 characters each; objects, numbers, and blank selections are rejected. Referral values remain restricted to the documented choices; use `referral_reference` for free-text referral details. Unknown radio choices remain invalid. The adapter does not invent missing required answers or change webhook credentials and form/submission IDs.
 
-The stored `original_fields` snapshot contains these normalized answers, including custom event-type text. Identical retries normalize to the same snapshot, while changed custom text under the same submission ID remains a conflicting retry.
+Repeated event types are removed after normalization, preserving the first occurrence's order. For example, `["Cultural Organization", "cultural_organization"]` becomes `["cultural_organization"]`. Custom descriptions are also deduplicated after trimming. Non-string selections remain invalid, and manual API inputs retain their unique-selection validation.
+
+The stored `original_fields` snapshot contains these normalized answers, including custom event-type text. Identical retries normalize to the same snapshot, including retries with repeated event types, while changed custom text under the same submission ID remains a conflicting retry.
 
 ## Outputs and idempotency
 
