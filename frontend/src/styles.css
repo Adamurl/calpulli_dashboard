@@ -2939,42 +2939,6 @@ tr[data-state="selected"] {
   height: 140px;
   text-align: center;
 }
-.column-menu {
-  position: relative;
-  flex-shrink: 0;
-}
-.column-menu > [data-slot="collapsible-trigger"] {
-  list-style: none;
-  cursor: pointer;
-  font-size: 11px;
-}
-.column-menu > [data-slot="collapsible-trigger"]::-webkit-details-marker {
-  display: none;
-}
-.column-menu > div {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 5;
-  padding: 6px;
-  width: 180px;
-  background: #fff;
-  border: 1px solid #dedede;
-  border-radius: 8px;
-  box-shadow: 0 5px 20px #00000012;
-}
-.column-menu label {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 8px;
-  gap: 8px;
-  font-size: 12px;
-}
-.column-menu label:hover {
-  background: #f5f5f5;
-  border-radius: 4px;
-}
 .data-pagination {
   display: flex;
   align-items: center;

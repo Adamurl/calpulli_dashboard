@@ -1,19 +1,10 @@
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
-import {
-  Search,
-  ArrowDown,
-  ArrowUp,
-  Download,
-  Columns3,
-} from "lucide-react";
+import { Search, ArrowDown, ArrowUp, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { IndexQuery } from "../indexData";
+import type { IndexQuery, PresentationSortField } from "../indexData";
 import { errorMessage } from "../presentations";
+import { TableColumnsMenu, useTableColumns } from "./TableColumnsMenu";
+import type { SortOption, TableSort } from "./TableColumnsMenu";
 import { TablePagination } from "./TablePagination";
 import { Skeleton } from "./Skeleton";
 import { createPortal } from "react-dom";
@@ -59,14 +50,26 @@ function SelectionCheckbox({
   );
 }
 const optionalColumns = [
-  { id: "received", label: "Received" },
-  { id: "date", label: "Event date" },
-  { id: "name", label: "Client" },
-  { id: "organization", label: "Organization" },
-  { id: "guests", label: "Guests" },
-  { id: "status", label: "Status" },
-] as const;
-type Column = (typeof optionalColumns)[number]["id"];
+  {
+    id: "received",
+    label: "Received",
+    directions: ["Oldest first", "Newest first"],
+  },
+  {
+    id: "date",
+    label: "Event date",
+    directions: ["Earliest first", "Latest first"],
+  },
+  { id: "name", label: "Client", directions: ["A to Z", "Z to A"] },
+  {
+    id: "organization",
+    label: "Organization",
+    directions: ["A to Z", "Z to A"],
+  },
+  { id: "guests", label: "Guests", directions: ["Fewest first", "Most first"] },
+  { id: "status", label: "Status", directions: ["A to Z", "Z to A"] },
+] as const satisfies readonly SortOption<PresentationSortField>[];
+type Column = PresentationSortField;
 const tabs = [
   { label: "All", status: null },
   { label: "New", status: "new" },
@@ -85,15 +88,38 @@ export type RemoteRequests = {
   retry: () => void;
   exportData: (selected: string[], signal: AbortSignal) => Promise<Inquiry[]>;
 };
-function compareReceived(a: Inquiry, b: Inquiry, ascending: boolean) {
-  const first = a.receivedAt ? Date.parse(a.receivedAt) : NaN;
-  const second = b.receivedAt ? Date.parse(b.receivedAt) : NaN;
-  if (!Number.isFinite(first))
-    return Number.isFinite(second) ? 1 : a.id.localeCompare(b.id);
-  if (!Number.isFinite(second)) return -1;
-  return (
-    (ascending ? first - second : second - first) || a.id.localeCompare(b.id)
-  );
+const presentationSortValues: Record<
+  PresentationSortField,
+  (item: Inquiry) => string | number | null
+> = {
+  received: (item) => (item.receivedAt ? Date.parse(item.receivedAt) : null),
+  date: (item) => (item.date ? Date.parse(item.date) : null),
+  name: (item) => item.name || null,
+  organization: (item) => item.organization || null,
+  guests: (item) => item.guests,
+  status: (item) => item.status,
+};
+
+function comparePresentations(
+  a: Inquiry,
+  b: Inquiry,
+  sort: TableSort<PresentationSortField>,
+) {
+  const value = presentationSortValues[sort.field];
+  const first = value(a);
+  const second = value(b);
+  const firstMissing = first === null || Number.isNaN(first);
+  const secondMissing = second === null || Number.isNaN(second);
+  const tie = a.id.localeCompare(b.id);
+  if (firstMissing) return secondMissing ? tie : 1;
+  if (secondMissing) return -1;
+  const order =
+    typeof first === "number" && typeof second === "number"
+      ? first - second
+      : String(first).localeCompare(String(second), undefined, {
+          sensitivity: "base",
+        });
+  return (sort.ascending ? order : -order) || tie;
 }
 function receivedLabel(stamp: Inquiry["receivedAt"]) {
   return stamp
@@ -128,15 +154,24 @@ export function Requests({
   const [localQuery, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   useEffect(() => setSelected([]), [remote?.selectionRevision]);
-  const [localAscending, setAscending] = useState(false);
-  const [hidden, setHidden] = useState<Column[]>([]);
+  const [localSort, setLocalSort] = useState<TableSort<PresentationSortField>>({
+    field: "received",
+    ascending: false,
+  });
+  const columns = useTableColumns(optionalColumns);
   const [localPagination, setPagination] = useState({ index: 0, size: 10 });
   const [exporting, setExporting] = useState(false);
   const exportController = useRef<AbortController | null>(null);
   useEffect(() => () => exportController.current?.abort(), []);
   const status = remote ? remote.filters.status : localStatus;
   const query = remote ? remote.filters.query : localQuery;
-  const ascending = remote ? remote.filters.ascending : localAscending;
+  const sort: TableSort<PresentationSortField> = remote
+    ? {
+        field: remote.filters.sortField ?? "received",
+        ascending: remote.filters.ascending,
+      }
+    : localSort;
+  const { ascending } = sort;
   const pagination = remote
     ? { index: remote.filters.index, size: remote.filters.size }
     : localPagination;
@@ -150,7 +185,7 @@ export function Requests({
               .toLowerCase()
               .includes(query.toLowerCase()),
         )
-        .sort((a, b) => compareReceived(a, b, ascending));
+        .sort((a, b) => comparePresentations(a, b, sort));
   const total = remote ? remote.total : filtered.length;
   const loading = remote?.loading ?? false;
   const pageCount = Math.ceil(total / pagination.size);
@@ -161,9 +196,7 @@ export function Requests({
         pageIndex * pagination.size,
         (pageIndex + 1) * pagination.size,
       );
-  const visibleColumns = optionalColumns.filter(
-    (column) => !hidden.includes(column.id),
-  );
+  const visibleColumns = columns.visible;
   const selectedCount = remote
     ? selected.length
     : filtered.filter((item) => selected.includes(item.id)).length;
@@ -173,6 +206,19 @@ export function Requests({
   function setPage(index: number) {
     if (remote) remote.change({ ...remote.filters, index });
     else setPagination((value) => ({ ...value, index }));
+  }
+  function changeSort(next: TableSort<PresentationSortField>) {
+    if (remote) {
+      remote.change({
+        ...remote.filters,
+        sortField: next.field,
+        ascending: next.ascending,
+        index: 0,
+      });
+    } else {
+      setLocalSort(next);
+      setPage(0);
+    }
   }
   async function exportRows() {
     const controller = new AbortController();
@@ -348,30 +394,12 @@ export function Requests({
               }}
             />
           </label>
-          <Collapsible className="column-menu">
-            <CollapsibleTrigger className="button compact">
-              <Columns3 size={14} />
-              Columns
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              {optionalColumns.map((column) => (
-                <label key={column.id}>
-                  <input
-                    type="checkbox"
-                    checked={!hidden.includes(column.id)}
-                    onChange={(event) =>
-                      setHidden((value) =>
-                        event.target.checked
-                          ? value.filter((id) => id !== column.id)
-                          : [...value, column.id],
-                      )
-                    }
-                  />
-                  {column.label}
-                </label>
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
+          <TableColumnsMenu
+            columns={columns}
+            options={optionalColumns}
+            sort={sort}
+            onSort={changeSort}
+          />
         </div>
         {loading && (
           <span className="sr-only" role="status">
@@ -409,7 +437,7 @@ export function Requests({
                   key={column.id}
                   scope="col"
                   aria-sort={
-                    column.id === "received"
+                    column.id === sort.field
                       ? ascending
                         ? "ascending"
                         : "descending"
@@ -419,26 +447,21 @@ export function Requests({
                   {column.id === "received" ? (
                     <button
                       className="table-sort"
-                      onClick={() => {
-                        if (remote)
-                          remote.change({
-                            ...remote.filters,
-                            ascending: !ascending,
-                            index: 0,
-                          });
-                        else {
-                          setAscending(!ascending);
-                          setPage(0);
-                        }
-                      }}
-                      aria-label={`Sort by received date ${ascending ? "descending" : "ascending"}`}
+                      onClick={() =>
+                        changeSort({
+                          field: "received",
+                          ascending: sort.field === "received" && !ascending,
+                        })
+                      }
+                      aria-label={`Sort by received date ${sort.field === "received" && !ascending ? "ascending" : "descending"}`}
                     >
                       Received{" "}
-                      {ascending ? (
-                        <ArrowUp size={13} />
-                      ) : (
-                        <ArrowDown size={13} />
-                      )}
+                      {sort.field === "received" &&
+                        (ascending ? (
+                          <ArrowUp size={13} />
+                        ) : (
+                          <ArrowDown size={13} />
+                        ))}
                     </button>
                   ) : (
                     column.label

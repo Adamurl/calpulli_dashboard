@@ -49,10 +49,14 @@ export const indexPageSchema = z.object({
   total: z.number().int().nonnegative(),
   total_all: z.number().int().nonnegative(),
 });
+export type PresentationSortField =
+  "received" | "date" | "name" | "organization" | "guests" | "status";
+
 export type IndexQuery = {
   query: string;
   status: Inquiry["status"] | null;
   ascending: boolean;
+  sortField?: PresentationSortField;
   index: number;
   size: number;
 };
@@ -66,7 +70,7 @@ export async function fetchPresentationIndex(
   const params = new URLSearchParams({
     limit: String(query.size),
     offset: String(query.index * query.size),
-    sort: query.ascending ? "received_asc" : "received_desc",
+    sort: `${query.sortField ?? "received"}_${query.ascending ? "asc" : "desc"}`,
   });
   if (query.query) params.set("q", query.query);
   if (query.status) params.set("status", query.status);

@@ -211,15 +211,32 @@ test("collapsed navigation and data table controls", async ({ page }) => {
     .check();
   await expect(page.getByText(/5 of .*row\(s\) selected/)).toBeVisible();
   await page.getByRole("button", { name: "Columns", exact: true }).click();
-  await page
-    .getByRole("checkbox", { name: "Organization", exact: true })
-    .uncheck();
+  const organization = page.getByRole("button", {
+    name: "Show Organization column",
+  });
+  await organization.click();
+  await expect(organization).toHaveAttribute("aria-pressed", "false");
   await expect(
     page.getByRole("columnheader", { name: "Organization", exact: true }),
   ).toHaveCount(0);
+  await organization.click();
+  await expect(organization).toHaveAttribute("aria-pressed", "true");
   await page
-    .getByRole("checkbox", { name: "Organization", exact: true })
-    .check();
+    .getByRole("button", { name: "Reorder Organization" })
+    .press("ArrowUp");
+  await expect(page.getByRole("columnheader").nth(3)).toHaveText(
+    "Organization",
+  );
+  await page.getByRole("button", { name: "Sort by, Received" }).click();
+  await page
+    .getByRole("menuitemradio", { name: "Organization", exact: true })
+    .click();
+  await page
+    .getByRole("menuitemradio", { name: "A to Z", exact: true })
+    .click();
+  await expect(
+    page.getByRole("columnheader", { name: "Organization", exact: true }),
+  ).toHaveAttribute("aria-sort", "ascending");
   await page.getByRole("button", { name: "Columns", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Search presentations" })

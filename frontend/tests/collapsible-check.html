@@ -211,17 +211,17 @@
         const columns = button("Columns");
         columns.click();
         await until(
-          () => doc().querySelector(".column-menu label"),
+          () => doc().querySelector(".column-visibility"),
           "column options",
         );
-        const first = doc().querySelector(".column-menu input"),
-          before = first.checked;
+        const first = doc().querySelector(".column-visibility"),
+          before = first.getAttribute("aria-pressed");
         first.click();
         await wait(50);
         check(
-          first.checked !== before &&
+          first.getAttribute("aria-pressed") !== before &&
             columns.getAttribute("aria-expanded") === "true",
-          "Column picker preserves checkbox selection",
+          "Column picker stays open when toggling visibility",
         );
         columns.click();
         const account = doc().querySelector(".account-button");

@@ -364,7 +364,18 @@
           return reply(503, {});
         const q = (url.searchParams.get("q") || "").toLowerCase();
         const status = url.searchParams.get("status");
-        const ascending = url.searchParams.get("sort") === "received_asc";
+        const [sort, direction] = (
+          url.searchParams.get("sort") || "received_desc"
+        ).split("_");
+        const sortFields = {
+          received: "received_at",
+          date: "event_date",
+          name: "contact_full_name",
+          organization: "organization_name",
+          guests: "estimated_guests",
+          status: "status",
+        };
+        const field = sortFields[sort];
         const rows = allItems
           .filter(
             (item) =>
@@ -374,12 +385,20 @@
                 .includes(q),
           )
           .sort((a, b) => {
-            if (!a.received_at)
-              return b.received_at ? 1 : a.id.localeCompare(b.id);
-            if (!b.received_at) return -1;
-            return ascending
-              ? a.received_at.localeCompare(b.received_at)
-              : b.received_at.localeCompare(a.received_at);
+            const first = a[field];
+            const second = b[field];
+            if (first == null || first === "")
+              return second == null || second === ""
+                ? a.id.localeCompare(b.id)
+                : 1;
+            if (second == null || second === "") return -1;
+            const order =
+              typeof first === "number"
+                ? first - second
+                : first.localeCompare(second, "en", { sensitivity: "base" });
+            return (
+              (direction === "asc" ? order : -order) || a.id.localeCompare(b.id)
+            );
           });
         const limit = Number(url.searchParams.get("limit") || 10),
           offset = Number(url.searchParams.get("offset") || 0);
