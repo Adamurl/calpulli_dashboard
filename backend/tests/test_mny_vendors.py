@@ -1,4 +1,5 @@
 import csv
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -98,6 +99,63 @@ def test_vendor_routes_require_staff(staff_auth):
     with TestClient(app) as client:
         assert client.get(API, params={"event_year": 2027}).status_code == 401
         assert client.get(detail, params={"event_year": 2026}).status_code == 401
+
+
+@pytest.mark.integration
+def test_vendor_filters_and_sort_apply_before_pagination(pg_session, database_url, staff_auth):
+    examples = [
+        ("Alpha", "form_csv", 4, {}, "applied"),
+        ("Bravo", "legacy_vendor", 1, {"acceptance_email_sent": True}, "accepted"),
+        ("Charlie", "legacy_vendor", 3, {"payment_status": " Paid "}, "paid"),
+        (
+            "Delta",
+            "legacy_vendor",
+            2,
+            {"payment_status": "paid", "spot_numbers": ["A3"]},
+            "spot_assigned",
+        ),
+        ("Echo", "legacy_vendor", 5, {"spot_numbers": [" "]}, "unknown"),
+    ]
+    assert apply_import(
+        pg_session,
+        [
+            {
+                "event_year": 2027,
+                "source": source,
+                "source_key": name,
+                "business_name": name,
+                "submitted_at": datetime(2026, 11, day, tzinfo=UTC),
+                "responses": {"legacy_vendor": legacy},
+            }
+            for name, source, day, legacy, _ in examples
+        ],
+    ) == len(examples)
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
+    )
+    app.dependency_overrides[get_session] = lambda: pg_session
+    with TestClient(app) as client:
+        headers = {"Authorization": "Bearer vendor-test-token"}
+
+        def listed(**params):
+            response = client.get(API, params={"event_year": 2027, **params}, headers=headers)
+            assert response.status_code == 200
+            return response.json()
+
+        assert [item["stage"] for item in listed()["items"]] == [row[-1] for row in examples]
+        assert [item["business_name"] for item in listed(stage="paid", limit=1)["items"]] == [
+            "Charlie"
+        ]
+        assert listed(stage="accepted", q="Charlie")["total"] == 0
+        assert (
+            listed(sort="received", direction="desc", offset=1, limit=1)["items"][0][
+                "business_name"
+            ]
+            == "Alpha"
+        )
+        stage_page = listed(sort="stage", direction="desc", limit=2)
+        assert stage_page["total"] == len(examples)
+        assert [item["business_name"] for item in stage_page["items"]] == ["Delta", "Charlie"]
 
 
 @pytest.mark.integration
