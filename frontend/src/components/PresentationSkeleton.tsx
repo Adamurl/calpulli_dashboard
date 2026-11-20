@@ -80,9 +80,9 @@ export function PresentationSkeleton() {
         </div>
         <div className="presentation-overview">
           <FactsSkeleton
-            title="Contact and organization"
-            label="Loading contact and organization"
-            count={6}
+            title="Organization"
+            label="Loading organization"
+            count={2}
           />
           <FactsSkeleton
             title="Event and venue"

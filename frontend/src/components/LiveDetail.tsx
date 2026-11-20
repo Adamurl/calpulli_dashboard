@@ -253,9 +253,9 @@ export function LiveDetail({
           </button>
           {record.kind === "loading" && (
             <div className="detail-actions" aria-hidden="true">
-              <Skeleton className="detail-skeleton-action" />
-              <Skeleton className="detail-skeleton-action" />
               <Skeleton className="detail-skeleton-edit" />
+              <Skeleton className="detail-skeleton-action" />
+              <Skeleton className="detail-skeleton-action" />
             </div>
           )}
         </div>
@@ -306,6 +306,9 @@ export function LiveDetail({
           Back to presentations
         </button>
         <div className="detail-actions">
+          <button className="button" onClick={() => setEditOpen(true)}>
+            <Pencil size={14} /> Edit
+          </button>
           <button
             className="icon-button"
             aria-label={previousLabel}
@@ -323,9 +326,6 @@ export function LiveDetail({
             onClick={() => nextId && move(nextId)}
           >
             <ChevronDown size={17} />
-          </button>
-          <button className="button" onClick={() => setEditOpen(true)}>
-            <Pencil size={14} /> Edit
           </button>
         </div>
       </div>
