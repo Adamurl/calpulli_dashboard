@@ -100,6 +100,12 @@ def test_vendor_routes_require_staff(staff_auth):
         assert client.get(API, params={"event_year": 2027}).status_code == 401
         assert client.get(detail, params={"event_year": 2026}).status_code == 401
         assert (
+            client.post(
+                f"{detail}/comments", params={"event_year": 2026}, json={"body": "Test"}
+            ).status_code
+            == 401
+        )
+        assert (
             client.patch(
                 detail, params={"event_year": 2026}, json={"staff_note": "Test"}
             ).status_code
@@ -217,7 +223,32 @@ def test_staff_can_edit_a_vendor_without_changing_imported_responses(
             ).status_code
             == 200
         )
+        comments_url = f"{url}/comments"
+        assert (
+            client.post(
+                comments_url, params=params, headers=headers, json={"body": " "}
+            ).status_code
+            == 422
+        )
+        assert (
+            client.post(
+                comments_url,
+                params={"event_year": 2026},
+                headers=headers,
+                json={"body": "Wrong year"},
+            ).status_code
+            == 404
+        )
+        comments = []
+        for body in ("First comment", "Second comment"):
+            posted = client.post(
+                comments_url, params=params, headers=headers, json={"body": f"  {body}  "}
+            )
+            assert posted.status_code == 201
+            assert posted.json()["body"] == body
+            comments.append(posted.json())
         saved = client.get(url, params=params, headers=headers).json()
+        assert saved["responses"]["comments"] == comments
         assert saved["business_name"] == "Edited Vendor"
         assert saved["responses"]["booth_size_requested"] == "10 x 10"
         assert saved["responses"]["staff_details"] == {
@@ -239,7 +270,7 @@ def test_vendor_seasons_import_and_staff_reads(form_csv, pg_session, database_ur
     assert apply_import(pg_session, [*records, historical]) == 2
     assert apply_import(pg_session, [*records, historical]) == 0
     rls = pg_session.scalar(
-        text("SELECT relrowsecurity FROM pg_class WHERE oid = 'mny_vendor_applications'::regclass")
+        text("SELECT relrowsecurity FROM pg_class WHERE oid = 'mny_vendors'::regclass")
     )
     assert rls
 

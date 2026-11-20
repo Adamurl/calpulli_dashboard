@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, StringConstraints
@@ -84,6 +84,17 @@ class VendorPatch(BaseModel):
     staff_note: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=10000)] | None
     ) = None
+
+
+class VendorCommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000)]
+
+
+class VendorComment(VendorCommentCreate):
+    id: UUID
+    created_at: datetime
 
 
 class VendorList(BaseModel):
@@ -259,3 +270,23 @@ def update_vendor(
             return vendor_detail(record, session)
     except OperationalError:
         raise HTTPException(503, "Database unavailable") from None
+
+
+@router.post("/{vendor_id}/comments", status_code=201)
+def add_vendor_comment(
+    vendor_id: UUID, payload: VendorCommentCreate, session: DbSession, event_year: EventYear
+) -> VendorComment:
+    comment = VendorComment(id=uuid4(), body=payload.body, created_at=datetime.now(UTC))
+    try:
+        with session.begin():
+            record = vendor_record(vendor_id, session, event_year, lock=True)
+            record.responses = {
+                **record.responses,
+                "comments": [
+                    *record.responses.get("comments", []),
+                    comment.model_dump(mode="json"),
+                ],
+            }
+    except OperationalError:
+        raise HTTPException(503, "Database unavailable") from None
+    return comment
