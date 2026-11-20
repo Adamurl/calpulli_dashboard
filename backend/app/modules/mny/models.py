@@ -10,13 +10,14 @@ from app.db.base import Base
 
 
 class VendorApplication(Base):
-    __tablename__ = "mny_vendor_applications"
+    __tablename__ = "mny_vendors"
     __table_args__ = (
         UniqueConstraint("event_year", "source", "source_key"),
+        UniqueConstraint("event_year", "id", name="uq_mny_vendors_event_year_id"),
         CheckConstraint("event_year BETWEEN 2000 AND 9999", name="year_range"),
         CheckConstraint("source IN ('form_csv', 'legacy_vendor')", name="source_allowed"),
         CheckConstraint("follower_count >= 0", name="nonnegative_followers"),
-        Index("ix_mny_vendor_applications_year_business", "event_year", "business_name", "id"),
+        Index("ix_mny_vendors_year_business", "event_year", "business_name", "id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

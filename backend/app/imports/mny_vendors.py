@@ -12,13 +12,14 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.db.session import build_engine
 from app.modules.mny.models import VendorApplication
+from app.modules.mny.spot_inventory import ArchivedSpot, Spot, SpotInventory, VendorSpot
 
 FORM_COLUMNS = {
     "Timestamp": "timestamp",
@@ -54,6 +55,21 @@ LEGACY_SNAPSHOT = text("""
         LEFT JOIN public.spots AS s ON s.id = vs.spot_id
         WHERE vs.vendor_id = v.id
     ) AS booths ON true
+""")
+LEGACY_SPOT_INVENTORY = text("""
+    SELECT
+        s.id::text AS id,
+        s.label::text AS label,
+        COALESCE(s.status::text, 'free') AS status,
+        s.price,
+        ARRAY(
+            SELECT DISTINCT vs.vendor_id::text
+            FROM public.vendor_spots AS vs
+            WHERE vs.spot_id = s.id AND vs.vendor_id IS NOT NULL
+            ORDER BY vs.vendor_id::text
+        ) AS vendor_source_keys
+    FROM public.spots AS s
+    ORDER BY s.label::text, s.id
 """)
 
 
@@ -152,7 +168,19 @@ def read_archive(connection: Connection) -> list[dict[str, Any]]:
     return records
 
 
-def apply_import(session: Session, records: list[dict[str, Any]]) -> int:
+def read_spot_inventory(connection: Connection) -> list[ArchivedSpot]:
+    return [
+        ArchivedSpot.model_validate(row)
+        for row in connection.execute(LEGACY_SPOT_INVENTORY).mappings()
+    ]
+
+
+def apply_import(
+    session: Session,
+    records: list[dict[str, Any]],
+    *,
+    legacy_spots: list[ArchivedSpot] | None = None,
+) -> int:
     inserted = 0
     with session.begin():
         for record in records:
@@ -163,7 +191,41 @@ def apply_import(session: Session, records: list[dict[str, Any]]) -> int:
                 .returning(VendorApplication.id)
             )
             inserted += new_id is not None
+        if legacy_spots is not None:
+            archive_spots(session, legacy_spots)
     return inserted
+
+
+def archive_spots(session: Session, spots: list[ArchivedSpot]) -> None:
+    year = 2026
+    inventory = session.scalar(
+        insert(SpotInventory)
+        .values(event_year=year, spots=[spot.model_dump() for spot in spots])
+        .on_conflict_do_nothing(index_elements=["event_year"])
+        .returning(SpotInventory.event_year)
+    )
+    if inventory is None or not spots:
+        return
+    vendor_ids = {
+        key: vendor_id
+        for key, vendor_id in session.execute(
+            select(VendorApplication.source_key, VendorApplication.id).where(
+                VendorApplication.event_year == year, VendorApplication.source == "legacy_vendor"
+            )
+        )
+    }
+    session.execute(
+        insert(Spot),
+        [spot.model_dump(exclude={"vendor_source_keys"}) | {"event_year": year} for spot in spots],
+    )
+    links = [
+        {"event_year": year, "spot_id": spot.id, "vendor_id": vendor_ids[key]}
+        for spot in spots
+        for key in spot.vendor_source_keys
+        if key in vendor_ids
+    ]
+    if links:
+        session.execute(insert(VendorSpot), links)
 
 
 def main() -> None:
@@ -177,6 +239,7 @@ def main() -> None:
     for command in (form, archive):
         command.add_argument("--apply", action="store_true")
     args = parser.parse_args()
+    legacy_spots = None
     try:
         if args.command == "csv":
             if not 2027 <= args.event_year <= 9999:
@@ -188,8 +251,11 @@ def main() -> None:
             engine = build_engine(source)
             try:
                 with engine.connect() as connection:
-                    connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+                    connection.exec_driver_sql(
+                        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"
+                    )
                     records = read_archive(connection)
+                    legacy_spots = read_spot_inventory(connection)
             finally:
                 engine.dispose()
         summary = {"rows": len(records), "dry_run": not args.apply}
@@ -199,7 +265,8 @@ def main() -> None:
                 r["follower_response"] is not None and r["follower_count"] is None for r in records
             )
             summary["blank_followers"] = sum(r["follower_response"] is None for r in records)
-        else:
+        elif legacy_spots is not None:
+            summary["spot_inventory_rows"] = len(legacy_spots)
             summary["vendors_with_linked_spots"] = sum(
                 bool(r["responses"]["linked_spots"]) for r in records
             )
@@ -207,7 +274,7 @@ def main() -> None:
             engine = build_engine(Settings())
             try:
                 with Session(engine) as session:
-                    summary["inserted"] = apply_import(session, records)
+                    summary["inserted"] = apply_import(session, records, legacy_spots=legacy_spots)
             finally:
                 engine.dispose()
         print(json.dumps(summary))
