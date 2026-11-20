@@ -21,6 +21,7 @@ import { errorMessage, fetchPresentations, toInquiry } from "../presentations";
 import type { LoadState, Presentation } from "../presentations";
 import { mexicaNewYearPages } from "../navigation";
 import type { VendorRoute } from "../navigation";
+import { VendorsWorkspace } from "./Vendors";
 import { Sidebar } from "./Sidebar";
 import { LivePresentationIndex } from "./LivePresentationIndex";
 import { fetchPresentationIndex } from "../indexData";
@@ -45,6 +46,7 @@ export function LiveWorkspace({
   page,
   detail,
   vendor,
+  navigateVendor,
   open: openPresentation,
   navigate,
   logout,
@@ -395,6 +397,12 @@ export function LiveWorkspace({
               </p>
             </section>
           </div>
+        ) : page === "Vendors" ? (
+          <VendorsWorkspace
+            route={vendor}
+            staffName={name}
+            navigate={navigateVendor}
+          />
         ) : mexicaNewYearPages.includes(page) ? null : page === "Templates" ? (
           <LiveTemplates notify={setToast} />
         ) : (
