@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { apiFetch } from "../api";
+import { CommentComposer } from "./CommentComposer";
 import { Disclosure } from "./Disclosure";
 import { StatusPicker } from "./StatusPicker";
 import type { Inquiry } from "../domain";
@@ -396,33 +397,13 @@ export function LiveDetail({
                     Only you and other staff can see comments
                   </span>
                 </h2>
-                <form
-                  className="card note-composer"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (text.trim() && !saving)
-                      void save({ internal_notes: text.trim() });
-                  }}
-                >
-                  <Avatar name={staffName} />
-                  <textarea
-                    aria-label="Internal note"
-                    disabled={saving}
-                    placeholder="Leave a comment…"
-                    value={text}
-                    maxLength={10000}
-                    onChange={(event) => setText(event.target.value)}
-                  />
-                  <div>
-                    <small>Staff only</small>
-                    <button
-                      className="button primary compact"
-                      disabled={saving || !text.trim()}
-                    >
-                      {saving ? "Saving…" : "Post"}
-                    </button>
-                  </div>
-                </form>
+                <CommentComposer
+                  staffName={staffName}
+                  value={text}
+                  onChange={setText}
+                  onPost={(comment) => void save({ internal_notes: comment })}
+                  saving={saving}
+                />
                 {saveError && (
                   <p className="error" role="alert">
                     {saveError}
