@@ -7,10 +7,6 @@ import {
   Search,
   ArrowDown,
   ArrowUp,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Download,
   Columns3,
 } from "lucide-react";
@@ -18,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { IndexQuery } from "../indexData";
 import { errorMessage } from "../presentations";
+import { TablePagination } from "./TablePagination";
 import { Skeleton } from "./Skeleton";
 import { createPortal } from "react-dom";
 import type { Inquiry } from "../domain";
@@ -546,74 +543,20 @@ export function Requests({
             )}
           </TableBody>
         </Table>
-        <div className="data-pagination">
-          <span>
-            {selectedCount} of {total} row(s) selected.
-          </span>
-          <label>
-            Rows per page
-            <select
-              aria-label="Rows per page"
-              value={pagination.size}
-              onChange={(event) => {
-                const size = Number(event.target.value);
-                if (remote)
-                  remote.change({ ...remote.filters, index: 0, size });
-                else setPagination({ index: 0, size });
-                setSelected([]);
-              }}
-            >
-              {[5, 10, 20, 50].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span>
-            {loading
-              ? "Loading rows…"
-              : `Page ${total ? pageIndex + 1 : 0} of ${pageCount}`}
-          </span>
-          <div className="page-buttons">
-            <button
-              className="button compact"
-              aria-label="First page"
-              disabled={loading || !!remote?.error || pageIndex === 0}
-              onClick={() => setPage(0)}
-            >
-              <ChevronsLeft size={15} />
-            </button>
-            <button
-              className="button compact"
-              aria-label="Previous page"
-              disabled={loading || !!remote?.error || pageIndex === 0}
-              onClick={() => setPage(pageIndex - 1)}
-            >
-              <ChevronLeft size={15} />
-            </button>
-            <button
-              className="button compact"
-              aria-label="Next page"
-              disabled={
-                loading || !!remote?.error || pageIndex + 1 >= pageCount
-              }
-              onClick={() => setPage(pageIndex + 1)}
-            >
-              <ChevronRight size={15} />
-            </button>
-            <button
-              className="button compact"
-              aria-label="Last page"
-              disabled={
-                loading || !!remote?.error || pageIndex + 1 >= pageCount
-              }
-              onClick={() => setPage(pageCount - 1)}
-            >
-              <ChevronsRight size={15} />
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          index={pageIndex}
+          size={pagination.size}
+          total={total}
+          loading={loading}
+          disabled={!!remote?.error}
+          summary={`${selectedCount} of ${total} row(s) selected.`}
+          onPageChange={setPage}
+          onSizeChange={(size) => {
+            if (remote) remote.change({ ...remote.filters, index: 0, size });
+            else setPagination({ index: 0, size });
+            setSelected([]);
+          }}
+        />
       </section>
     </div>
   );
