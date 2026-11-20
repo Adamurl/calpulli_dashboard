@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Mail,
   Pencil,
+  Phone,
   RefreshCw,
 } from "lucide-react";
 import { apiFetch } from "../api";
@@ -265,6 +267,9 @@ export function LiveDetail({
       </div>
     );
   const item = record.data;
+  const clientName =
+    item.contact_full_name ||
+    [item.contact_first_name, item.contact_last_name].filter(Boolean).join(" ");
   const edit = (values: PresentationEditPayload) => {
     void save(values).then((success) => {
       if (success) setEditOpen(false);
@@ -336,12 +341,8 @@ export function LiveDetail({
           </div>
           <div className="presentation-overview">
             <Facts
-              title="Contact and organization"
+              title="Organization"
               rows={[
-                ["First name", item.contact_first_name],
-                ["Last name", item.contact_last_name],
-                ["Email", item.contact_email],
-                ["Phone", item.contact_phone],
                 ["Organization", item.organization_name],
                 ["Website", item.organization_website],
               ]}
@@ -483,8 +484,24 @@ export function LiveDetail({
         <aside className="client-sidebar">
           <section>
             <h2>Client</h2>
-            <Avatar name={item.contact_full_name || "Unknown"} />
-            <h3>{item.contact_full_name || "Not provided"}</h3>
+            {clientName && <Avatar name={clientName} />}
+            <h3>{clientName || "Name not provided"}</h3>
+            {item.contact_email && (
+              <a
+                className="contact-link"
+                href={`mailto:${encodeURIComponent(item.contact_email).replace(/%40/g, "@")}`}
+              >
+                <Mail size={14} aria-hidden="true" /> {item.contact_email}
+              </a>
+            )}
+            {item.contact_phone && (
+              <a
+                className="contact-link"
+                href={`tel:${item.contact_phone.replace(/[^+\d]/g, "")}`}
+              >
+                <Phone size={14} aria-hidden="true" /> {item.contact_phone}
+              </a>
+            )}
           </section>
           <section>
             <StatusPicker

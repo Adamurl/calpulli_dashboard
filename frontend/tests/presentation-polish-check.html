@@ -249,23 +249,19 @@
               .textContent.includes("Adam Gonzales"),
           "Account name and composer initials",
         );
-        const contact = [...doc().querySelectorAll(".detail-facts")].find(
-          (el) => el.textContent.includes("Contact and organization"),
+        const organization = [
+          ...doc().querySelectorAll(".presentation-overview .detail-facts"),
+        ].find((el) => el.querySelector("h2")?.textContent === "Organization");
+        const client = doc().querySelector(
+          ".client-sidebar section:first-child",
         );
         check(
-          [
-            "First name",
-            "Last name",
-            "Email",
-            "Phone",
-            "Organization",
-            "Website",
-          ].every((label) =>
-            [...contact.querySelectorAll("dt")].some(
-              (el) => el.textContent === label,
-            ),
-          ) && !contact.closest(".record-details"),
-          "Contact fields visible outside disclosures",
+          [...organization.querySelectorAll("dt")]
+            .map((label) => label.textContent)
+            .join(",") === "Organization,Website" &&
+            client.textContent.includes("Fixture Contact") &&
+            client.querySelector('a[href^="tel:"]'),
+          "Organization and website stay in the card, with client contact details in the sidebar",
         );
         const event = [...doc().querySelectorAll(".detail-facts")].find((el) =>
           el.textContent.includes("Event and venue"),

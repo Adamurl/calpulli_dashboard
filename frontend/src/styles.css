@@ -1669,6 +1669,31 @@ tbody tr:hover {
   font-weight: 500;
   color: #888888;
 }
+.contact-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+}
+
+.contact-link svg {
+  flex: none;
+  align-self: center;
+}
+
+.client-sidebar .contact-link {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
 .client-sidebar {
   padding-top: 14px;
 }
