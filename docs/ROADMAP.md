@@ -28,8 +28,8 @@ Future work includes approved mailbox connection, OAuth, sending, replies, threa
 
 Supabase JWT validation and staff UUID allowlisting are implemented. Add fine-grained staff roles and per-person audit attribution before expanding multiuser production workflows. Add operational monitoring, recovery tests, backup ownership, and deployment hardening. Apply the protections needed for personal data before any public hosting step.
 
-## Future: Events module
+## Mexica New Year
 
-Review cultural-event requirements for Mexica New Year, Día de Muertos, vendors, applications, participants, and logistics. Reuse shared capabilities only where actual ownership rules justify them. Presentation event details do not implement this module.
+The [vendor backend](mny/vendors.md) supports year-scoped application reads, CSV import, and a 2026 vendor archive. The sidebar includes Vendors, Assignments, and Outreach. Assignment workflows, vendor email, and broader cultural-event operations remain future work.
 
 Frontend code, member management, and task assignment remain outside the current implementation.

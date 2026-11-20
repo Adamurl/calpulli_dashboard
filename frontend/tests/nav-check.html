@@ -116,11 +116,16 @@
         const top = [...nav.children].map((element) =>
           element.classList.contains("presentation-module")
             ? "Presentations"
-            : element.getAttribute("aria-label"),
+            : element.classList.contains("mny-module")
+              ? "Mexica New Year"
+              : element.getAttribute("aria-label"),
         );
         check(
-          top.join(",") === "Home,Presentations,Inbox",
-          "Main navigation orders Home, Presentations, and global Inbox",
+          top.join(",") === "Home,Presentations,Mexica New Year,Inbox" &&
+            [...doc().querySelectorAll("#mny-tools button")]
+              .map((button) => button.getAttribute("aria-label"))
+              .join(",") === "Vendors,Assignments,Outreach",
+          "Main navigation includes Mexica New Year and its three pages",
         );
         check(
           [...doc().querySelectorAll(".presentation-children button")]

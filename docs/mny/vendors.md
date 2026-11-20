@@ -1,6 +1,6 @@
 # Mexica New Year vendors
 
-Staff can read vendor records through the API. Assignment editing, email delivery, and spreadsheet sync are future work.
+The workspace sidebar has Vendors, Assignments, and Outreach under Mexica New Year. Staff can read vendor records through the API. Assignment editing, email delivery, and spreadsheet sync are future work.
 
 ## Staff API
 

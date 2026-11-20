@@ -8,6 +8,9 @@ const canonical = [
   ["Drafts", "/presentations/drafts"],
   ["Clients", "/presentations/clients"],
   ["Templates", "/presentations/templates"],
+  ["Vendors", "/mexica-new-year/vendors"],
+  ["Assignments", "/mexica-new-year/assignments"],
+  ["Outreach", "/mexica-new-year/outreach"],
   ["Settings", "/settings"],
 ];
 let assertions = 0;
@@ -103,6 +106,11 @@ for (const path of ["/activity", "/presentations/activity"]) {
 assert.equal(
   pageFromLocation({ pathname: "/", search: "", hash: "#activity" }),
   "Presentations",
+);
+assertions++;
+assert.equal(
+  pageFromLocation({ pathname: "/mexica-new-year", search: "", hash: "" }),
+  "Vendors",
 );
 assertions++;
 console.log(`${assertions} navigation assertions passed`);

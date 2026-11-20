@@ -13,6 +13,7 @@ import {
   Mail,
   Users,
   LayoutTemplate,
+  Sun,
   Settings,
 } from "lucide-react";
 import { supabase, demoEnabled, passwordRecovery } from "./auth";
@@ -22,6 +23,7 @@ import { emptyWorkspace, workspaceSchema } from "./domain";
 import type { Draft, Page, Workspace } from "./domain";
 import {
   pages,
+  mexicaNewYearPages,
   pagePath,
   pageFromLocation,
   detailFromLocation,
@@ -53,6 +55,9 @@ const pageIcons = {
   Drafts: Mail,
   Clients: Users,
   Templates: LayoutTemplate,
+  Vendors: Users,
+  Assignments: Sun,
+  Outreach: Mail,
   Settings,
 } satisfies Record<Page, typeof HomeIcon>;
 type Composition =
@@ -427,7 +432,7 @@ function WorkspaceApp() {
           />
         ) : page === "Clients" ? (
           <Clients items={items} open={open} />
-        ) : page === "Templates" ? (
+        ) : mexicaNewYearPages.includes(page) ? null : page === "Templates" ? (
           <Templates
             notify={setToast}
             useTemplate={(subject, body) =>

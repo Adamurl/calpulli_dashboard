@@ -7,13 +7,22 @@ export const pagePaths = {
   Drafts: "/presentations/drafts",
   Clients: "/presentations/clients",
   Templates: "/presentations/templates",
+  Vendors: "/mexica-new-year/vendors",
+  Assignments: "/mexica-new-year/assignments",
+  Outreach: "/mexica-new-year/outreach",
   Settings: "/settings",
 } satisfies Record<Page, string>;
 export const pages = Object.keys(pagePaths).filter(
   (name): name is Page => name in pagePaths,
 );
 export const presentationChildren: Page[] = ["Drafts", "Clients", "Templates"];
+export const mexicaNewYearPages: Page[] = [
+  "Vendors",
+  "Assignments",
+  "Outreach",
+];
 const aliases = new Map<string, Page>([
+  ["/mexica-new-year", "Vendors"],
   ["/drafts", "Drafts"],
   ["/clients", "Clients"],
   ["/templates", "Templates"],
