@@ -30,6 +30,6 @@ Supabase JWT validation and staff UUID allowlisting are implemented. Add fine-gr
 
 ## Mexica New Year
 
-The [vendor backend](mny/vendors.md) supports year-scoped application reads, CSV import, and a 2026 vendor archive. The sidebar includes Vendors, Assignments, and Outreach. Assignment workflows, vendor email, and broader cultural-event operations remain future work.
+The [vendor workspace](mny/vendors.md) supports a year-scoped table, vendor detail, and full-year statistics. The backend supports CSV import and a 2026 vendor and booth archive. Assignment workflows, a map, vendor email, and broader cultural-event operations remain future work.
 
 Frontend code, member management, and task assignment remain outside the current implementation.
