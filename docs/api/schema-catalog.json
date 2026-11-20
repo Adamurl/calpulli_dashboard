@@ -2357,6 +2357,240 @@
       "title": "TemplateRead",
       "type": "object"
     },
+    "VendorDetail": {
+      "properties": {
+        "business_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category"
+        },
+        "contact_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Name"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Email"
+        },
+        "event_year": {
+          "title": "Event Year",
+          "type": "integer"
+        },
+        "follower_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Count"
+        },
+        "follower_response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Response"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Phone"
+        },
+        "responses": {
+          "additionalProperties": true,
+          "title": "Responses",
+          "type": "object"
+        },
+        "source": {
+          "enum": [
+            "form_csv",
+            "legacy_vendor"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        }
+      },
+      "required": [
+        "id",
+        "event_year",
+        "source",
+        "business_name",
+        "category",
+        "submitted_at",
+        "follower_count",
+        "contact_name",
+        "email",
+        "phone",
+        "follower_response",
+        "responses"
+      ],
+      "title": "VendorDetail",
+      "type": "object"
+    },
+    "VendorList": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/VendorSummary"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "limit",
+        "offset"
+      ],
+      "title": "VendorList",
+      "type": "object"
+    },
+    "VendorSummary": {
+      "properties": {
+        "business_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category"
+        },
+        "event_year": {
+          "title": "Event Year",
+          "type": "integer"
+        },
+        "follower_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Count"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "form_csv",
+            "legacy_vendor"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        }
+      },
+      "required": [
+        "id",
+        "event_year",
+        "source",
+        "business_name",
+        "category",
+        "submitted_at",
+        "follower_count"
+      ],
+      "title": "VendorSummary",
+      "type": "object"
+    },
     "WixFields": {
       "additionalProperties": false,
       "properties": {

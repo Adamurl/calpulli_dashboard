@@ -38,6 +38,7 @@ from app.integrations.supabase_auth import AuthenticatedUser
 from app.integrations.wix import WixFields
 from app.main import create_app
 from app.modules.health.router import HealthResponse
+from app.modules.mny.router import VendorDetail, VendorList, VendorSummary
 from app.modules.presentations.email_schemas import (
     DraftEdit, EmailRead, EventInput, ManualDraftCreate, TaskRead, TemplateEdit, TemplateRead,
 )
@@ -63,7 +64,7 @@ inputs = [
 outputs = [
     AuthenticatedUser, HealthResponse, PresentationSummary, PresentationRead, PresentationList,
     ActivityRead, ActivityList, EmailRead, TaskRead, TemplateRead, ErrorResponse, OperationsRead,
-    PresentationIndex, PresentationStatistics, StatisticSeries,
+    PresentationIndex, PresentationStatistics, StatisticSeries, VendorDetail, VendorList, VendorSummary,
 ]
 _, catalog = models_json_schema(
     [(model, "validation") for model in inputs]
