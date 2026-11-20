@@ -64,6 +64,23 @@ def test_index_pages_by_receipt_with_unknown_dates_last_and_projects_only_summar
         session, limit=100, offset=0, q="", status=None, sort="received_asc"
     )
     assert [item.id for item in ascending.items] == [records[1].id, records[0].id, records[2].id]
+    event_page = index_service.read_index(
+        session, limit=1, offset=1, q="", status=None, sort="date_desc"
+    )
+    assert event_page.items[0].id == records[1].id
+
+    records[0].organization_name = None
+    records[1].organization_name = "  zebra"
+    records[2].organization_name = "Alpha"
+    session.commit()
+    organizations = index_service.read_index(
+        session, limit=3, offset=0, q="", status=None, sort="organization_asc"
+    )
+    assert [item.id for item in organizations.items] == [
+        records[2].id,
+        records[1].id,
+        records[0].id,
+    ]
 
 
 def test_index_search_treats_wildcards_literally_and_filters_before_paging(session):

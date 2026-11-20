@@ -2850,7 +2850,17 @@
               "default": "received_desc",
               "enum": [
                 "received_desc",
-                "received_asc"
+                "received_asc",
+                "date_desc",
+                "date_asc",
+                "name_desc",
+                "name_asc",
+                "organization_desc",
+                "organization_asc",
+                "guests_desc",
+                "guests_asc",
+                "status_desc",
+                "status_asc"
               ],
               "title": "Sort",
               "type": "string"

@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.modules.presentations.index_schemas import (
     PresentationIndex,
+    PresentationSort,
     PresentationStatistics,
-    ReceiptSort,
     StatisticSeries,
 )
 from app.modules.presentations.models import PresentationRequest
@@ -23,7 +23,7 @@ def read_index(
     offset: int,
     q: str,
     status: PresentationStatus | None,
-    sort: ReceiptSort,
+    sort: PresentationSort,
 ) -> PresentationIndex:
     predicates = []
     if status is not None:
@@ -47,17 +47,25 @@ def read_index(
     count = select(func.count()).select_from(PresentationRequest)
     total = session.scalar(count.where(*predicates)) or 0
     total_all = (session.scalar(count) or 0) if predicates else total
-    received = (
-        PresentationRequest.received_at.asc()
-        if sort == "received_asc"
-        else PresentationRequest.received_at.desc()
-    )
+    field, direction = sort.rsplit("_", 1)
+    sort_columns = {
+        "received": PresentationRequest.received_at,
+        "date": PresentationRequest.event_date,
+        "name": func.lower(func.nullif(func.trim(PresentationRequest.contact_full_name), "")),
+        "organization": func.lower(
+            func.nullif(func.trim(PresentationRequest.organization_name), "")
+        ),
+        "guests": PresentationRequest.estimated_guests,
+        "status": PresentationRequest.status,
+    }
+    column = sort_columns[field]
+    order = column.asc() if direction == "asc" else column.desc()
     columns = [getattr(PresentationRequest, name) for name in PresentationSummary.model_fields]
     rows = session.execute(
         select(*columns)
         .where(*predicates)
         .order_by(
-            received.nulls_last(),
+            order.nulls_last(),
             PresentationRequest.created_at.desc(),
             PresentationRequest.id.desc(),
         )

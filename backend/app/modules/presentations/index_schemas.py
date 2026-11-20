@@ -5,7 +5,20 @@ from pydantic import BaseModel, Field
 
 from app.modules.presentations.schemas import PresentationSummary
 
-ReceiptSort = Literal["received_desc", "received_asc"]
+PresentationSort = Literal[
+    "received_desc",
+    "received_asc",
+    "date_desc",
+    "date_asc",
+    "name_desc",
+    "name_asc",
+    "organization_desc",
+    "organization_asc",
+    "guests_desc",
+    "guests_asc",
+    "status_desc",
+    "status_asc",
+]
 
 
 class PresentationIndex(BaseModel):

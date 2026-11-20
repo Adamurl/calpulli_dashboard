@@ -9,7 +9,7 @@ Sources: `backend/app/modules/presentations/router.py`, `schemas.py`, and `servi
 | Method | Path | Input | Success output |
 | --- | --- | --- | --- |
 | GET | `/api/v1/presentations` | Query filters and pagination | 200, `PresentationList` |
-| GET | `/api/v1/presentations/index` | Search, status, receipt sorting and pagination | 200, `PresentationIndex` |
+| GET | `/api/v1/presentations/index` | Search, status, sorting and pagination | 200, `PresentationIndex` |
 | GET | `/api/v1/presentations/statistics` | `days=1`, `7`, or `30` | 200, `PresentationStatistics` |
 | POST | `/api/v1/presentations` | `NewPresentation` JSON | 201, `PresentationRead` |
 | GET | `/api/v1/presentations/{request_id}` | UUID path parameter | 200, `PresentationRead` |
@@ -207,7 +207,7 @@ Workspace edits neither call email recommendation nor dispatch delivery. The ori
 
 The dashboard starts the index and statistics requests independently after staff verification. Neither response requires loading every presentation. Both endpoints use the existing staff dependency and private, no-store response policy.
 
-`GET /api/v1/presentations/index` accepts `limit` from 1 through 100, default 10; nonnegative `offset`; `q` up to 200 characters; optional presentation `status`; and `sort=received_desc` or `received_asc`. The default is newest receipt first. Unknown receipt dates are last in both directions; creation time descending and UUID descending break ties. Event dates never determine index order. Search matches literal case-insensitive substrings in contact name, organization, email, purpose, venue and humanized event types. Percent and underscore characters are escaped rather than interpreted as search wildcards.
+`GET /api/v1/presentations/index` accepts `limit` from 1 through 100, default 10; nonnegative `offset`; `q` up to 200 characters; optional presentation `status`; and `sort`. Sort fields are `received`, `date`, `name`, `organization`, `guests`, and `status`, each followed by `_asc` or `_desc`. The default is `received_desc`. Missing values sort last in both directions. Creation time descending and UUID descending break ties. Search matches literal case-insensitive substrings in contact name, organization, email, purpose, venue and humanized event types. Percent and underscore characters are escaped rather than interpreted as search wildcards.
 
 The response contains `items: PresentationSummary[]`, `limit`, `offset`, `total` for the filtered set and `total_all` for all requests. Filtering and sorting occur before pagination. The query projects only summary columns and does not select original form payloads or internal notes. The existing `/presentations` list contract and creation-date ordering remain unchanged for other consumers.
 

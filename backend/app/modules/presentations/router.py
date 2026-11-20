@@ -12,8 +12,8 @@ from app.modules.presentations.email_router import router as email_router
 from app.modules.presentations.email_service import dispatch_automatic
 from app.modules.presentations.index_schemas import (
     PresentationIndex,
+    PresentationSort,
     PresentationStatistics,
-    ReceiptSort,
 )
 from app.modules.presentations.operations_schemas import OperationsRead
 from app.modules.presentations.schemas import (
@@ -72,7 +72,7 @@ def presentation_index(
     offset: PageOffset = 0,
     q: Annotated[str, Query(max_length=200)] = "",
     status: PresentationStatus | None = None,
-    sort: ReceiptSort = "received_desc",
+    sort: PresentationSort = "received_desc",
 ) -> PresentationIndex:
     return index_service.read_index(
         session, limit=limit, offset=offset, q=q, status=status, sort=sort
