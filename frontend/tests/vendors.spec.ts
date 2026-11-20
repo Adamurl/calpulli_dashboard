@@ -12,7 +12,9 @@ test("the vendor table paginates and searches independently of year totals", asy
   const stats = page.getByRole("region", { name: "2027 vendor statistics" });
   const table = page.getByRole("table");
   await expect(stats.getByText("21", { exact: true })).toBeVisible();
-  await expect(stats.getByText("Unavailable", { exact: true })).toHaveCount(3);
+  await expect(stats.getByText("$0.00", { exact: true })).toBeVisible();
+  await expect(stats.getByText("0", { exact: true })).toBeVisible();
+  await expect(stats.getByText("Unavailable", { exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: /^All\b/ })).toHaveText(
     /All\s*21/,
   );

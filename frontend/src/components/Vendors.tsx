@@ -239,7 +239,12 @@ function VendorStatistics({
         </div>
       ) : (
         metrics.map(({ key, label }) => {
-          const value = state.kind === "ready" ? state.data[key] : null;
+          const zeroWhenEmpty =
+            key === "total_paid" || key === "requested_spots";
+          const value =
+            state.kind === "ready"
+              ? (state.data[key] ?? (zeroWhenEmpty ? 0 : null))
+              : null;
           return (
             <div className="request-stat" key={key}>
               <div className="stat-copy">
