@@ -50,6 +50,7 @@ export function Sidebar({
   const [account, setAccount] = useState(false);
   const childActive = presentationChildren.includes(page);
   const presentationActive = page === "Presentations" || childActive;
+  const presentationOpen = presentationActive && !collapsed;
   return (
     <>
       <button
@@ -102,14 +103,14 @@ export function Sidebar({
             <Home size={16} />
             <span>Home</span>
           </button>
-          <Collapsible className="presentation-module" open={!collapsed}>
+          <Collapsible className="presentation-module" open={presentationOpen}>
             <div className="module-nav-row">
               <button
                 className={`nav-item ${presentationActive ? "active" : ""}`}
                 aria-label="Presentations"
                 title="Presentations"
                 aria-current={page === "Presentations" ? "page" : undefined}
-                aria-expanded={!collapsed}
+                aria-expanded={presentationOpen}
                 aria-controls="presentation-tools"
                 onClick={() => {
                   if (collapsed) close();

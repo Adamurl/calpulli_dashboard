@@ -126,6 +126,12 @@ test("mobile navigation, template workflow and account logout", async ({
   await page
     .getByRole("button", { name: "Open navigation", exact: true })
     .click();
+  await page
+    .getByRole("button", { name: "Presentations", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Open navigation", exact: true })
+    .click();
   await page.getByRole("button", { name: "Templates", exact: true }).click();
   await page
     .getByRole("button", { name: "A warm welcome", exact: true })

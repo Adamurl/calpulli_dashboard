@@ -129,8 +129,13 @@
           "Presentation-specific pages are nested under the module",
         );
         check(
+          button("Presentations").getAttribute("aria-expanded") === "false",
+          "Presentation section starts closed on Home",
+        );
+        await click("Presentations");
+        check(
           button("Presentations").getAttribute("aria-expanded") === "true",
-          "Presentation section starts expanded",
+          "Presentation section opens when selected",
         );
         await click("Templates");
         check(
@@ -228,6 +233,8 @@
           !visible(button("Templates")),
           "Closed mobile navigation hides child links",
         );
+        await click("Open navigation");
+        await click("Presentations");
         await click("Open navigation");
         check(
           visible(button("Templates")),
