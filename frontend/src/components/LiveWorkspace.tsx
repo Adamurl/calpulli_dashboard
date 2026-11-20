@@ -11,6 +11,7 @@ import {
   Mail,
   Users,
   LayoutTemplate,
+  Sun,
   Settings,
   ArrowUpRight,
   RefreshCw,
@@ -18,6 +19,9 @@ import {
 import type { Inquiry, Page } from "../domain";
 import { errorMessage, fetchPresentations, toInquiry } from "../presentations";
 import type { LoadState, Presentation } from "../presentations";
+import { mexicaNewYearPages } from "../navigation";
+import type { VendorRoute } from "../navigation";
+import { VendorsWorkspace } from "./Vendors";
 import { Sidebar } from "./Sidebar";
 import { LivePresentationIndex } from "./LivePresentationIndex";
 import { fetchPresentationIndex } from "../indexData";
@@ -32,12 +36,17 @@ const icons = {
   Drafts: Mail,
   Clients: Users,
   Templates: LayoutTemplate,
+  Vendors: Users,
+  Assignments: Sun,
+  Outreach: Mail,
   Settings,
 } satisfies Record<Page, typeof Home>;
 export function LiveWorkspace({
   session,
   page,
   detail,
+  vendor,
+  navigateVendor,
   open: openPresentation,
   navigate,
   logout,
@@ -45,6 +54,8 @@ export function LiveWorkspace({
   session: Session;
   page: Page;
   detail: string | null;
+  vendor: VendorRoute;
+  navigateVendor: (route: VendorRoute) => void;
   open: (id: string) => void;
   navigate: (page: Page) => void;
   logout: () => Promise<string | null>;
@@ -227,7 +238,11 @@ export function LiveWorkspace({
             ) : (
               <h1 className="page-title">
                 <Icon size={17} aria-hidden="true" />
-                {detail ? `Presentation #${detail.slice(0, 8)}` : page}
+                {detail
+                  ? `Presentation #${detail.slice(0, 8)}`
+                  : page === "Vendors" && vendor.id
+                    ? "Vendor details"
+                    : page}
               </h1>
             )}
           </div>
@@ -382,7 +397,13 @@ export function LiveWorkspace({
               </p>
             </section>
           </div>
-        ) : page === "Templates" ? (
+        ) : page === "Vendors" ? (
+          <VendorsWorkspace
+            route={vendor}
+            staffName={name}
+            navigate={navigateVendor}
+          />
+        ) : mexicaNewYearPages.includes(page) ? null : page === "Templates" ? (
           <LiveTemplates notify={setToast} />
         ) : (
           <div className="list-page">

@@ -118,6 +118,7 @@
       activitiesFailure: false,
       operationsMissing: false,
       logoutFailure: false,
+      vendorFailure: false,
       activities,
     };
     const allItems = Array.from({ length: 101 }, (_, index) =>
@@ -140,6 +141,34 @@
                 : null,
           },
     );
+    const vendorRows = Array.from({ length: 21 }, (_, index) => ({
+      id: `33333333-3333-4333-8333-${String(index).padStart(12, "0")}`,
+      event_year: 2027,
+      source: "form_csv",
+      stage: index === 2 ? "accepted" : index === 3 ? "paid" : "applied",
+      business_name: index ? `Sample Vendor ${index}` : "Fixture Artisan",
+      category: "Craft",
+      submitted_at: stamp,
+      contact_name: index ? null : "Fixture Vendor Contact",
+      requested_spot_count: null,
+      assigned_spot_labels: null,
+      paid_before_deadline: null,
+      follower_count: index ? null : 5000,
+    }));
+    const archivedVendor = {
+      ...vendorRows[0],
+      id: "44444444-4444-4444-8444-444444444444",
+      event_year: 2026,
+      source: "legacy_vendor",
+      stage: "spot_assigned",
+      business_name: "Archived Vendor",
+      requested_spot_count: 2,
+      submitted_at: null,
+      assigned_spot_labels: ["f14", "15"],
+      paid_before_deadline: true,
+      follower_count: null,
+    };
+    const vendorDetails = new Map();
     const createObjectURL = URL.createObjectURL.bind(URL);
     URL.createObjectURL = (blob) => {
       window.fixture.exportBlob = blob;
@@ -358,6 +387,157 @@
           );
         return reply(200, { id });
       }
+      const vendorsPath = "/api/v1/mny/vendors";
+      if (
+        url.pathname === vendorsPath ||
+        url.pathname.startsWith(`${vendorsPath}/`)
+      ) {
+        const historic = url.searchParams.get("event_year") === "2026";
+        const candidates = historic ? [archivedVendor] : vendorRows;
+        if (url.pathname === `${vendorsPath}/statistics`) {
+          return reply(200, {
+            total_vendors: candidates.length,
+            total_paid: historic ? 125.5 : null,
+            requested_spots: historic ? 2 : null,
+            assigned_spots: historic ? 2 : null,
+          });
+        }
+        if (window.fixture.vendorFailure) return reply(503, {});
+        if (url.pathname === vendorsPath) {
+          const query = (url.searchParams.get("q") || "").toLowerCase();
+          const stage = url.searchParams.get("stage");
+          const sort = url.searchParams.get("sort");
+          const direction =
+            url.searchParams.get("direction") === "desc" ? -1 : 1;
+          const stageOrder = [
+            "applied",
+            "accepted",
+            "paid",
+            "spot_assigned",
+            "unknown",
+          ];
+          const rows = candidates.filter(
+            (vendor) =>
+              (!stage || vendor.stage === stage) &&
+              `${vendor.business_name} ${vendor.contact_name || ""} ${vendor.category}`
+                .toLowerCase()
+                .includes(query),
+          );
+          rows.sort((first, second) => {
+            const field =
+              sort === "contact"
+                ? "contact_name"
+                : sort === "category"
+                  ? "category"
+                  : sort === "received"
+                    ? "submitted_at"
+                    : "business_name";
+            const a = first[field];
+            const b = second[field];
+            if (sort !== "stage") {
+              if (!a) return b ? 1 : first.id.localeCompare(second.id);
+              if (!b) return -1;
+            }
+            const by =
+              sort === "stage"
+                ? stageOrder.indexOf(first.stage) -
+                  stageOrder.indexOf(second.stage)
+                : a.localeCompare(b, "en", { numeric: true });
+            return direction * by || first.id.localeCompare(second.id);
+          });
+          const limit = Number(url.searchParams.get("limit"));
+          const offset = Number(url.searchParams.get("offset"));
+          return reply(200, {
+            items: rows.slice(offset, offset + limit),
+            total: rows.length,
+            limit,
+            offset,
+          });
+        }
+        const vendor = candidates.find(
+          (row) =>
+            url.pathname === `${vendorsPath}/${row.id}` ||
+            url.pathname === `${vendorsPath}/${row.id}/comments`,
+        );
+        if (!vendor) return reply(404, {});
+        const position = candidates.indexOf(vendor);
+        const responses =
+          vendorDetails.get(vendor.id) ??
+          (historic
+            ? {
+                legacy_vendor: {
+                  payment_status: "paid",
+                  amount_paid: 125.5,
+                  amount_due: 0,
+                  zelle_amount: 125.5,
+                  cash_amount: 0,
+                  internal_notes: "A fictional note.",
+                  acceptance_email_sent_at: "2026-02-11T18:00:00Z",
+                  created_at: "2026-02-10T18:00:00Z",
+                },
+                linked_spots: [
+                  {
+                    spot: {
+                      label: "f14",
+                      ring: "Outer",
+                      status: "paid",
+                      price: 125.5,
+                    },
+                  },
+                ],
+              }
+            : {
+                booth_size_requested: "10 x 10",
+                merchandise: "Handmade baskets",
+                tribal_affiliation: "Fixture community",
+                instagram: "@fixture.art",
+                facebook: "https://www.facebook.com/fixture.art",
+                website: "fixture.example.invalid",
+              });
+        if (options.method === "POST" && url.pathname.endsWith("/comments")) {
+          const comment = {
+            id: crypto.randomUUID(),
+            body: JSON.parse(options.body).body.trim(),
+            created_at: new Date().toISOString(),
+          };
+          responses.comments = [...(responses.comments ?? []), comment];
+          vendorDetails.set(vendor.id, responses);
+          return reply(201, comment);
+        }
+        if (options.method === "PATCH") {
+          const {
+            business_name,
+            category,
+            contact_name,
+            email,
+            phone,
+            ...staffDetails
+          } = JSON.parse(options.body);
+          for (const [key, value] of Object.entries({
+            business_name,
+            category,
+            contact_name,
+            email,
+            phone,
+          })) {
+            if (value !== undefined) vendor[key] = value;
+          }
+          responses.staff_details = {
+            ...responses.staff_details,
+            ...staffDetails,
+          };
+          vendorDetails.set(vendor.id, responses);
+        }
+        return reply(200, {
+          email: "fixture@example.invalid",
+          phone: null,
+          ...vendor,
+          previous_id: candidates[position - 1]?.id ?? null,
+          next_id: candidates[position + 1]?.id ?? null,
+          follower_response: historic ? null : "About 5k",
+          responses,
+        });
+      }
       if (url.pathname === "/api/v1/presentations/index") {
         await delay(window.fixture.tableDelay, options.signal, calls.at(-1));
         if (window.fixture.indexFailure || window.fixture.secondPageFailure)
@@ -539,7 +719,7 @@
       parameters.get("path") ||
         (location.pathname.startsWith("/tests/")
           ? "/presentations"
-          : location.pathname),
+          : location.pathname + location.search),
     );
     await import("/src/main.tsx");
   </script>

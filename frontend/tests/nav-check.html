@@ -116,11 +116,16 @@
         const top = [...nav.children].map((element) =>
           element.classList.contains("presentation-module")
             ? "Presentations"
-            : element.getAttribute("aria-label"),
+            : element.classList.contains("mny-module")
+              ? "Mexica New Year"
+              : element.getAttribute("aria-label"),
         );
         check(
-          top.join(",") === "Home,Presentations,Inbox",
-          "Main navigation orders Home, Presentations, and global Inbox",
+          top.join(",") === "Home,Presentations,Mexica New Year,Inbox" &&
+            [...doc().querySelectorAll("#mny-tools button")]
+              .map((button) => button.getAttribute("aria-label"))
+              .join(",") === "Vendors,Assignments,Outreach",
+          "Main navigation includes Mexica New Year and its three pages",
         );
         check(
           [...doc().querySelectorAll(".presentation-children button")]
@@ -148,6 +153,19 @@
           !button("Presentations").hasAttribute("aria-current"),
           "Only the selected child is marked as the current page",
         );
+        await click("Mexica New Year");
+        check(
+          button("Mexica New Year").getAttribute("aria-expanded") === "true" &&
+            button("Presentations").getAttribute("aria-expanded") === "false",
+          "Mexica New Year opens its own submenu",
+        );
+        await click("Presentations");
+        check(
+          button("Presentations").getAttribute("aria-expanded") === "true" &&
+            button("Mexica New Year").getAttribute("aria-expanded") === "false",
+          "Switching modules closes the previous submenu",
+        );
+        await click("Templates");
         check(
           !doc().querySelector(".module-disclosure"),
           "Presentation submenu has no disclosure arrow",

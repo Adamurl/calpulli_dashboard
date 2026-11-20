@@ -7,6 +7,7 @@ import {
   Home,
   Inbox,
   FileText,
+  Sun,
   Settings,
   Search,
   PanelLeftClose,
@@ -18,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { presentationChildren } from "../navigation";
+import { mexicaNewYearPages, presentationChildren } from "../navigation";
 import type { Page } from "../domain";
 import logo from "../assets/Calpulli_Logo.png";
 import { Avatar } from "./ui";
@@ -47,6 +48,8 @@ export function Sidebar({
   close: () => void;
   collapsed: boolean;
 }) {
+  const mnyActive = mexicaNewYearPages.includes(page);
+  const mnyOpen = mnyActive && !collapsed;
   const [account, setAccount] = useState(false);
   const childActive = presentationChildren.includes(page);
   const presentationActive = page === "Presentations" || childActive;
@@ -139,6 +142,43 @@ export function Sidebar({
                 >
                   <span>{child}</span>
                   {child === "Drafts" && drafts > 0 && <b>{drafts}</b>}
+                </button>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+          <Collapsible className="mny-module" open={mnyOpen}>
+            <div className="module-nav-row">
+              <button
+                className={`nav-item ${mnyActive ? "active" : ""}`}
+                aria-label="Mexica New Year"
+                title="Mexica New Year"
+                aria-expanded={mnyOpen}
+                aria-controls="mny-tools"
+                onClick={() => {
+                  if (collapsed) close();
+                  navigate("Vendors");
+                }}
+              >
+                <Sun size={16} />
+                <span>Mexica New Year</span>
+              </button>
+            </div>
+            <CollapsibleContent
+              keepMounted
+              className="mny-children"
+              id="mny-tools"
+              role="group"
+              aria-label="Mexica New Year tools"
+            >
+              {mexicaNewYearPages.map((child) => (
+                <button
+                  key={child}
+                  className={`nav-item nav-child ${page === child ? "active" : ""}`}
+                  aria-label={child}
+                  aria-current={page === child ? "page" : undefined}
+                  onClick={() => navigate(child)}
+                >
+                  <span>{child}</span>
                 </button>
               ))}
             </CollapsibleContent>

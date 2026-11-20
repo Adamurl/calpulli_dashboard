@@ -38,6 +38,11 @@ from app.integrations.supabase_auth import AuthenticatedUser
 from app.integrations.wix import WixFields
 from app.main import create_app
 from app.modules.health.router import HealthResponse
+from app.modules.mny.router import (
+    VendorComment, VendorCommentCreate, VendorDetail, VendorList, VendorPatch,
+    VendorStatistics, VendorSummary,
+)
+from app.modules.mny.spots import SpotList, SpotRead, SpotVendor
 from app.modules.presentations.email_schemas import (
     DraftEdit, EmailRead, EventInput, ManualDraftCreate, TaskRead, TemplateEdit, TemplateRead,
 )
@@ -58,12 +63,13 @@ settings = Settings(
 app = create_app(settings)
 inputs = [
     NewPresentation, PresentationPatch, EventInput, DraftEdit,
-    TemplateEdit, ManualDraftCreate, WixFields,
+    TemplateEdit, ManualDraftCreate, WixFields, VendorPatch, VendorCommentCreate,
 ]
 outputs = [
     AuthenticatedUser, HealthResponse, PresentationSummary, PresentationRead, PresentationList,
     ActivityRead, ActivityList, EmailRead, TaskRead, TemplateRead, ErrorResponse, OperationsRead,
     PresentationIndex, PresentationStatistics, StatisticSeries,
+    VendorComment, VendorDetail, VendorList, VendorStatistics, VendorSummary, SpotList, SpotRead, SpotVendor,
 ]
 _, catalog = models_json_schema(
     [(model, "validation") for model in inputs]

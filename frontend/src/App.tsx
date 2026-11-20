@@ -13,6 +13,7 @@ import {
   Mail,
   Users,
   LayoutTemplate,
+  Sun,
   Settings,
 } from "lucide-react";
 import { supabase, demoEnabled, passwordRecovery } from "./auth";
@@ -22,10 +23,15 @@ import { emptyWorkspace, workspaceSchema } from "./domain";
 import type { Draft, Page, Workspace } from "./domain";
 import {
   pages,
+  mexicaNewYearPages,
   pagePath,
   pageFromLocation,
   detailFromLocation,
+  defaultVendorRoute,
+  vendorFromLocation,
+  vendorPath,
 } from "./navigation";
+import type { VendorRoute } from "./navigation";
 import { Sidebar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { PasswordReset, ForgotPassword } from "./components/PasswordReset";
@@ -53,6 +59,9 @@ const pageIcons = {
   Drafts: Mail,
   Clients: Users,
   Templates: LayoutTemplate,
+  Vendors: Users,
+  Assignments: Sun,
+  Outreach: Mail,
   Settings,
 } satisfies Record<Page, typeof HomeIcon>;
 type Composition =
@@ -81,6 +90,9 @@ function WorkspaceApp() {
     [sidebarHidden, setSidebarHidden] = useState(false),
     [toast, setToast] = useState(""),
     [notifications, setNotifications] = useState(false);
+  const [vendor, setVendor] = useState(
+    () => vendorFromLocation() ?? defaultVendorRoute,
+  );
   const [storageError, setStorageError] = useState(false);
   const [exportTarget, setExportTarget] = useState<HTMLDivElement | null>(null);
   const [apiAccess, setApiAccess] = useState<ApiAccess>({ kind: "checking" });
@@ -156,7 +168,15 @@ function WorkspaceApp() {
     const handler = () => {
       const next = pageFromLocation();
       const nextDetail = next === "Presentations" ? detailFromLocation() : null;
-      const path = nextDetail ? `/presentations/${nextDetail}` : pagePath(next);
+      const nextVendor =
+        next === "Vendors"
+          ? (vendorFromLocation() ?? defaultVendorRoute)
+          : null;
+      const path = nextVendor
+        ? vendorPath(nextVendor)
+        : nextDetail
+          ? `/presentations/${nextDetail}`
+          : pagePath(next);
       const destination = signedIn
         ? path
         : next === "Home"
@@ -168,6 +188,7 @@ function WorkspaceApp() {
         history.replaceState(null, "", destination);
       setPage(next);
       setDetail(nextDetail);
+      if (nextVendor) setVendor(nextVendor);
     };
     handler();
     window.addEventListener("popstate", handler);
@@ -191,11 +212,26 @@ function WorkspaceApp() {
   const name = session?.user.email?.split("@")[0] ?? "Alex";
   const email = session?.user.email ?? "alex@example.org";
   function navigate(next: Page) {
+    if (next === "Vendors") {
+      navigateVendor({ year: vendor.year, id: null });
+      return;
+    }
     setPage(next);
     setDetail(null);
     setMobile(false);
     const path = pagePath(next);
     if (location.pathname !== path) history.pushState(null, "", path);
+  }
+  function navigateVendor(next: VendorRoute) {
+    const path = vendorPath(next);
+    setPage("Vendors");
+    setDetail(null);
+    setVendor(next);
+    setMobile(false);
+    if (`${location.pathname}${location.search}` !== path) {
+      history.pushState(null, "", path);
+      window.scrollTo(0, 0);
+    }
   }
   function open(id: string) {
     setPage("Presentations");
@@ -287,6 +323,8 @@ function WorkspaceApp() {
         session={session}
         page={page}
         detail={detail}
+        vendor={vendor}
+        navigateVendor={navigateVendor}
         open={open}
         navigate={navigate}
         logout={logout}
@@ -427,7 +465,13 @@ function WorkspaceApp() {
           />
         ) : page === "Clients" ? (
           <Clients items={items} open={open} />
-        ) : page === "Templates" ? (
+        ) : page === "Vendors" ? (
+          <div className="list-page">
+            <p className="muted">
+              Sign in with a staff account to view vendor records.
+            </p>
+          </div>
+        ) : mexicaNewYearPages.includes(page) ? null : page === "Templates" ? (
           <Templates
             notify={setToast}
             useTemplate={(subject, body) =>

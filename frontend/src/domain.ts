@@ -53,6 +53,9 @@ export type Page =
   | "Drafts"
   | "Clients"
   | "Templates"
+  | "Vendors"
+  | "Assignments"
+  | "Outreach"
   | "Settings";
 export const statusLabels: Record<Inquiry["status"], string> = {
   new: "New inquiry",

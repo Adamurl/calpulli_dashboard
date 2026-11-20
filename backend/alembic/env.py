@@ -3,6 +3,8 @@ from app.core.config import Settings
 from app.db.base import Base
 from app.db.migrations import include_owned_name
 from app.db.session import build_engine
+from app.modules.mny import models as mny_models  # noqa: F401
+from app.modules.mny import spot_inventory as mny_spot_inventory  # noqa: F401
 from app.modules.presentations import email_models, models, operations_models  # noqa: F401
 
 # Import additional module models here before accessing Base.metadata.

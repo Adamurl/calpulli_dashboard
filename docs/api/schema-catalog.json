@@ -2192,6 +2192,120 @@
       "title": "PresentationSummary",
       "type": "object"
     },
+    "SpotList": {
+      "properties": {
+        "event_year": {
+          "title": "Event Year",
+          "type": "integer"
+        },
+        "inventory_available": {
+          "title": "Inventory Available",
+          "type": "boolean"
+        },
+        "spots": {
+          "items": {
+            "$ref": "#/$defs/SpotRead"
+          },
+          "title": "Spots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "event_year",
+        "inventory_available",
+        "spots"
+      ],
+      "title": "SpotList",
+      "type": "object"
+    },
+    "SpotRead": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Label"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Price"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "vendors": {
+          "items": {
+            "$ref": "#/$defs/SpotVendor"
+          },
+          "title": "Vendors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "status",
+        "price",
+        "vendors"
+      ],
+      "title": "SpotRead",
+      "type": "object"
+    },
+    "SpotVendor": {
+      "properties": {
+        "business_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "business_name",
+        "category"
+      ],
+      "title": "SpotVendor",
+      "type": "object"
+    },
     "StatisticSeries": {
       "properties": {
         "current": {
@@ -2355,6 +2469,610 @@
         "updated_at"
       ],
       "title": "TemplateRead",
+      "type": "object"
+    },
+    "VendorComment": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "body",
+        "id",
+        "created_at"
+      ],
+      "title": "VendorComment",
+      "type": "object"
+    },
+    "VendorCommentCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "title": "VendorCommentCreate",
+      "type": "object"
+    },
+    "VendorDetail": {
+      "properties": {
+        "assigned_spot_labels": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Assigned Spot Labels"
+        },
+        "business_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category"
+        },
+        "contact_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Name"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Email"
+        },
+        "event_year": {
+          "title": "Event Year",
+          "type": "integer"
+        },
+        "follower_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Count"
+        },
+        "follower_response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Response"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "next_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Id"
+        },
+        "paid_before_deadline": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Paid Before Deadline"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Phone"
+        },
+        "previous_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Previous Id"
+        },
+        "requested_spot_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested Spot Count"
+        },
+        "responses": {
+          "additionalProperties": true,
+          "title": "Responses",
+          "type": "object"
+        },
+        "source": {
+          "enum": [
+            "form_csv",
+            "legacy_vendor"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/VendorStage"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        }
+      },
+      "required": [
+        "id",
+        "event_year",
+        "source",
+        "business_name",
+        "category",
+        "submitted_at",
+        "follower_count",
+        "contact_name",
+        "requested_spot_count",
+        "assigned_spot_labels",
+        "paid_before_deadline",
+        "stage",
+        "email",
+        "phone",
+        "follower_response",
+        "responses",
+        "previous_id",
+        "next_id"
+      ],
+      "title": "VendorDetail",
+      "type": "object"
+    },
+    "VendorList": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/VendorSummary"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "limit",
+        "offset",
+        "total"
+      ],
+      "title": "VendorList",
+      "type": "object"
+    },
+    "VendorPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "business_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "contact_name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact Name"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Email"
+        },
+        "facebook": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Facebook"
+        },
+        "instagram": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instagram"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone"
+        },
+        "requested_space": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Space"
+        },
+        "staff_note": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Staff Note"
+        },
+        "website": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Website"
+        }
+      },
+      "title": "VendorPatch",
+      "type": "object"
+    },
+    "VendorStage": {
+      "enum": [
+        "applied",
+        "accepted",
+        "paid",
+        "spot_assigned",
+        "unknown"
+      ],
+      "title": "VendorStage",
+      "type": "string"
+    },
+    "VendorStatistics": {
+      "properties": {
+        "assigned_spots": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Assigned Spots"
+        },
+        "requested_spots": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested Spots"
+        },
+        "total_paid": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Paid"
+        },
+        "total_vendors": {
+          "title": "Total Vendors",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_vendors",
+        "total_paid",
+        "requested_spots",
+        "assigned_spots"
+      ],
+      "title": "VendorStatistics",
+      "type": "object"
+    },
+    "VendorSummary": {
+      "properties": {
+        "assigned_spot_labels": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Assigned Spot Labels"
+        },
+        "business_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Business Name"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Category"
+        },
+        "contact_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contact Name"
+        },
+        "event_year": {
+          "title": "Event Year",
+          "type": "integer"
+        },
+        "follower_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Follower Count"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "paid_before_deadline": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Paid Before Deadline"
+        },
+        "requested_spot_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested Spot Count"
+        },
+        "source": {
+          "enum": [
+            "form_csv",
+            "legacy_vendor"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/VendorStage"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        }
+      },
+      "required": [
+        "id",
+        "event_year",
+        "source",
+        "business_name",
+        "category",
+        "submitted_at",
+        "follower_count",
+        "contact_name",
+        "requested_spot_count",
+        "assigned_spot_labels",
+        "paid_before_deadline",
+        "stage"
+      ],
+      "title": "VendorSummary",
       "type": "object"
     },
     "WixFields": {

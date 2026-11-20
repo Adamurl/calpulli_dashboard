@@ -9,6 +9,7 @@ Each feature reference defines its inputs, outputs, validation, side effects, er
 | Feature | Technical reference | Operational or domain guide |
 | --- | --- | --- |
 | Health and database readiness | [Health API](health/README.md) | [Verification](VERIFICATION.md) |
+| Mexica New Year vendor applications and historical records | [Vendors API and import](mny/vendors.md) | [Vendor data](mny/vendors.md) |
 | Presentation inquiry creation, listing, detail, and status/note updates | [Presentations API](presentations/api.md) | [Presentation data](presentations/README.md) |
 | Presentation timeline and email activity | [Activity API](presentations/activity.md) | [Email workflow](email/README.md) |
 | Email recommendations, drafts, approvals, sends, retries, tasks, and staff panel | [Email workflow API](email/api.md) | [Email setup and staff guide](email/README.md) |
@@ -43,12 +44,18 @@ Health endpoints and the empty staff HTML shell are public in FastAPI. The Wix w
 
 ## Endpoint index
 
-The current application has 25 JSON operations. `{request_id}` and `{inquiry_id}` both identify a presentation request. `{message_id}` identifies a stored email scoped to that inquiry. All three are UUID strings.
+The current application has 33 JSON operations. `{request_id}` and `{inquiry_id}` both identify a presentation request. `{message_id}` identifies a stored email scoped to that inquiry. All three are UUID strings.
 
 | Method | Path | Successful response | Reference |
 | --- | --- | --- | --- |
 | GET | `/api/v1/health` | 200, health object | [Health](health/README.md) |
 | GET | `/api/v1/health/ready` | 200, readiness object | [Health](health/README.md) |
+| GET | `/api/v1/mny/vendors` | 200, year-scoped vendor page | [Vendors](mny/vendors.md#staff-api) |
+| GET | `/api/v1/mny/vendors/{vendor_id}` | 200, vendor detail | [Vendors](mny/vendors.md#staff-api) |
+| PATCH | `/api/v1/mny/vendors/{vendor_id}` | 200, updated vendor detail | [Vendors](mny/vendors.md#staff-api) |
+| POST | `/api/v1/mny/vendors/{vendor_id}/comments` | 201, saved staff comment | [Vendors](mny/vendors.md#staff-api) |
+| GET | `/api/v1/mny/vendors/statistics` | 200, full-year vendor totals | [Vendors](mny/vendors.md#staff-api) |
+| GET | `/api/v1/mny/spots` | 200, year-scoped booth inventory | [Vendors](mny/vendors.md#staff-api) |
 | GET | `/api/v1/presentations` | 200, paginated summaries | [Presentations](presentations/api.md) |
 | GET | `/api/v1/presentations/index` | 200, receipt-sorted page and total counts | [Presentation index](presentations/api.md#presentation-index-and-statistics) |
 | GET | `/api/v1/presentations/statistics` | 200, bounded receipt-date statistics | [Statistics](presentations/api.md#presentation-index-and-statistics) |
