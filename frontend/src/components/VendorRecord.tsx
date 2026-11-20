@@ -14,10 +14,12 @@ import {
 import { ApiError, apiFetch } from "../api";
 import {
   spotCountForSpace,
+  vendorCommentSchema,
   vendorDetailSchema,
   vendorStages,
 } from "../vendorData";
-import type { VendorDetail } from "../vendorData";
+import type { VendorComment, VendorDetail } from "../vendorData";
+import { CommentComposer } from "./CommentComposer";
 import { Avatar, Modal } from "./ui";
 
 const profileFields = [
@@ -169,15 +171,178 @@ function VendorEdit({
   );
 }
 
+function VendorActivity({
+  submitted,
+  created,
+  accepted,
+  comments,
+  importedNotes,
+  staffName,
+  commentPath,
+}: {
+  submitted: Date | null;
+  created: Date | null;
+  accepted: Date | null;
+  comments: VendorComment[];
+  importedNotes: string[];
+  staffName: string;
+  commentPath: `/api/v1/${string}`;
+}) {
+  const [posted, setPosted] = useState<VendorComment[]>([]);
+  const [draft, setDraft] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [error, setError] = useState("");
+  const entries = [
+    {
+      id: "submitted",
+      title: "Application received",
+      at: submitted,
+      kind: "created",
+      body: null,
+    },
+    {
+      id: "created",
+      title: "Vendor record created",
+      at: created,
+      kind: "created",
+      body: null,
+    },
+    {
+      id: "accepted",
+      title: "Acceptance email sent",
+      at: accepted,
+      kind: "email_sent",
+      body: null,
+    },
+    ...[...comments, ...posted].map((comment) => ({
+      id: comment.id,
+      title: "Staff comment",
+      at: new Date(comment.created_at),
+      kind: "note_added",
+      body: comment.body,
+    })),
+  ]
+    .flatMap(({ at, ...entry }) => (at ? [{ ...entry, at }] : []))
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  async function post(body: string) {
+    setError("");
+    setPosting(true);
+    try {
+      const response = await apiFetch(commentPath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const comment = vendorCommentSchema.parse(await response.json());
+      setPosted((current) => [...current, comment]);
+      setDraft("");
+    } catch (failure) {
+      setError(
+        failure instanceof ApiError
+          ? failure.message
+          : "Unable to post the comment. Try again.",
+      );
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  const dateLabel = (at: Date) =>
+    at.toLocaleDateString([], {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  return (
+    <div className="activity-pane vendor-activity">
+      <section className="timeline-section">
+        <h2>
+          Activity{" "}
+          <span className="muted">
+            Only you and other staff can see comments
+          </span>
+        </h2>
+        <CommentComposer
+          staffName={staffName}
+          value={draft}
+          onChange={setDraft}
+          onPost={(comment) => void post(comment)}
+          saving={posting}
+        />
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {entries.length || importedNotes.length ? (
+          <div className="shopify-timeline">
+            {entries.map(({ id, title, at, kind, body }, index) => (
+              <div key={id}>
+                {(index === 0 ||
+                  dateLabel(at) !== dateLabel(entries[index - 1].at)) && (
+                  <div className="timeline-day">{dateLabel(at)}</div>
+                )}
+                <article className={`shopify-activity activity-${kind}`}>
+                  <span className="shopify-activity-dot" />
+                  <div className="shopify-activity-copy">
+                    <header>
+                      <strong>{title}</strong>
+                      <time dateTime={at.toISOString()}>
+                        {at.toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </time>
+                    </header>
+                    {body && <p>{body}</p>}
+                  </div>
+                </article>
+              </div>
+            ))}
+            {importedNotes.length > 0 && (
+              <>
+                <div className="timeline-day">
+                  Earlier notes · date unavailable
+                </div>
+                {importedNotes.map((note) => (
+                  <article
+                    className="shopify-activity activity-note_added"
+                    key={note}
+                  >
+                    <span className="shopify-activity-dot" />
+                    <div className="shopify-activity-copy">
+                      <strong>Staff note</strong>
+                      <p>{note}</p>
+                    </div>
+                  </article>
+                ))}
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="empty-activity">No activity is recorded.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function VendorRecord({
   initial,
+  staffName,
   path,
+  commentPath,
   back,
   move,
   onSaved,
 }: {
   initial: VendorDetail;
+  staffName: string;
   path: `/api/v1/${string}`;
+  commentPath: `/api/v1/${string}`;
   back: ReactNode;
   move: (id: string) => void;
   onSaved: () => void;
@@ -197,6 +362,21 @@ export function VendorRecord({
   const cash = amount(legacy.cash_amount);
   const paymentMethod = text(legacy.payment_method);
   const reportedMethod = paymentMethod?.toLowerCase();
+  const importedNotes = [
+    ...new Set(
+      [
+        text(staff.staff_note),
+        text(legacy.internal_notes),
+        text(legacy.additional_notes),
+      ].filter((note) => note !== null),
+    ),
+  ];
+  const comments = Array.isArray(initial.responses.comments)
+    ? initial.responses.comments.flatMap((entry) => {
+        const parsed = vendorCommentSchema.safeParse(entry);
+        return parsed.success ? [parsed.data] : [];
+      })
+    : [];
   const phoneLink = vendor.phone?.replace(/[^+\d]/g, "");
   const profile: Profile = {
     business_name: vendor.business_name,
@@ -454,6 +634,15 @@ export function VendorRecord({
               </table>
             </div>
           </section>
+          <VendorActivity
+            submitted={timestamp(vendor.submitted_at ?? legacy.submitted_at)}
+            created={timestamp(legacy.created_at)}
+            accepted={accepted}
+            comments={comments}
+            importedNotes={importedNotes}
+            staffName={staffName}
+            commentPath={commentPath}
+          />
         </div>
         <aside className="client-sidebar vendor-sidebar">
           <section>
