@@ -9,6 +9,7 @@ Each feature reference defines its inputs, outputs, validation, side effects, er
 | Feature | Technical reference | Operational or domain guide |
 | --- | --- | --- |
 | Health and database readiness | [Health API](health/README.md) | [Verification](VERIFICATION.md) |
+| Mexica New Year vendor applications and historical records | [Vendors API and import](mny/vendors.md) | [Vendor data](mny/vendors.md) |
 | Presentation inquiry creation, listing, detail, and status/note updates | [Presentations API](presentations/api.md) | [Presentation data](presentations/README.md) |
 | Presentation timeline and email activity | [Activity API](presentations/activity.md) | [Email workflow](email/README.md) |
 | Email recommendations, drafts, approvals, sends, retries, tasks, and staff panel | [Email workflow API](email/api.md) | [Email setup and staff guide](email/README.md) |
