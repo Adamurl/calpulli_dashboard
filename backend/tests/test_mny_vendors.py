@@ -236,3 +236,73 @@ def test_archive_preserves_legacy_spots_and_outcomes(pg_session):
     assert archived["responses"]["legacy_vendor"]["payment_status"] == "paid"
     assert archived["responses"]["legacy_vendor"]["spot_numbers"] == ["f1"]
     assert archived["responses"]["linked_spots"][0]["spot"]["label"] == "f2"
+
+
+@pytest.mark.integration
+def test_vendor_statistics_cover_year_and_table_search_is_paginated(
+    form_csv, pg_session, database_url, staff_auth
+):
+    historical = [
+        {
+            "event_year": 2026,
+            "source": "legacy_vendor",
+            "source_key": "first",
+            "business_name": "First 100% Crafts",
+            "contact_name": "Drew",
+            "responses": {
+                "legacy_vendor": {
+                    "requested_spot_count": 4,
+                    "spot_numbers": [14, "f14"],
+                    "paid_before_deadline": False,
+                    "amount_paid": "125.50",
+                },
+                "linked_spots": [{"spot": {"label": "f2"}}],
+            },
+        },
+        {
+            "event_year": 2026,
+            "source": "legacy_vendor",
+            "source_key": "second",
+            "business_name": "Second Crafts",
+            "contact_name": "Cameron",
+            "responses": {
+                "legacy_vendor": {"amount_paid": 0},
+                "linked_spots": [{"spot": {"label": "f3"}}],
+            },
+        },
+    ]
+    current = read_csv(form_csv, event_year=2027, timezone="America/Los_Angeles")
+    assert apply_import(pg_session, [*historical, *current]) == 3
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
+    )
+    app.dependency_overrides[get_session] = lambda: pg_session
+    headers = {"Authorization": "Bearer vendor-test-token"}
+    with TestClient(app) as client:
+        stats_url = f"{API}/statistics"
+        assert client.get(stats_url, params={"event_year": 2026}).status_code == 401
+        page = client.get(API, params={"event_year": 2026, "limit": 1}, headers=headers).json()
+        assert page["total"] == 2
+        [vendor] = page["items"]
+        assert vendor["contact_name"] == "Drew"
+        assert vendor["requested_spot_count"] == 4
+        assert vendor["assigned_spot_labels"] == ["14", "f14"]
+        assert vendor["paid_before_deadline"] is False
+        found = client.get(API, params={"event_year": 2026, "q": "CAMERON"}, headers=headers)
+        assert found.json()["items"][0]["assigned_spot_labels"] == ["f3"]
+        literal = client.get(API, params={"event_year": 2026, "q": "%"}, headers=headers)
+        assert literal.json()["total"] == 1
+        stats = client.get(stats_url, params={"event_year": 2026}, headers=headers)
+        assert stats.json() == {
+            "total_vendors": 2,
+            "total_paid": 125.5,
+            "requested_spots": 5,
+            "assigned_spots": 3,
+        }
+        stats = client.get(stats_url, params={"event_year": 2027}, headers=headers)
+        assert stats.json() == {
+            "total_vendors": 1,
+            "total_paid": None,
+            "requested_spots": None,
+            "assigned_spots": None,
+        }

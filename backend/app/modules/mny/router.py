@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -72,6 +73,13 @@ class VendorList(BaseModel):
     total: int
 
 
+class VendorStatistics(BaseModel):
+    total_vendors: int
+    total_paid: float | None
+    requested_spots: int | None
+    assigned_spots: int | None
+
+
 @router.get("")
 def list_vendors(
     session: DbSession,
@@ -124,6 +132,38 @@ def list_vendors(
         limit=limit,
         offset=offset,
         total=total or 0,
+    )
+
+
+@router.get("/statistics")
+def get_statistics(session: DbSession, event_year: EventYear) -> VendorStatistics:
+    try:
+        rows = session.execute(
+            select(
+                VendorApplication.responses["legacy_vendor"],
+                VendorApplication.responses["linked_spots"],
+            ).where(VendorApplication.event_year == event_year)
+        )
+        total_vendors = 0
+        total_paid: Decimal | None = None
+        requested_spots: int | None = None
+        assigned_spots: int | None = None
+        for vendor, links in rows:
+            total_vendors += 1
+            facts = LegacyVendorFacts.from_snapshot(vendor, links)
+            if facts.amount_paid is not None:
+                total_paid = (total_paid or Decimal(0)) + facts.amount_paid
+            if facts.requested_count is not None:
+                requested_spots = (requested_spots or 0) + facts.requested_count
+            if facts.assigned_count is not None:
+                assigned_spots = (assigned_spots or 0) + facts.assigned_count
+    except OperationalError:
+        raise HTTPException(503, "Database unavailable") from None
+    return VendorStatistics(
+        total_vendors=total_vendors,
+        total_paid=float(total_paid) if total_paid is not None else None,
+        requested_spots=requested_spots,
+        assigned_spots=assigned_spots,
     )
 
 
