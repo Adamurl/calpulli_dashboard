@@ -20,6 +20,7 @@ import type { Inquiry, Page } from "../domain";
 import { errorMessage, fetchPresentations, toInquiry } from "../presentations";
 import type { LoadState, Presentation } from "../presentations";
 import { mexicaNewYearPages } from "../navigation";
+import type { VendorRoute } from "../navigation";
 import { Sidebar } from "./Sidebar";
 import { LivePresentationIndex } from "./LivePresentationIndex";
 import { fetchPresentationIndex } from "../indexData";
@@ -43,6 +44,7 @@ export function LiveWorkspace({
   session,
   page,
   detail,
+  vendor,
   open: openPresentation,
   navigate,
   logout,
@@ -50,6 +52,8 @@ export function LiveWorkspace({
   session: Session;
   page: Page;
   detail: string | null;
+  vendor: VendorRoute;
+  navigateVendor: (route: VendorRoute) => void;
   open: (id: string) => void;
   navigate: (page: Page) => void;
   logout: () => Promise<string | null>;
@@ -232,7 +236,11 @@ export function LiveWorkspace({
             ) : (
               <h1 className="page-title">
                 <Icon size={17} aria-hidden="true" />
-                {detail ? `Presentation #${detail.slice(0, 8)}` : page}
+                {detail
+                  ? `Presentation #${detail.slice(0, 8)}`
+                  : page === "Vendors" && vendor.id
+                    ? "Vendor details"
+                    : page}
               </h1>
             )}
           </div>
