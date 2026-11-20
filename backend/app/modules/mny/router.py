@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, StringConstraints
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
@@ -64,6 +64,26 @@ class VendorDetail(VendorSummary):
     responses: dict[str, Any]
     previous_id: UUID | None
     next_id: UUID | None
+
+
+ProfileText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
+
+
+class VendorPatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    business_name: ProfileText | None = None
+    category: ProfileText | None = None
+    contact_name: ProfileText | None = None
+    email: ProfileText | None = None
+    phone: ProfileText | None = None
+    requested_space: ProfileText | None = None
+    website: ProfileText | None = None
+    instagram: ProfileText | None = None
+    facebook: ProfileText | None = None
+    staff_note: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=10000)] | None
+    ) = None
 
 
 class VendorList(BaseModel):
@@ -211,5 +231,31 @@ def vendor_detail(record: VendorApplication, session: Session) -> VendorDetail:
 def get_vendor(vendor_id: UUID, session: DbSession, event_year: EventYear) -> VendorDetail:
     try:
         return vendor_detail(vendor_record(vendor_id, session, event_year), session)
+    except OperationalError:
+        raise HTTPException(503, "Database unavailable") from None
+
+
+@router.patch("/{vendor_id}")
+def update_vendor(
+    vendor_id: UUID, payload: VendorPatch, session: DbSession, event_year: EventYear
+) -> VendorDetail:
+    try:
+        with session.begin():
+            record = vendor_record(vendor_id, session, event_year, lock=True)
+            changes = payload.model_dump(exclude_unset=True)
+            for field in ("business_name", "category", "contact_name", "email", "phone"):
+                if field in changes:
+                    setattr(record, field, changes.pop(field) or None)
+            if changes:
+                staff_details = record.responses.get("staff_details", {})
+                record.responses = {
+                    **record.responses,
+                    "staff_details": {
+                        **staff_details,
+                        **{field: value or None for field, value in changes.items()},
+                    },
+                }
+            session.flush()
+            return vendor_detail(record, session)
     except OperationalError:
         raise HTTPException(503, "Database unavailable") from None

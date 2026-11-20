@@ -99,6 +99,12 @@ def test_vendor_routes_require_staff(staff_auth):
     with TestClient(app) as client:
         assert client.get(API, params={"event_year": 2027}).status_code == 401
         assert client.get(detail, params={"event_year": 2026}).status_code == 401
+        assert (
+            client.patch(
+                detail, params={"event_year": 2026}, json={"staff_note": "Test"}
+            ).status_code
+            == 401
+        )
 
 
 @pytest.mark.integration
@@ -156,6 +162,68 @@ def test_vendor_filters_and_sort_apply_before_pagination(pg_session, database_ur
         stage_page = listed(sort="stage", direction="desc", limit=2)
         assert stage_page["total"] == len(examples)
         assert [item["business_name"] for item in stage_page["items"]] == ["Delta", "Charlie"]
+
+
+@pytest.mark.integration
+def test_staff_can_edit_a_vendor_without_changing_imported_responses(
+    form_csv, pg_session, database_url, staff_auth
+):
+    [vendor] = read_csv(form_csv, event_year=2027, timezone="America/Los_Angeles")
+    neighbor = {**vendor, "source_key": "neighbor", "business_name": "Zebra Craft"}
+    assert apply_import(pg_session, [vendor, neighbor]) == 2
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
+    )
+
+    def request_session():
+        try:
+            yield pg_session
+        finally:
+            pg_session.rollback()
+
+    app.dependency_overrides[get_session] = request_session
+    headers = {"Authorization": "Bearer vendor-test-token"}
+    params = {"event_year": 2027}
+    with TestClient(app) as client:
+        first, second = client.get(API, params=params, headers=headers).json()["items"]
+        url = f"{API}/{first['id']}"
+        assert (
+            client.patch(
+                url, params=params, headers=headers, json={"assigned_spot_labels": []}
+            ).status_code
+            == 422
+        )
+        assert (
+            client.patch(
+                url,
+                params={"event_year": 2026},
+                headers=headers,
+                json={"staff_note": "Wrong year"},
+            ).status_code
+            == 404
+        )
+        updated = client.patch(
+            url,
+            params=params,
+            headers=headers,
+            json={"business_name": "Edited Vendor", "requested_space": "10 x 20"},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["next_id"] == second["id"]
+        assert updated.json()["previous_id"] is None
+        assert (
+            client.patch(
+                url, params=params, headers=headers, json={"staff_note": "  Call back.  "}
+            ).status_code
+            == 200
+        )
+        saved = client.get(url, params=params, headers=headers).json()
+        assert saved["business_name"] == "Edited Vendor"
+        assert saved["responses"]["booth_size_requested"] == "10 x 10"
+        assert saved["responses"]["staff_details"] == {
+            "requested_space": "10 x 20",
+            "staff_note": "Call back.",
+        }
 
 
 @pytest.mark.integration
