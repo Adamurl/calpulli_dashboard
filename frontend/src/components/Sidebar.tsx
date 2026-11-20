@@ -48,9 +48,12 @@ export function Sidebar({
   close: () => void;
   collapsed: boolean;
 }) {
+  const mnyActive = mexicaNewYearPages.includes(page);
+  const mnyOpen = mnyActive && !collapsed;
   const [account, setAccount] = useState(false);
   const childActive = presentationChildren.includes(page);
   const presentationActive = page === "Presentations" || childActive;
+  const presentationOpen = presentationActive && !collapsed;
   return (
     <>
       <button
@@ -103,14 +106,14 @@ export function Sidebar({
             <Home size={16} />
             <span>Home</span>
           </button>
-          <Collapsible className="presentation-module" open={!collapsed}>
+          <Collapsible className="presentation-module" open={presentationOpen}>
             <div className="module-nav-row">
               <button
                 className={`nav-item ${presentationActive ? "active" : ""}`}
                 aria-label="Presentations"
                 title="Presentations"
                 aria-current={page === "Presentations" ? "page" : undefined}
-                aria-expanded={!collapsed}
+                aria-expanded={presentationOpen}
                 aria-controls="presentation-tools"
                 onClick={() => {
                   if (collapsed) close();
@@ -143,13 +146,13 @@ export function Sidebar({
               ))}
             </CollapsibleContent>
           </Collapsible>
-          <Collapsible className="mny-module" open={!collapsed}>
+          <Collapsible className="mny-module" open={mnyOpen}>
             <div className="module-nav-row">
               <button
-                className={`nav-item ${mexicaNewYearPages.includes(page) ? "active" : ""}`}
+                className={`nav-item ${mnyActive ? "active" : ""}`}
                 aria-label="Mexica New Year"
                 title="Mexica New Year"
-                aria-expanded={!collapsed}
+                aria-expanded={mnyOpen}
                 aria-controls="mny-tools"
                 onClick={() => {
                   if (collapsed) close();

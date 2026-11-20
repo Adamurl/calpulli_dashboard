@@ -134,8 +134,13 @@
           "Presentation-specific pages are nested under the module",
         );
         check(
+          button("Presentations").getAttribute("aria-expanded") === "false",
+          "Presentation section starts closed on Home",
+        );
+        await click("Presentations");
+        check(
           button("Presentations").getAttribute("aria-expanded") === "true",
-          "Presentation section starts expanded",
+          "Presentation section opens when selected",
         );
         await click("Templates");
         check(
@@ -148,6 +153,19 @@
           !button("Presentations").hasAttribute("aria-current"),
           "Only the selected child is marked as the current page",
         );
+        await click("Mexica New Year");
+        check(
+          button("Mexica New Year").getAttribute("aria-expanded") === "true" &&
+            button("Presentations").getAttribute("aria-expanded") === "false",
+          "Mexica New Year opens its own submenu",
+        );
+        await click("Presentations");
+        check(
+          button("Presentations").getAttribute("aria-expanded") === "true" &&
+            button("Mexica New Year").getAttribute("aria-expanded") === "false",
+          "Switching modules closes the previous submenu",
+        );
+        await click("Templates");
         check(
           !doc().querySelector(".module-disclosure"),
           "Presentation submenu has no disclosure arrow",
@@ -233,6 +251,8 @@
           !visible(button("Templates")),
           "Closed mobile navigation hides child links",
         );
+        await click("Open navigation");
+        await click("Presentations");
         await click("Open navigation");
         check(
           visible(button("Templates")),
