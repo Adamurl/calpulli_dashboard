@@ -1126,6 +1126,13 @@ small {
   }
 }
 
+.table-tools .search-field:focus-within,
+.table-tools .search-field input:focus-visible {
+  outline: none;
+}
+.table-tools .search-field:focus-within {
+  background-color: #f5f5f5;
+}
 .table-scroll {
   overflow: auto;
 }
@@ -4435,9 +4442,9 @@ input[type="checkbox"]:indeterminate::after {
   outline: none;
   box-shadow: none;
 }
-.note-composer:focus-within {
-  outline: 2px solid #3874cb;
-  outline-offset: 3px;
+.note-composer:has(textarea:focus),
+.note-composer textarea:focus {
+  background-color: #f5f5f5;
 }
 .presentation-edit-form .event-type-chip {
   display: inline-flex;
