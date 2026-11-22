@@ -33,6 +33,7 @@ class OutgoingEmail:
     in_reply_to: str | None = None
     references: str | None = None
     original_recipient: str | None = None
+    provider_reply_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -215,6 +216,8 @@ def _json(result: HttpResult, *, sending: bool) -> dict[str, object]:
 
 
 class GmailProvider:
+    provider_name = "gmail"
+
     def __init__(self, settings: GmailSettings, transport: Transport | None = None) -> None:
         self.settings = settings
         self.transport = transport or UrllibTransport()
@@ -313,6 +316,8 @@ class GmailProvider:
 
 
 class MockEmailProvider:
+    provider_name = "mock"
+
     def __init__(self, settings: GmailSettings | None = None) -> None:
         self.settings = settings
         self.messages: list[OutgoingEmail] = []
