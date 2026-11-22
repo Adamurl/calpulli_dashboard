@@ -28,6 +28,7 @@ import { fetchPresentationIndex } from "../indexData";
 import { LiveDetail } from "./LiveDetail";
 import { Clients, LiveTemplates } from "./WorkspacePages";
 import { Modal } from "./ui";
+import { OutlookMailbox } from "./OutlookMailbox";
 
 const icons = {
   Home,
@@ -356,6 +357,7 @@ export function LiveWorkspace({
           </div>
         ) : page === "Inbox" ? (
           <div className="list-page">
+            <OutlookMailbox />
             <section className="card live-request-list">
               <h2>Presentation conversations</h2>
               <p>
