@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { useEffect, useMemo, useState } from "react";
 import { Mail, Plus, Reply, Send, Save, RefreshCw } from "lucide-react";
 import type { Inquiry } from "../domain";
@@ -316,7 +317,9 @@ export function PresentationEmailThread({
                 <Avatar name={personName()} />
                 <div>
                   <strong>{personName()}</strong>
-                  <small>To {message.recipient_email || "Not provided"}</small>
+                  <small>
+                    To {optionalText(message.recipient_email) ?? "-"}
+                  </small>
                 </div>
                 <time>
                   {new Date(

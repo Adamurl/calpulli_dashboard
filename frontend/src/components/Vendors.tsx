@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { useEffect, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import {
@@ -253,7 +254,7 @@ function VendorStatistics({
                   {state.kind === "loading" ? (
                     <Skeleton className="skeleton-stat-value" />
                   ) : value === null ? (
-                    <span className="muted">Unavailable</span>
+                    <span className="muted">-</span>
                   ) : (
                     <strong>
                       {key === "total_paid"
@@ -272,7 +273,7 @@ function VendorStatistics({
 }
 
 function labelsText(labels: string[] | null) {
-  return labels?.join(", ") || "-";
+  return labels?.map(optionalText).filter(Boolean).join(", ") || "-";
 }
 
 function paidText(paid: boolean | null) {
@@ -461,6 +462,7 @@ function VendorIndex({
           ) : rows.length ? (
             rows.map((row) => {
               const route = { year, id: row.id };
+              const businessName = optionalText(row.business_name);
               const badge = vendorStages[row.stage];
               const submitted = row.submitted_at
                 ? new Date(row.submitted_at)
@@ -470,9 +472,7 @@ function VendorIndex({
                   <a
                     className="table-link normal"
                     aria-label={
-                      row.business_name?.trim()
-                        ? undefined
-                        : "Open unnamed vendor"
+                      businessName ? undefined : "Open unnamed vendor"
                     }
                     href={vendorPath(route)}
                     onClick={(event) => {
@@ -480,7 +480,7 @@ function VendorIndex({
                       follow(event, route, navigate);
                     }}
                   >
-                    {row.business_name?.trim() || "-"}
+                    {businessName ?? "-"}
                   </a>
                 ),
                 stage:
@@ -492,8 +492,8 @@ function VendorIndex({
                       {badge.label}
                     </span>
                   ),
-                contact: row.contact_name?.trim() || "-",
-                category: row.category?.trim() || "-",
+                contact: optionalText(row.contact_name) || "-",
+                category: optionalText(row.category) || "-",
                 received:
                   submitted && Number.isFinite(submitted.getTime())
                     ? applicationDate.format(submitted)
@@ -509,7 +509,7 @@ function VendorIndex({
                   tabIndex={nameHidden ? 0 : undefined}
                   aria-label={
                     nameHidden
-                      ? `Open vendor ${row.business_name || "record"}`
+                      ? `Open vendor ${businessName ?? "record"}`
                       : undefined
                   }
                   onKeyDown={(event) => {

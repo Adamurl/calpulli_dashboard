@@ -161,7 +161,9 @@
           "Operational attendance and logistics fields display",
         );
         check(
-          text().includes("Not provided") && !text().includes("Invalid Date"),
+          [...doc().querySelectorAll(".fact-pair dd")].some(
+            (value) => value.textContent === "-",
+          ) && !text().includes("Invalid Date"),
           "Unknown historical fields stay missing without fabricated dates",
         );
         doc().querySelector(".original-submission summary").click();

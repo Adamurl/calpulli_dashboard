@@ -284,7 +284,7 @@ export function PresentationEditModal({
                 value={form.event_access}
                 onChange={(event) => change("event_access", event.target.value)}
               >
-                <option value="">Not provided</option>
+                <option value="">-</option>
                 <option value="public">Public</option>
                 <option value="private">Private</option>
               </select>
@@ -297,7 +297,7 @@ export function PresentationEditModal({
                   change("event_setting", event.target.value)
                 }
               >
-                <option value="">Not provided</option>
+                <option value="">-</option>
                 <option value="indoor">Indoor</option>
                 <option value="outdoor">Outdoor</option>
                 <option value="unsure">Unsure</option>
@@ -311,7 +311,7 @@ export function PresentationEditModal({
                   change("audience_distance_12ft", event.target.value)
                 }
               >
-                <option value="">Not provided</option>
+                <option value="">-</option>
                 <option value="yes">At least 12 feet</option>
                 <option value="no">Less than 12 feet</option>
                 <option value="unsure">Unsure</option>

@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { useEffect, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { statusLabels } from "../domain";
@@ -9,10 +10,10 @@ import type { LoadState } from "../presentations";
 import { Skeleton } from "./Skeleton";
 
 function dateLabel(value: string | null | undefined) {
-  if (!value) return "Not recorded";
+  if (!value) return "-";
   const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
   return Number.isNaN(date.getTime())
-    ? "Not recorded"
+    ? "-"
     : date.toLocaleDateString([], {
         month: "short",
         day: "numeric",
@@ -69,7 +70,7 @@ export function Clients({
   const matches = live
     ? []
     : items.filter((item) =>
-        `${item.name} ${item.organization} ${item.email}`
+        `${optionalText(item.name) ?? "-"} ${optionalText(item.organization) ?? "-"} ${item.email}`
           .toLowerCase()
           .includes(query.trim().toLowerCase()),
       );
@@ -177,11 +178,11 @@ export function Clients({
                               open(item.id);
                             }}
                           >
-                            {item.name}
+                            {optionalText(item.name) ?? "-"}
                           </button>
                         </th>
-                        <td>{item.email || "Not provided"}</td>
-                        <td>{item.organization}</td>
+                        <td>{optionalText(item.email) ?? "-"}</td>
+                        <td>{optionalText(item.organization) ?? "-"}</td>
                         <td>{dateLabel(item.receivedAt)}</td>
                         <td>{dateLabel(item.date)}</td>
                         <td>

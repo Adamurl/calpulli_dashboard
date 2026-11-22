@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
@@ -95,7 +96,9 @@ function FactRows({ rows }: { rows: [string, ReactNode][] }) {
       {rows.map(([label, value]) => (
         <div className="fact-pair" key={label}>
           <dt>{label}</dt>
-          <dd>{value ?? "N/A"}</dd>
+          <dd>
+            {(typeof value === "string" ? optionalText(value) : value) ?? "-"}
+          </dd>
         </div>
       ))}
     </dl>
@@ -359,11 +362,11 @@ export function VendorRecord({
   const accepted = timestamp(legacy.acceptance_email_sent_at);
   const hasAcceptance =
     Boolean(accepted) || legacy.acceptance_email_sent === true;
-  const payment = text(legacy.payment_status);
+  const payment = optionalText(text(legacy.payment_status));
   const paid = payment?.toLowerCase() === "paid";
   const zelle = amount(legacy.zelle_amount);
   const cash = amount(legacy.cash_amount);
-  const paymentMethod = text(legacy.payment_method);
+  const paymentMethod = optionalText(text(legacy.payment_method));
   const reportedMethod = paymentMethod?.toLowerCase();
   const importedNotes = [
     ...new Set(
@@ -380,7 +383,13 @@ export function VendorRecord({
         return parsed.success ? [parsed.data] : [];
       })
     : [];
-  const phoneLink = vendor.phone?.replace(/[^+\d]/g, "");
+  const contactName = optionalText(vendor.contact_name);
+  const contactEmail = optionalText(vendor.email);
+  const contactPhone = optionalText(vendor.phone);
+  const mailingAddress = optionalText(
+    text(vendor.responses.mailing_address ?? legacy.mailing_address),
+  );
+  const phoneLink = contactPhone?.replace(/[^+\d]/g, "");
   const profile: Profile = {
     business_name: vendor.business_name,
     category: vendor.category,
@@ -413,7 +422,7 @@ export function VendorRecord({
         ? payment
             .replace(/[_-]/g, " ")
             .replace(/^./, (character) => character.toUpperCase())
-        : "No payment recorded",
+        : null,
     ],
     ["Total paid", amount(legacy.amount_paid)],
     ["Requested spots", requestedCount],
@@ -434,12 +443,14 @@ export function VendorRecord({
   ];
   if (paymentMethod && reportedMethod !== "cash" && reportedMethod !== "zelle")
     methodRows.push(["Other method", paymentMethod]);
-  const merchandise = text(vendor.responses.merchandise ?? legacy.merchandise);
+  const merchandise = optionalText(
+    text(vendor.responses.merchandise ?? legacy.merchandise),
+  );
   const links = [
     {
       label: "Instagram",
       Icon: Instagram,
-      value: profile.instagram,
+      value: optionalText(profile.instagram),
       href: profile.instagram
         ? webLink(profile.instagram, "instagram")
         : undefined,
@@ -447,7 +458,7 @@ export function VendorRecord({
     {
       label: "Facebook",
       Icon: Facebook,
-      value: profile.facebook,
+      value: optionalText(profile.facebook),
       href: profile.facebook
         ? webLink(profile.facebook, "facebook")
         : undefined,
@@ -455,7 +466,7 @@ export function VendorRecord({
     {
       label: "Website",
       Icon: Globe,
-      value: profile.website,
+      value: optionalText(profile.website),
       href: profile.website ? webLink(profile.website) : undefined,
     },
   ];
@@ -533,10 +544,10 @@ export function VendorRecord({
           <div className="detail-title">
             <div>
               <h2>
-                {vendor.business_name || "Unnamed vendor"}
+                {optionalText(vendor.business_name) ?? "-"}
                 <span className={`badge ${stage.color}`}>
                   <Circle size={8} aria-hidden="true" />
-                  {stage.label}
+                  {vendor.stage === "unknown" ? "-" : stage.label}
                 </span>
               </h2>
               <p>Mexica New Year {vendor.event_year}</p>
@@ -646,10 +657,10 @@ export function VendorRecord({
                           <td>
                             {typeof spot.ring === "number"
                               ? spot.ring
-                              : (text(spot.ring) ?? "—")}
+                              : (optionalText(text(spot.ring)) ?? "-")}
                           </td>
-                          <td>{text(spot.status) ?? "—"}</td>
-                          <td>{amount(spot.price) ?? "—"}</td>
+                          <td>{optionalText(text(spot.status)) ?? "-"}</td>
+                          <td>{amount(spot.price) ?? "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -673,33 +684,25 @@ export function VendorRecord({
         <aside className="client-sidebar vendor-sidebar">
           <section>
             <h2>Contact</h2>
-            {vendor.contact_name && <Avatar name={vendor.contact_name} />}
-            <h3>{vendor.contact_name || "Name not recorded"}</h3>
-            {vendor.email && (
+            {contactName && <Avatar name={contactName} />}
+            <h3>{contactName ?? "-"}</h3>
+            {contactEmail && (
               <a
                 className="contact-link"
-                href={`mailto:${encodeURIComponent(vendor.email).replace(/%40/g, "@")}`}
+                href={`mailto:${encodeURIComponent(contactEmail).replace(/%40/g, "@")}`}
               >
-                <Mail size={14} aria-hidden="true" /> {vendor.email}
+                <Mail size={14} aria-hidden="true" /> {contactEmail}
               </a>
             )}
-            {vendor.phone && (
+            {contactPhone && (
               <a
                 className="contact-link"
                 href={phoneLink ? `tel:${phoneLink}` : undefined}
               >
-                <Phone size={14} aria-hidden="true" /> {vendor.phone}
+                <Phone size={14} aria-hidden="true" /> {contactPhone}
               </a>
             )}
-            {text(
-              vendor.responses.mailing_address ?? legacy.mailing_address,
-            ) && (
-              <p>
-                {text(
-                  vendor.responses.mailing_address ?? legacy.mailing_address,
-                )}
-              </p>
-            )}
+            {mailingAddress && <p>{mailingAddress}</p>}
           </section>
         </aside>
       </div>

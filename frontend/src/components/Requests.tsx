@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { Search, ArrowDown, ArrowUp, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -122,16 +123,17 @@ function comparePresentations(
   return (sort.ascending ? order : -order) || tie;
 }
 function receivedLabel(stamp: Inquiry["receivedAt"]) {
-  return stamp
-    ? new Date(stamp).toLocaleString("en-US", {
+  const date = new Date(stamp ?? "");
+  return Number.isNaN(date.getTime())
+    ? "-"
+    : date.toLocaleString("en-US", {
         timeZone: "America/Los_Angeles",
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-      })
-    : "Not provided";
+      });
 }
 export function Requests({
   items,
@@ -289,17 +291,17 @@ export function Requests({
       case "date":
         return dateLabel(item.date);
       case "name":
-        return item.name;
+        return optionalText(item.name) ?? "-";
       case "organization":
         return (
           <button className="table-link normal" onClick={() => open(item.id)}>
-            {item.organization}
+            {optionalText(item.organization) ?? "-"}
           </button>
         );
       case "status":
         return <Badge status={item.status} />;
       case "guests":
-        return item.guests === null ? "Not provided" : item.guests;
+        return item.guests ?? "-";
     }
   }
   return (
@@ -510,7 +512,7 @@ export function Requests({
                   key={item.id}
                   className="request-row"
                   tabIndex={0}
-                  aria-label={`Open presentation for ${item.organization}, ${item.name}`}
+                  aria-label={`Open presentation for ${optionalText(item.organization) ?? "-"}, ${optionalText(item.name) ?? "-"}`}
                   onKeyDown={(event) => {
                     if (
                       event.key === "Enter" &&

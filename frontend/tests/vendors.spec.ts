@@ -14,7 +14,7 @@ test("the vendor table paginates and searches independently of year totals", asy
   await expect(stats.getByText("21", { exact: true })).toBeVisible();
   await expect(stats.getByText("$0.00", { exact: true })).toBeVisible();
   await expect(stats.getByText("0", { exact: true })).toBeVisible();
-  await expect(stats.getByText("Unavailable", { exact: true })).toHaveCount(1);
+  await expect(stats.getByText("-", { exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: /^All\b/ })).toHaveText(
     /All\s*21/,
   );
@@ -45,6 +45,13 @@ test("the vendor table paginates and searches independently of year totals", asy
   await page.getByRole("link", { name: "Fixture Artisan" }).press("Enter");
   await expect(page.getByText("Handmade baskets")).toBeVisible();
   await expect(page.getByText("About 5k")).toBeVisible();
+  const payment = page.getByRole("region", { name: "Payment" });
+  await expect(
+    payment
+      .locator(".fact-pair")
+      .filter({ hasText: "Total paid" })
+      .locator("dd"),
+  ).toHaveText("-");
   await page.goBack();
   await expect(
     page.getByRole("textbox", { name: "Search vendors" }),

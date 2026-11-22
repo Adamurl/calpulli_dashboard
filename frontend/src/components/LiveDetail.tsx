@@ -1,3 +1,4 @@
+import { optionalText } from "../display";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -82,20 +83,22 @@ function useDetailResource<T>(
 }
 
 function valueText(value: unknown): ReactNode {
-  if (value === null || value === undefined || value === "")
-    return <span className="muted">Not provided</span>;
-  if (Array.isArray(value))
-    return value.length ? (
-      value
-        .map((entry) =>
-          typeof entry === "string" ? humanize(entry) : JSON.stringify(entry),
-        )
-        .join(", ")
-    ) : (
-      <span className="muted">Not provided</span>
-    );
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value);
+  if (Array.isArray(value)) {
+    const entries = value
+      .map((entry) => {
+        if (entry == null) return null;
+        if (typeof entry !== "string") return JSON.stringify(entry);
+        const text = optionalText(entry);
+        return text ? humanize(text) : null;
+      })
+      .filter(Boolean);
+    if (entries.length) return entries.join(", ");
+  } else if (value != null) {
+    if (typeof value === "object") return JSON.stringify(value, null, 2);
+    const text = optionalText(String(value));
+    if (text !== null) return text;
+  }
+  return <span className="muted">-</span>;
 }
 function Facts({ title, rows }: { title: string; rows: [string, unknown][] }) {
   return (
@@ -269,8 +272,15 @@ export function LiveDetail({
     );
   const item = record.data;
   const clientName =
-    item.contact_full_name ||
-    [item.contact_first_name, item.contact_last_name].filter(Boolean).join(" ");
+    optionalText(item.contact_full_name) ??
+    [
+      optionalText(item.contact_first_name),
+      optionalText(item.contact_last_name),
+    ]
+      .filter(Boolean)
+      .join(" ");
+  const clientEmail = optionalText(item.contact_email);
+  const clientPhone = optionalText(item.contact_phone);
   const edit = (values: PresentationEditPayload) => {
     void save(values).then((success) => {
       if (success) setEditOpen(false);
@@ -337,7 +347,7 @@ export function LiveDetail({
               <h2>
                 #{item.id.slice(0, 8)} <Badge status={item.status} />
               </h2>
-              <p>{item.organization_name || "Presentation request"}</p>
+              <p>{optionalText(item.organization_name) ?? "-"}</p>
             </div>
           </div>
           <div className="presentation-overview">
@@ -466,21 +476,21 @@ export function LiveDetail({
           <section>
             <h2>Client</h2>
             {clientName && <Avatar name={clientName} />}
-            <h3>{clientName || "Name not provided"}</h3>
-            {item.contact_email && (
+            <h3>{clientName || "-"}</h3>
+            {clientEmail && (
               <a
                 className="contact-link"
-                href={`mailto:${encodeURIComponent(item.contact_email).replace(/%40/g, "@")}`}
+                href={`mailto:${encodeURIComponent(clientEmail).replace(/%40/g, "@")}`}
               >
-                <Mail size={14} aria-hidden="true" /> {item.contact_email}
+                <Mail size={14} aria-hidden="true" /> {clientEmail}
               </a>
             )}
-            {item.contact_phone && (
+            {clientPhone && (
               <a
                 className="contact-link"
-                href={`tel:${item.contact_phone.replace(/[^+\d]/g, "")}`}
+                href={`tel:${clientPhone.replace(/[^+\d]/g, "")}`}
               >
-                <Phone size={14} aria-hidden="true" /> {item.contact_phone}
+                <Phone size={14} aria-hidden="true" /> {clientPhone}
               </a>
             )}
           </section>

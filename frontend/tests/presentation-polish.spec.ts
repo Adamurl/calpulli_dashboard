@@ -48,6 +48,12 @@ test("calendar keyboard selection, clearing and Escape preserve the editor", asy
   await page.goto(
     "/tests/live-fixture.html?path=/presentations/11111111-1111-4111-8111-111111111111",
   );
+  for (const field of ["Website", "Expected guests", "Event types"]) {
+    const fact = page.locator(".fact-pair").filter({
+      has: page.getByText(field, { exact: true }),
+    });
+    await expect(fact.locator("dd")).toHaveText("-");
+  }
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   const editor = page.getByRole("dialog", {
     name: "Edit presentation details",
