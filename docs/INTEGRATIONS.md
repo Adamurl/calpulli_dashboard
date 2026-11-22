@@ -1,6 +1,6 @@
 # Integration contracts and setup
 
-Detailed wire contracts are in the [Wix webhook reference](presentations/wix-webhook.md) and [Gmail provider reference](email/gmail-provider.md). Application-level email endpoints are documented in the [email workflow API](email/api.md).
+Detailed wire contracts are in the [Wix webhook reference](presentations/wix-webhook.md), [Gmail provider reference](email/gmail-provider.md), and [Outlook mailbox reference](email/outlook.md). Application-level email endpoints are documented in the [email workflow API](email/api.md).
 
 ## Current state
 

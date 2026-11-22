@@ -1,6 +1,6 @@
 # Presentation client email workflow
 
-[Documentation index](../README.md) · [API](api.md) · [Templates](templates.md) · [Gmail provider](gmail-provider.md)
+[Documentation index](../README.md) · [API](api.md) · [Templates](templates.md) · [Gmail provider](gmail-provider.md) · [Outlook mailbox and setup](outlook.md)
 
 The detailed HTTP contracts are in the [email workflow API](api.md) and [template API](templates.md). The [Gmail provider reference](gmail-provider.md) covers the internal adapter interface. This guide covers policy and operation.
 
@@ -75,7 +75,7 @@ An event body has `event`, optional `variables`, and event-specific attestations
 
 Missing values create a staff task and blocked draft. Complete it through the draft editor. Retrying the same event returns its original email and does not overwrite staff edits. Unmatched states create no email. Historical imports do not trigger emails.
 
-The existing activities endpoint includes email timeline entries through `email_message_id`, `actor_id`, and `summary`; editing a draft now records an activity entry as well. Both `request_id` and the `inquiry_id` response alias identify the inquiry. Email records and tasks use `inquiry_id`; `presentation_id` points to the same existing presentation request because there is no separate booking/presentation entity. Staff-written messages use a unique `manual:<uuid>` trigger so multiple messages can use the same template. Incoming customer email synchronization remains unimplemented.
+The existing activities endpoint includes email timeline entries through `email_message_id`, `actor_id`, and `summary`; editing a draft now records an activity entry as well. Both `request_id` and the `inquiry_id` response alias identify the inquiry. Email records and tasks use `inquiry_id`; `presentation_id` points to the same existing presentation request because there is no separate booking/presentation entity. Staff-written messages use a unique `manual:<uuid>` trigger so multiple messages can use the same template. Outlook inbox access is available through the [staff mailbox](outlook.md). Gmail inbox synchronization remains unimplemented.
 
 ## Delivery and idempotency
 
@@ -99,7 +99,7 @@ Configure these through the existing server-only environment/settings pattern:
 - `GOOGLE_REFRESH_TOKEN`
 - `GMAIL_SENDER_EMAIL`
 - `GMAIL_SENDER_NAME`
-- `EMAIL_PROVIDER` (`mock` or `gmail`)
+- `EMAIL_PROVIDER` (`mock`, `gmail`, or `microsoft`)
 - `EMAIL_TEST_MODE`
 - `EMAIL_TEST_RECIPIENT`
 - `EMAIL_SEND_AGAIN_TOKEN` (optional separate staff capability)
@@ -108,11 +108,11 @@ Obtain a refresh token for the organizational sender with only `https://www.goog
 
 When test mode is enabled, all outgoing mail redirects to `EMAIL_TEST_RECIPIENT`, with the original recipient in `X-Calpulli-Original-Recipient`. Missing test recipient blocks delivery. No client email address is logged. Redirected tests omit original client thread headers and IDs so the test recipient cannot join a real client conversation.
 
-For replies, select a previously sent message from the same inquiry and recipient using `reply_to_id`. The application preserves its subject and passes Gmail threadId plus RFC Message-ID in In-Reply-To and References. Gmail IDs and RFC Message-IDs are distinct. Incoming reply ingestion is not implemented and requires additional scope/design review later.
+For replies, select a previously sent message from the same inquiry and recipient using `reply_to_id`. The application preserves its subject and passes Gmail threadId plus RFC Message-ID in In-Reply-To and References. Gmail IDs and RFC Message-IDs are distinct. Gmail reply ingestion remains unimplemented.
 
 ## Production setup still required
 
-Review and approve template copy, apply pending migrations through 0006 on an authorized target, configure organizational OAuth and sender, run a redirected Gmail smoke test, and explicitly choose live delivery only after review. Verify individual staff identity/permissions before exposing client data in production. Use the server database role with the required table access; new tables preserve RLS with no browser policies and revoke browser-role privileges.
+Review and approve template copy, apply the current Alembic head on an authorized target, configure organizational OAuth and sender, run a redirected Gmail smoke test, and explicitly choose live delivery only after review. Verify individual staff identity/permissions before exposing client data in production. Use the server database role with the required table access; new tables preserve RLS with no browser policies and revoke browser-role privileges.
 
 Background delivery, scheduled reminders, automatic retry execution, reply ingestion, and uncertain-delivery reconciliation tooling are deferred.
 

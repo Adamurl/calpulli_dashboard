@@ -238,6 +238,41 @@ test("general composer picks real presentation and vendor records and personaliz
   await expect(dialog.getByRole("alert")).toContainText("2.5 MB");
 });
 
+test("presentation and vendor Outlook tabs query their own recorded email addresses", async ({
+  page,
+}) => {
+  await stubMailbox(page);
+  await page.goto(fixturePath(`/presentations/${presentation}`));
+  await page.getByRole("tab", { name: "Email thread" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Email thread", exact: true }),
+  ).toBeVisible();
+  const presentationMessages = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).searchParams.get("contact") ===
+      "presentation@example.invalid",
+  );
+  await page.getByRole("radio", { name: "Outlook history" }).click();
+  await presentationMessages;
+  await page.getByRole("button", { name: "New Outlook email" }).click();
+  await expect(
+    page.getByRole("dialog").getByLabel("To", { exact: true }),
+  ).toHaveValue("presentation@example.invalid");
+
+  await page.goto(fixturePath(`/mexica-new-year/vendors/${vendor}`));
+  const vendorMessages = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).searchParams.get("contact") ===
+      "fixture@example.invalid",
+  );
+  await page.getByRole("radio", { name: "Email thread" }).click();
+  await vendorMessages;
+  await page.getByRole("button", { name: "New Outlook email" }).click();
+  await expect(
+    page.getByRole("dialog").getByLabel("To", { exact: true }),
+  ).toHaveValue("fixture@example.invalid");
+});
+
 test("GUID-configured mailbox avoids ambiguous reply targets and can discover inline files", async ({
   page,
 }) => {

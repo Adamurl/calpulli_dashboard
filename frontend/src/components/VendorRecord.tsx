@@ -20,7 +20,9 @@ import {
 } from "../vendorData";
 import type { VendorComment, VendorDetail } from "../vendorData";
 import { CommentComposer } from "./CommentComposer";
+import { OutlookMailbox } from "./OutlookMailbox";
 import { Avatar, Modal } from "./ui";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 const profileFields = [
   ["business_name", "Business name"],
@@ -348,6 +350,7 @@ export function VendorRecord({
   onSaved: () => void;
 }) {
   const [vendor, setVendor] = useState(initial);
+  const [view, setView] = useState<"details" | "email">("details");
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -539,110 +542,133 @@ export function VendorRecord({
               <p>Mexica New Year {vendor.event_year}</p>
             </div>
           </div>
-          <div className="presentation-overview">
-            <section
-              className="card detail-facts"
-              aria-label="Business overview"
-            >
-              <h3>Business overview</h3>
-              <FactRows
-                rows={[
-                  ["Vendor type", vendor.category],
-                  [
-                    "Social media followers",
-                    vendor.follower_response ?? vendor.follower_count,
-                  ],
-                  [
-                    "Tribal affiliation",
-                    text(
-                      vendor.responses.tribal_affiliation ??
-                        legacy.tribal_affiliation,
-                    ),
-                  ],
-                  ...links.flatMap<[string, ReactNode]>(
-                    ({ label, Icon, value, href }) =>
-                      value
-                        ? [
-                            [
-                              label,
-                              <span className="vendor-link">
-                                <Icon size={14} aria-hidden="true" />
-                                {href ? (
-                                  <a
-                                    href={href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    {value}
-                                  </a>
-                                ) : (
-                                  value
-                                )}
-                              </span>,
-                            ],
-                          ]
-                        : [],
-                  ),
-                ]}
-              />
-              {merchandise && (
-                <dl className="vendor-merchandise">
-                  <div className="fact-pair">
-                    <dt>Merchandise</dt>
-                    <dd>{merchandise}</dd>
-                  </div>
-                </dl>
-              )}
-            </section>
-            <section className="card detail-facts" aria-label="Payment">
-              <h3>Payment</h3>
-              <FactRows rows={paymentRows} />
-              <h4 className="vendor-payment-methods">Payment methods</h4>
-              <FactRows rows={methodRows} />
-            </section>
-          </div>
-          <section
-            className="card detail-facts vendor-spots"
-            aria-label="Assigned spots"
+          <ToggleGroup<"details" | "email">
+            aria-label="Vendor record view"
+            value={[view]}
+            onValueChange={([next]) => {
+              if (next) setView(next);
+            }}
           >
-            <h3>Assigned spots</h3>
-            <FactRows rows={[["Requested space", profile.requested_space]]} />
-            <div className="template-table-wrap">
-              <table className="template-table" aria-label="Assigned spots">
-                <thead>
-                  <tr>
-                    <th scope="col">Spot</th>
-                    <th scope="col">Ring</th>
-                    <th scope="col">Spot status</th>
-                    <th scope="col">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...spots].map(([label, spot]) => (
-                    <tr key={label}>
-                      <th scope="row">{label}</th>
-                      <td>
-                        {typeof spot.ring === "number"
-                          ? spot.ring
-                          : (text(spot.ring) ?? "—")}
-                      </td>
-                      <td>{text(spot.status) ?? "—"}</td>
-                      <td>{amount(spot.price) ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-          <VendorActivity
-            submitted={timestamp(vendor.submitted_at ?? legacy.submitted_at)}
-            created={timestamp(legacy.created_at)}
-            accepted={accepted}
-            comments={comments}
-            importedNotes={importedNotes}
-            staffName={staffName}
-            commentPath={commentPath}
-          />
+            <ToggleGroupItem value="details">Details</ToggleGroupItem>
+            <ToggleGroupItem value="email">Email thread</ToggleGroupItem>
+          </ToggleGroup>
+          {view === "email" ? (
+            <OutlookMailbox
+              key={vendor.email}
+              contact={{ address: vendor.email ?? "", kind: "vendor" }}
+            />
+          ) : (
+            <>
+              <div className="presentation-overview">
+                <section
+                  className="card detail-facts"
+                  aria-label="Business overview"
+                >
+                  <h3>Business overview</h3>
+                  <FactRows
+                    rows={[
+                      ["Vendor type", vendor.category],
+                      [
+                        "Social media followers",
+                        vendor.follower_response ?? vendor.follower_count,
+                      ],
+                      [
+                        "Tribal affiliation",
+                        text(
+                          vendor.responses.tribal_affiliation ??
+                            legacy.tribal_affiliation,
+                        ),
+                      ],
+                      ...links.flatMap<[string, ReactNode]>(
+                        ({ label, Icon, value, href }) =>
+                          value
+                            ? [
+                                [
+                                  label,
+                                  <span className="vendor-link">
+                                    <Icon size={14} aria-hidden="true" />
+                                    {href ? (
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        {value}
+                                      </a>
+                                    ) : (
+                                      value
+                                    )}
+                                  </span>,
+                                ],
+                              ]
+                            : [],
+                      ),
+                    ]}
+                  />
+                  {merchandise && (
+                    <dl className="vendor-merchandise">
+                      <div className="fact-pair">
+                        <dt>Merchandise</dt>
+                        <dd>{merchandise}</dd>
+                      </div>
+                    </dl>
+                  )}
+                </section>
+                <section className="card detail-facts" aria-label="Payment">
+                  <h3>Payment</h3>
+                  <FactRows rows={paymentRows} />
+                  <h4 className="vendor-payment-methods">Payment methods</h4>
+                  <FactRows rows={methodRows} />
+                </section>
+              </div>
+              <section
+                className="card detail-facts vendor-spots"
+                aria-label="Assigned spots"
+              >
+                <h3>Assigned spots</h3>
+                <FactRows
+                  rows={[["Requested space", profile.requested_space]]}
+                />
+                <div className="template-table-wrap">
+                  <table className="template-table" aria-label="Assigned spots">
+                    <thead>
+                      <tr>
+                        <th scope="col">Spot</th>
+                        <th scope="col">Ring</th>
+                        <th scope="col">Spot status</th>
+                        <th scope="col">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...spots].map(([label, spot]) => (
+                        <tr key={label}>
+                          <th scope="row">{label}</th>
+                          <td>
+                            {typeof spot.ring === "number"
+                              ? spot.ring
+                              : (text(spot.ring) ?? "—")}
+                          </td>
+                          <td>{text(spot.status) ?? "—"}</td>
+                          <td>{amount(spot.price) ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              <VendorActivity
+                submitted={timestamp(
+                  vendor.submitted_at ?? legacy.submitted_at,
+                )}
+                created={timestamp(legacy.created_at)}
+                accepted={accepted}
+                comments={comments}
+                importedNotes={importedNotes}
+                staffName={staffName}
+                commentPath={commentPath}
+              />
+            </>
+          )}
         </div>
         <aside className="client-sidebar vendor-sidebar">
           <section>

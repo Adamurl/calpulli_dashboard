@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Mail, Plus, Reply, Send, Save, RefreshCw } from "lucide-react";
 import type { Inquiry } from "../domain";
+import { outlookTemplateOptions, presentationEmailVariables } from "../outlook";
 import {
   approveEmail,
   createEmailDraft,
@@ -19,6 +20,8 @@ import type {
   LoadState,
 } from "../presentations";
 import { Avatar, Modal } from "./ui";
+import { OutlookMailbox } from "./OutlookMailbox";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 type DraftState = {
   id: string | null;
@@ -34,17 +37,6 @@ function variableNames(value: string) {
   return [
     ...new Set([...value.matchAll(/\[([^\]]+)\]/g)].map((match) => match[1])),
   ];
-}
-
-function localVariables(item: Inquiry): Record<string, string> {
-  return {
-    Name: item.name,
-    Organization: item.organization,
-    "Event Description": item.title,
-    "Presentation Details": item.title,
-    "Requested Date": item.date,
-    Location: item.location,
-  };
 }
 
 function personName() {
@@ -79,6 +71,7 @@ export function PresentationEmailThread({
   const [deliveryMode, setDeliveryMode] = useState<string | null>(null);
   const [capabilityError, setCapabilityError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [view, setView] = useState<"workflow" | "outlook">("workflow");
   const [draft, setDraft] = useState<DraftState | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -126,8 +119,23 @@ export function PresentationEmailThread({
     [draft?.templateKey, readyTemplates],
   );
   const tokens = draft ? variableNames(`${draft.subject}\n${draft.body}`) : [];
-  const values = { ...localVariables(item), ...(draft?.variables ?? {}) };
+  const values = {
+    ...presentationEmailVariables(item),
+    ...(draft?.variables ?? {}),
+  };
   const missingValues = tokens.filter((name) => !values[name]?.trim());
+  const views = (
+    <ToggleGroup<"workflow" | "outlook">
+      aria-label="Presentation email view"
+      value={[view]}
+      onValueChange={([next]) => {
+        if (next) setView(next);
+      }}
+    >
+      <ToggleGroupItem value="workflow">Email workflow</ToggleGroupItem>
+      <ToggleGroupItem value="outlook">Outlook history</ToggleGroupItem>
+    </ToggleGroup>
+  );
 
   function startDraft(
     template: EmailTemplate,
@@ -232,8 +240,22 @@ export function PresentationEmailThread({
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
 
+  if (view === "outlook") {
+    return (
+      <section className="email-thread" aria-label="Email thread">
+        {views}
+        <OutlookMailbox
+          key={item.email}
+          contact={{ address: item.email, kind: "presentation" }}
+          templates={outlookTemplateOptions(templateList, item)}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="email-thread" aria-label="Email thread">
+      {views}
       <div className="email-thread-heading">
         <div>
           <h2>Email thread</h2>
