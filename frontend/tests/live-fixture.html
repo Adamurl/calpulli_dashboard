@@ -34,7 +34,9 @@
       event_timezone: null,
       organization_name: "Fictional Operations School",
       contact_full_name: "Fixture Contact",
-      contact_email: null,
+      contact_email: parameters.has("outlook")
+        ? "presentation@example.invalid"
+        : null,
       event_types: [],
       venue_address: "Fixture Hall",
       estimated_guests: null,
@@ -296,6 +298,7 @@
           },
         ]
       : [];
+    const browserFetch = window.fetch.bind(window);
     window.fetch = async (input, options = {}) => {
       const url = new URL(
         typeof input === "string"
@@ -322,6 +325,10 @@
         authorization: headers.get("Authorization"),
         body: options.body,
       });
+      if (url.pathname.startsWith("/api/v1/outlook/"))
+        return parameters.has("outlook")
+          ? browserFetch(input, options)
+          : reply(200, { mailbox_available: false, test_mode: true });
       if (url.pathname === "/api/v1/presentations/email-templates") {
         await delay(
           Number(parameters.get("template-delay") || 0),

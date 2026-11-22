@@ -50,11 +50,13 @@ export function Modal({
   children,
   close,
   wide = false,
+  busy = false,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   wide?: boolean;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -67,9 +69,12 @@ export function Modal({
       ref={ref}
       className={wide ? "modal wide" : "modal"}
       aria-label={title}
-      onCancel={close}
+      onCancel={(event) => {
+        if (busy) event.preventDefault();
+        else close();
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) close();
+        if (!busy && e.target === e.currentTarget) close();
       }}
     >
       <div className="modal-head">
@@ -77,6 +82,7 @@ export function Modal({
         <button
           className="icon-button"
           onClick={close}
+          disabled={busy}
           aria-label="Close dialog"
         >
           <X size={18} />
