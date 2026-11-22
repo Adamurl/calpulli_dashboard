@@ -2,13 +2,12 @@
 
 import re
 from datetime import UTC, datetime, timedelta
-from email.headerregistry import Address
-from typing import TypeGuard
 from uuid import UUID, uuid4
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.core.email_address import valid_recipient
 from app.integrations.gmail import EmailProvider, OutgoingEmail, ProviderError
 from app.modules.presentations.email_models import EmailMessage, EmailStaffTask, EmailTemplate
 from app.modules.presentations.email_registry import (
@@ -74,16 +73,6 @@ def task(session: Session, message: EmailMessage, code: str, summary: str) -> No
                 summary=summary,
             )
         )
-
-
-def valid_recipient(value: str | None) -> TypeGuard[str]:
-    if not value or any(c in value for c in "\r\n\x00"):
-        return False
-    try:
-        address = Address(addr_spec=value)
-        return bool(address.username and "." in address.domain and address.addr_spec == value)
-    except (ValueError, IndexError):
-        return False
 
 
 def inquiry_variables(inquiry: PresentationRequest) -> dict[str, str]:
@@ -383,6 +372,9 @@ def send(
         parent.subject != message.subject or parent.recipient_email != message.recipient_email
     ):
         raise EmailConflict("Reply subject and recipient must match the conversation")
+    provider_name = getattr(provider, "provider_name", None)
+    if parent and ((parent.delivery_provider == "microsoft") != (provider_name == "microsoft")):
+        raise EmailConflict("Reply using the original mailbox provider")
     outgoing = OutgoingEmail(
         recipient_email=message.recipient_email,
         recipient_name=message.recipient_name or "",
@@ -393,6 +385,7 @@ def send(
         thread_id=parent.provider_thread_id if parent else None,
         in_reply_to=parent.rfc_message_id if parent else None,
         references=parent.rfc_message_id if parent else None,
+        provider_reply_id=parent.provider_message_id if parent else None,
     )
     if retry:
         activity(session, message, "email_send_retried", "Email send retried")
@@ -419,6 +412,7 @@ def send(
         lock_inquiry(session, inquiry_id)
         message.status = "SENT"
         message.sent_at = datetime.now(UTC)
+        message.delivery_provider = provider_name
         message.provider_message_id = result.message_id
         message.provider_thread_id = result.thread_id
         message.retryable = False

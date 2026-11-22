@@ -5,6 +5,8 @@ from pydantic import AnyHttpUrl, Field, SecretStr, field_validator, model_valida
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
+from app.core.email_address import valid_recipient
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     staff_user_ids: frozenset[UUID] = frozenset()
     wix_webhook_token: SecretStr | None = Field(default=None, min_length=32)
     wix_form_id: str | None = Field(default=None, min_length=1, max_length=200)
-    email_provider: Literal["mock", "gmail"] = "mock"
+    email_provider: Literal["mock", "gmail", "microsoft"] = "mock"
     email_test_mode: bool = True
     email_test_recipient: str | None = None
     email_send_again_token: SecretStr | None = Field(default=None, min_length=32)
@@ -26,6 +28,10 @@ class Settings(BaseSettings):
     google_refresh_token: SecretStr | None = None
     gmail_sender_email: str | None = None
     gmail_sender_name: str = "Calpulli Tonalehqueh"
+    microsoft_tenant_id: UUID | None = None
+    microsoft_client_id: UUID | None = None
+    microsoft_client_secret: SecretStr | None = Field(default=None, min_length=1)
+    microsoft_mailbox: str | None = Field(default=None, max_length=320)
     docs_enabled: bool | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_origins: list[str] = []
@@ -34,6 +40,16 @@ class Settings(BaseSettings):
     db_pool_timeout: int = Field(default=5, ge=1, le=60)
     db_connect_timeout: int = Field(default=3, ge=1, le=30)
     db_statement_timeout_ms: int = Field(default=3000, ge=1, le=60000)
+
+    @field_validator("microsoft_mailbox")
+    @classmethod
+    def graph_mailbox(cls, value: str | None) -> str | None:
+        if value is not None and not valid_recipient(value):
+            try:
+                return str(UUID(value))
+            except ValueError:
+                raise ValueError("Use an Exchange mailbox UPN or Entra object ID") from None
+        return value
 
     @field_validator("supabase_url")
     @classmethod

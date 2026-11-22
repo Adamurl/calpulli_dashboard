@@ -60,7 +60,11 @@ def capabilities(
         else (
             "Test delivery: mail is redirected to the test recipient"
             if config.email_test_mode
-            else "Live Gmail delivery"
+            else (
+                "Live Outlook delivery"
+                if config.email_provider == "microsoft"
+                else "Live Gmail delivery"
+            )
         )
     )
     return {"can_send_again": allowed, "delivery_mode": mode}
