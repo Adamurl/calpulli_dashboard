@@ -17,6 +17,8 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.session import build_engine
 from app.integrations.gmail import make_provider
+from app.integrations.microsoft_graph import MicrosoftGraph
+from app.integrations.outlook_delivery import OutlookDelivery
 from app.modules.presentations.email_ui import router as email_ui_router
 
 
@@ -30,8 +32,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.session_factory = sessionmaker(bind=engine, expire_on_commit=False)
         try:
-            with httpx.Client(timeout=5, follow_redirects=False, trust_env=False) as auth_client:
+            with (
+                httpx.Client(timeout=5, follow_redirects=False, trust_env=False) as auth_client,
+                httpx.Client(timeout=12, follow_redirects=False, trust_env=False) as graph_client,
+            ):
                 app.state.auth_client = auth_client
+                graph = None
+                if (
+                    config.app_env != "test"
+                    and config.email_provider == "microsoft"
+                    and config.microsoft_tenant_id
+                    and config.microsoft_client_id
+                    and config.microsoft_client_secret
+                    and config.microsoft_mailbox
+                ):
+                    graph = MicrosoftGraph(
+                        graph_client,
+                        tenant_id=str(config.microsoft_tenant_id),
+                        client_id=str(config.microsoft_client_id),
+                        client_secret=config.microsoft_client_secret.get_secret_value(),
+                        mailbox=config.microsoft_mailbox,
+                    )
+                app.state.outlook_delivery = OutlookDelivery(config, graph)
+                if config.app_env != "test" and config.email_provider == "microsoft":
+                    app.state.email_provider = app.state.outlook_delivery
+                else:
+                    app.state.email_provider = make_provider(config)
                 yield
         finally:
             engine.dispose()
@@ -47,7 +73,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         responses={422: {"model": ErrorResponse}},
     )
     app.state.settings = config
-    app.state.email_provider = make_provider(config)
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
