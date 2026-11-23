@@ -160,6 +160,45 @@ test("schedule local times and the event calendar follow saved event dates", asy
   await expect(calendar).toHaveCount(0);
 });
 
+test("sidebar status saves through the workspace", async ({ page }) => {
+  await page.goto(presentationFixture);
+  const sidebar = page.locator(".client-sidebar");
+  const status = sidebar.getByRole("button", { name: /Request status/ });
+  await expect(status).toHaveText("Unknown");
+  expect((await status.boundingBox())?.y).toBeLessThan(
+    (await sidebar.getByRole("heading", { name: "Client" }).boundingBox())!.y,
+  );
+  await status.press("Enter");
+  const reviewing = sidebar.getByRole("radio", { name: "In review" });
+  const option = sidebar.locator("label").filter({ hasText: "In review" });
+  const optionBox = await option.boundingBox();
+  const textBox = await option
+    .getByText("In review", { exact: true })
+    .boundingBox();
+  if (!optionBox || !textBox) throw new Error("Status option is missing");
+  expect(textBox.x - optionBox.x).toBeCloseTo(8);
+  const menuBox = await sidebar.locator(".status-picker-content").boundingBox();
+  const triggerBox = await status.boundingBox();
+  if (!menuBox || !triggerBox) throw new Error("Status dropdown is missing");
+  expect(menuBox.width).toBeLessThanOrEqual(140);
+  expect(menuBox.x).toBeCloseTo(triggerBox.x);
+  await reviewing.focus();
+  await reviewing.press("Space");
+  await expect(status).toHaveText("In review");
+  await expect(page.locator(".presentation-title .badge")).toHaveText(
+    "In review",
+  );
+  await expect(page.getByText("Status changed", { exact: true })).toBeVisible();
+
+  await page.goto(`${presentationFixture}&status-conflict=1`);
+  await status.click();
+  await sidebar.getByText("In review", { exact: true }).click();
+  await expect(sidebar.getByRole("alert")).toContainText(
+    "This request changed",
+  );
+  await expect(status).toHaveText("Unknown");
+});
+
 test("reopening and saving an email draft preserves placeholders", async ({
   page,
 }) => {

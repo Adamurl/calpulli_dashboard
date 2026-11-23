@@ -113,7 +113,7 @@
       ),
       operationsFailure: false,
       emailFailure: false,
-      conflict: false,
+      conflict: parameters.has("status-conflict"),
       blockLoad: false,
       noteDelay: 0,
       detailDelay: Number(parameters.get("detail-delay") || 0),
@@ -668,6 +668,19 @@
             setTimeout(resolve, window.fixture.noteDelay),
           );
         if (patch.status) {
+          if (patch.expected_current_status !== detail.status)
+            return reply(409, {});
+          activities.unshift({
+            id: crypto.randomUUID(),
+            request_id: id,
+            kind: "status_changed",
+            actor_id: id,
+            summary: null,
+            previous_status: detail.status,
+            new_status: patch.status,
+            note: null,
+            created_at: stamp,
+          });
           detail.status = patch.status;
           summary.status = patch.status;
         }

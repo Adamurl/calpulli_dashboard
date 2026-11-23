@@ -133,17 +133,15 @@ export function PresentationSkeleton() {
       </div>
       <aside className="client-sidebar" aria-hidden="true">
         <section>
+          <h2>Status</h2>
+          <Skeleton className="detail-skeleton-control" />
+        </section>
+        <section>
           <h2>Client</h2>
           <Skeleton className="detail-skeleton-avatar" />
           <h3>
             <Skeleton className="detail-skeleton-value" />
           </h3>
-        </section>
-        <section>
-          <h2>Status</h2>
-          <Skeleton className="detail-skeleton-control" />
-          <Skeleton className="detail-skeleton-meta" />
-          <Skeleton className="detail-skeleton-meta" />
         </section>
         <FactsSkeleton
           title="Payment and paperwork"

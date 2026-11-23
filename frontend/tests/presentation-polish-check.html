@@ -255,7 +255,7 @@
           (el) => el.querySelector("h2")?.textContent === "Request details",
         );
         const client = doc().querySelector(
-          ".client-sidebar section:first-child",
+          ".client-sidebar section:nth-child(2)",
         );
         check(
           [...requestDetails.querySelectorAll("dt")]

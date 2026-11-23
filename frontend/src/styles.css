@@ -4606,6 +4606,42 @@ input[type="checkbox"]:indeterminate::after {
   width: var(--calendar-grid-width);
   height: 174px;
 }
+.live-detail .presentation-status .status-picker-trigger {
+  padding: 7px 10px;
+  width: auto;
+  min-width: 120px;
+}
+.live-detail .presentation-status .status-picker {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+}
+.live-detail .presentation-status .status-picker-content {
+  position: absolute;
+  inset-inline-start: 0;
+  z-index: 3;
+  width: max-content;
+  min-width: 100%;
+}
+.live-detail .presentation-status .status-picker-content fieldset {
+  background: white;
+  box-shadow: var(--shadow);
+}
+.live-detail .presentation-status p[role="alert"] {
+  color: inherit;
+}
+.live-detail .presentation-status .status-picker-content input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+.live-detail .presentation-status .status-picker-content label {
+  position: relative;
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: start;
+}
 @media (min-width: 1001px) {
   .presentation-event-row:has(.event-reference-calendar) {
     grid-template-columns: minmax(0, 1fr) auto;

@@ -85,6 +85,8 @@ type DetailPatch =
     }
   | PresentationEditPayload;
 
+type SaveError = { area: "status" | "comment" | "edit"; message: string };
+
 function useDetailResource<T>(
   id: string,
   fetchData: (id: string, signal: AbortSignal) => Promise<T>,
@@ -379,7 +381,7 @@ export function LiveDetail({
   const [tab, setTab] = useState<"Activity" | "Email thread">("Activity");
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
+  const [saveError, setSaveError] = useState<SaveError | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -390,7 +392,13 @@ export function LiveDetail({
   }, []);
   async function save(patch: DetailPatch): Promise<boolean> {
     setSaving(true);
-    setSaveError("");
+    const area =
+      "status" in patch
+        ? "status"
+        : "internal_notes" in patch
+          ? "comment"
+          : "edit";
+    setSaveError(null);
     try {
       const data = detailSchema.parse(
         await (
@@ -409,7 +417,7 @@ export function LiveDetail({
       activityResource.retry();
       return true;
     } catch (error) {
-      if (mounted.current) setSaveError(errorMessage(error));
+      if (mounted.current) setSaveError({ area, message: errorMessage(error) });
       return false;
     } finally {
       if (mounted.current) setSaving(false);
@@ -594,9 +602,9 @@ export function LiveDetail({
                   onPost={(comment) => void save({ internal_notes: comment })}
                   saving={saving}
                 />
-                {saveError && (
+                {saveError?.area === "comment" && (
                   <p className="error" role="alert">
-                    {saveError}
+                    {saveError.message}
                   </p>
                 )}
                 {activities.kind === "loading" ? (
@@ -653,6 +661,20 @@ export function LiveDetail({
           )}
         </div>
         <aside className="client-sidebar">
+          <section className="presentation-status">
+            <StatusPicker
+              value={item.status}
+              disabled={saving}
+              onChange={(status) => {
+                void save({ status, expected_current_status: item.status });
+              }}
+            />
+            {saveError?.area === "status" && (
+              <p className="error" role="alert">
+                {saveError.message}
+              </p>
+            )}
+          </section>
           <section>
             <h2>Client</h2>
             {clientName && <Avatar name={clientName} />}
@@ -673,19 +695,6 @@ export function LiveDetail({
                 <Phone size={14} aria-hidden="true" /> {clientPhone}
               </a>
             )}
-          </section>
-          <section>
-            <StatusPicker
-              value={item.status}
-              disabled={saving}
-              onChange={(status) => {
-                void save({ status, expected_current_status: item.status });
-              }}
-            />
-            <small className="muted">
-              Status changes are recorded in Activity. No email is sent
-              automatically.
-            </small>
           </section>
           {operations.kind === "ready" ? (
             operations.data ? (
@@ -710,7 +719,7 @@ export function LiveDetail({
         <PresentationEditModal
           item={item}
           saving={saving}
-          error={saveError}
+          error={saveError?.area === "edit" ? saveError.message : ""}
           close={() => setEditOpen(false)}
           save={edit}
         />
