@@ -204,7 +204,9 @@ test("navigation aborts stale details and failed records do not load secondary s
     );
     dispatchEvent(new PopStateEvent("popstate"));
   });
-  await expect(page.locator(".detail-title p")).toHaveText("Earlier fixture");
+  await expect(
+    page.getByRole("heading", { name: /Earlier fixture/, level: 2 }),
+  ).toBeVisible();
   expect(
     await page.evaluate(() =>
       window.fixture.calls

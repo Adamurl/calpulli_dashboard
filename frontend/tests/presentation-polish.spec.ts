@@ -1,5 +1,56 @@
 import { test, expect } from "@playwright/test";
 
+const presentationFixture =
+  "/tests/live-fixture.html?path=/presentations/11111111-1111-4111-8111-111111111111";
+
+test.describe("presentation overview", () => {
+  test.use({ timezoneId: "America/Los_Angeles" });
+
+  test("shows the organization, submission source and stacked details", async ({
+    page,
+  }) => {
+    const fixture =
+      "/tests/live-fixture.html?path=/presentations/11111111-1111-4111-8111-111111111111";
+    await page.goto(
+      `${fixture}&presentation-source=wix&received-at=2026-11-22T17:02:00Z`,
+    );
+    await expect(
+      page.getByRole("heading", { name: /Fictional Operations School/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("November 22, 2026 at 9:02 AM from website form"),
+    ).toBeVisible();
+
+    const request = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Request details", exact: true }),
+    });
+    const venue = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Event and venue", exact: true }),
+    });
+    await expect(request.getByText("Fixture form notes")).toBeVisible();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const requestBox = await request.boundingBox();
+      const venueBox = await venue.boundingBox();
+      if (!requestBox || !venueBox) throw new Error("Overview is not visible");
+      expect(requestBox.x).toBeCloseTo(venueBox.x);
+      expect(requestBox.width).toBeCloseTo(venueBox.width);
+      expect(requestBox.y + requestBox.height).toBeLessThan(venueBox.y);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+    }
+
+    await page.goto(
+      `${fixture}&organization-name=%20N%2FA%20&missing-received=1`,
+    );
+    await expect(
+      page.getByRole("heading", { name: /Fixture Contact/, level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByText("CSV import", { exact: true })).toBeVisible();
+  });
+});
+
 test("reopening and saving an email draft preserves placeholders", async ({
   page,
 }) => {

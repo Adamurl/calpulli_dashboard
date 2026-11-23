@@ -43,6 +43,26 @@ const detailTabs: readonly ("Activity" | "Email thread")[] = [
   "Email thread",
 ];
 
+const sourceLabels = {
+  wix: "Website form",
+  manual: "Manual entry",
+  legacy_csv: "CSV import",
+} satisfies Record<Presentation["source"], string>;
+const receivedDateTime = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "long",
+  timeStyle: "short",
+});
+const organizationPlaceholders = new Set([
+  "-",
+  "—",
+  "na",
+  "n.a.",
+  "n.a",
+  "n / a",
+  "none",
+  "no organization",
+  "unknown",
+]);
 type DetailPatch =
   | { internal_notes: string }
   | {
@@ -100,13 +120,26 @@ function valueText(value: unknown): ReactNode {
   }
   return <span className="muted">-</span>;
 }
-function Facts({ title, rows }: { title: string; rows: [string, unknown][] }) {
+function Facts({
+  title,
+  rows,
+  className = "",
+}: {
+  title: string;
+  rows: [label: string, value: unknown, width?: "full"][];
+  className?: string;
+}) {
   return (
-    <section className="card detail-facts">
+    <section className={`card detail-facts ${className}`.trimEnd()}>
       <h2>{title}</h2>
       <dl>
-        {rows.map(([label, value]) => (
-          <div className="fact-pair" key={label}>
+        {rows.map(([label, value, width]) => (
+          <div
+            className={
+              width === "full" ? "fact-pair fact-full-width" : "fact-pair"
+            }
+            key={label}
+          >
             <dt>{label}</dt>
             <dd>{valueText(value)}</dd>
           </div>
@@ -115,6 +148,7 @@ function Facts({ title, rows }: { title: string; rows: [string, unknown][] }) {
     </section>
   );
 }
+
 function OperationsFacts({ data }: { data: Operations }) {
   return (
     <>
@@ -281,6 +315,14 @@ export function LiveDetail({
       .join(" ");
   const clientEmail = optionalText(item.contact_email);
   const clientPhone = optionalText(item.contact_phone);
+  const organization = optionalText(item.organization_name);
+  const organizationName =
+    organization && !organizationPlaceholders.has(organization.toLowerCase())
+      ? organization
+      : null;
+  const title = organizationName ?? (clientName || "Presentation request");
+  const source = sourceLabels[item.source];
+  const received = item.received_at ? new Date(item.received_at) : null;
   const edit = (values: PresentationEditPayload) => {
     void save(values).then((success) => {
       if (success) setEditOpen(false);
@@ -342,20 +384,38 @@ export function LiveDetail({
       </div>
       <div className="detail-grid">
         <div className="detail-main">
-          <div className="detail-title">
+          <div className="detail-title presentation-title">
             <div>
               <h2>
-                #{item.id.slice(0, 8)} <Badge status={item.status} />
+                <span>{title}</span>
+                <Badge status={item.status} />
               </h2>
-              <p>{optionalText(item.organization_name) ?? "-"}</p>
+              <p className="presentation-source">
+                {received && !Number.isNaN(received.getTime()) ? (
+                  <>
+                    <time dateTime={received.toISOString()}>
+                      {receivedDateTime.format(received)}
+                    </time>{" "}
+                    from{" "}
+                    {item.source === "legacy_csv"
+                      ? "CSV import"
+                      : source.toLowerCase()}
+                  </>
+                ) : (
+                  source
+                )}
+              </p>
             </div>
           </div>
-          <div className="presentation-overview">
+          <div className="presentation-overview presentation-overview--stacked">
             <Facts
-              title="Organization"
+              title="Request details"
+              className="presentation-request-facts"
               rows={[
-                ["Organization", item.organization_name],
+                ["Organization", organizationName],
                 ["Website", item.organization_website],
+                ["Event purpose", item.event_purpose, "full"],
+                ["Additional notes", item.additional_notes, "full"],
               ]}
             />
             <Facts
@@ -368,7 +428,6 @@ export function LiveDetail({
                 ["End time", item.end_time],
                 ["Time zone", item.event_timezone],
                 ["Event types", item.event_types],
-                ["Purpose", item.event_purpose],
                 ["Public or private", item.event_access],
                 ["Indoor or outdoor", item.event_setting],
               ]}
@@ -530,7 +589,6 @@ export function LiveDetail({
               rows={[
                 ["Audience distance", item.audience_distance_12ft],
                 ["Unavailable logistics", item.unavailable_logistics],
-                ["Additional notes", item.additional_notes],
               ]}
             />
           </Disclosure>

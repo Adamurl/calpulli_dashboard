@@ -4511,6 +4511,31 @@ input[type="checkbox"]:indeterminate::after {
 .presentation-overview .detail-facts {
   padding: 20px;
 }
+.presentation-overview--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+.presentation-title h2 {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.presentation-title .presentation-source {
+  color: inherit;
+  font-size: 12px;
+}
+.live-detail .presentation-overview--stacked .detail-facts dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0 0;
+}
+.live-detail .presentation-overview--stacked .detail-facts :is(dd, .muted) {
+  color: inherit;
+  font-size: 13px;
+}
+.presentation-overview--stacked .fact-full-width {
+  grid-column: 1 / -1;
+}
+.presentation-request-facts .fact-full-width dd {
+  line-height: 1.5;
+}
 .live-detail .client-sidebar .detail-facts {
   border: 0;
   border-radius: 0;

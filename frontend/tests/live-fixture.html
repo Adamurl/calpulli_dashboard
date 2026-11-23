@@ -22,17 +22,20 @@
     const parameters = new URLSearchParams(location.search);
     const summary = {
       id,
-      source: "legacy_csv",
+      source: parameters.get("presentation-source") ?? "legacy_csv",
       form_version: "legacy_v1",
       status: "unknown",
-      received_at: stamp,
+      received_at: parameters.has("missing-received")
+        ? null
+        : (parameters.get("received-at") ?? stamp),
       created_at: stamp,
       updated_at: stamp,
       event_date: null,
       start_time: null,
       end_time: null,
       event_timezone: null,
-      organization_name: "Fictional Operations School",
+      organization_name:
+        parameters.get("organization-name") ?? "Fictional Operations School",
       contact_full_name: "Fixture Contact",
       contact_email: parameters.has("outlook")
         ? "presentation@example.invalid"

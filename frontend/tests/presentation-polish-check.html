@@ -93,8 +93,8 @@
         ];
         check(
           cards.length === 2 &&
-            cards[0].querySelectorAll(".fact-pair").length === 6 &&
-            cards[1].querySelectorAll(".fact-pair").length === 10 &&
+            cards[0].querySelectorAll(".fact-pair").length === 4 &&
+            cards[1].querySelectorAll(".fact-pair").length === 9 &&
             pending.querySelectorAll(".detail-tabs .skeleton").length === 2 &&
             pending
               .querySelector(".detail-tabs")
@@ -249,28 +249,34 @@
               .textContent.includes("Adam Gonzales"),
           "Account name and composer initials",
         );
-        const organization = [
+        const requestDetails = [
           ...doc().querySelectorAll(".presentation-overview .detail-facts"),
-        ].find((el) => el.querySelector("h2")?.textContent === "Organization");
+        ].find(
+          (el) => el.querySelector("h2")?.textContent === "Request details",
+        );
         const client = doc().querySelector(
           ".client-sidebar section:first-child",
         );
         check(
-          [...organization.querySelectorAll("dt")]
+          [...requestDetails.querySelectorAll("dt")]
             .map((label) => label.textContent)
-            .join(",") === "Organization,Website" &&
+            .join(",") ===
+            "Organization,Website,Event purpose,Additional notes" &&
             client.textContent.includes("Fixture Contact") &&
             client.querySelector('a[href^="tel:"]'),
-          "Organization and website stay in the card, with client contact details in the sidebar",
+          "Request details include the form notes, with client contact details in the sidebar",
         );
         const event = [...doc().querySelectorAll(".detail-facts")].find((el) =>
           el.textContent.includes("Event and venue"),
         );
         check(
-          event.textContent.includes(
+          requestDetails.textContent.includes(
             "A fictional cultural education request",
-          ) && !event.closest(".record-details"),
-          "Event information visible",
+          ) &&
+            requestDetails.textContent.includes("Fixture form notes") &&
+            event.textContent.includes("Fixture Hall") &&
+            !event.closest(".record-details"),
+          "Purpose and notes appear above the event and venue information",
         );
         await until(
           () => doc().body.textContent.includes("1200.00"),

@@ -4,14 +4,18 @@ export function FactsSkeleton({
   title,
   label,
   count = 9,
+  className = "",
+  fullWidthRows = [],
 }: {
   title: string;
   label: string;
   count?: number;
+  className?: string;
+  fullWidthRows?: readonly number[];
 }) {
   return (
     <section
-      className="card detail-facts detail-skeleton-facts"
+      className={`card detail-facts detail-skeleton-facts ${className}`.trimEnd()}
       aria-label={label}
       aria-busy="true"
     >
@@ -21,7 +25,14 @@ export function FactsSkeleton({
       <h2>{title}</h2>
       <dl aria-hidden="true">
         {Array.from({ length: count }, (_, index) => (
-          <div className="fact-pair" key={index}>
+          <div
+            className={
+              fullWidthRows.includes(index)
+                ? "fact-pair fact-full-width"
+                : "fact-pair"
+            }
+            key={index}
+          >
             <dt>
               <Skeleton className="detail-skeleton-label" />
             </dt>
@@ -78,16 +89,18 @@ export function PresentationSkeleton() {
             <Skeleton className="detail-skeleton-value" />
           </div>
         </div>
-        <div className="presentation-overview">
+        <div className="presentation-overview presentation-overview--stacked">
           <FactsSkeleton
-            title="Organization"
-            label="Loading organization"
-            count={2}
+            title="Request details"
+            label="Loading request details"
+            className="presentation-request-facts"
+            count={4}
+            fullWidthRows={[2, 3]}
           />
           <FactsSkeleton
             title="Event and venue"
             label="Loading event and venue"
-            count={10}
+            count={9}
           />
         </div>
         <div className="detail-tabs" aria-hidden="true">
