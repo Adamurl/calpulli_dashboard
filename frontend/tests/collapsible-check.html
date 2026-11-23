@@ -69,26 +69,23 @@
       results.textContent = "";
       try {
         await load("/presentations/11111111-1111-4111-8111-111111111111");
+        await until(() => button("Event operations"), "operations tab");
+        button("Event operations").click();
         await until(
-          () => doc().querySelectorAll(".disclosure-trigger").length === 1,
-          "disclosures",
+          () => doc().querySelector(".event-operations .disclosure-trigger"),
+          "operations disclosure",
         );
-        const disclosures = [...doc().querySelectorAll(".disclosure-trigger")];
-        check(
-          disclosures.every(
-            (el) =>
-              el.dataset.slot === "collapsible-trigger" &&
-              el.getAttribute("aria-expanded") === "false",
-          ),
-          "Detail disclosures use shadcn and start closed",
+        const disclosure = doc().querySelector(
+          ".event-operations .disclosure-trigger",
         );
         check(
-          disclosures.every(
-            (el) =>
-              style(el).paddingTop === "14px" &&
-              style(el).paddingBottom === "14px",
-          ),
-          "Top and bottom disclosure spacing is consistent",
+          disclosure.dataset.slot === "collapsible-trigger" &&
+            disclosure.getAttribute("aria-expanded") === "false",
+          "Operations disclosure uses shadcn and starts closed",
+        );
+        check(
+          style(disclosure).paddingTop === style(disclosure).paddingBottom,
+          "Operations disclosure has matching vertical spacing",
         );
         const status = doc().querySelector(".status-picker-trigger"),
           bounds = status.getBoundingClientRect();
@@ -102,24 +99,24 @@
             ) < 1,
           "Status text and arrow have matching edge insets",
         );
-        disclosures[0].click();
+        disclosure.click();
         await until(
-          () => disclosures[0].getAttribute("aria-expanded") === "true",
+          () => disclosure.getAttribute("aria-expanded") === "true",
           "open operations",
         );
         check(
           doc()
-            .getElementById(disclosures[0].getAttribute("aria-controls"))
+            .getElementById(disclosure.getAttribute("aria-controls"))
             .textContent.includes("Three reserved spaces"),
           "Operational details expand with their existing data",
         );
-        disclosures[0].click();
+        disclosure.click();
         await until(
-          () => disclosures[0].getAttribute("aria-expanded") === "false",
+          () => disclosure.getAttribute("aria-expanded") === "false",
           "closed operations",
         );
         check(
-          disclosures[0].getAttribute("aria-expanded") === "false",
+          disclosure.getAttribute("aria-expanded") === "false",
           "Operational details collapse again",
         );
         check(

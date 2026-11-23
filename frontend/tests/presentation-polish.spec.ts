@@ -160,9 +160,11 @@ test("schedule local times and the event calendar follow saved event dates", asy
   await expect(calendar).toHaveCount(0);
 });
 
-test("sidebar status saves through the workspace", async ({ page }) => {
+test("sidebar status and the operations tab preserve workspace actions", async ({
+  page,
+}) => {
   await page.goto(
-    `${presentationFixture}&client-phone=%2B14155550134&client-email=Fixture%40EXAMPLE.INVALID`,
+    `${presentationFixture}&operations-failure=1&client-phone=%2B14155550134&client-email=Fixture%40EXAMPLE.INVALID`,
   );
   const sidebar = page.locator(".client-sidebar");
   const status = sidebar.getByRole("button", { name: /Request status/ });
@@ -199,7 +201,25 @@ test("sidebar status saves through the workspace", async ({ page }) => {
   );
   await expect(page.getByText("Status changed", { exact: true })).toBeVisible();
 
-  await page.goto(`${presentationFixture}&status-conflict=1`);
+  await page.getByRole("tab", { name: "Event operations" }).click();
+  const operations = page.getByRole("tabpanel", { name: "Event operations" });
+  await expect(operations.getByRole("alert")).toBeVisible();
+  await page.evaluate(() => {
+    window.fixture.operationsFailure = false;
+  });
+  await operations.getByRole("button", { name: "Try again" }).click();
+  await expect(operations.getByText("1200.00")).toBeVisible();
+  await operations.getByRole("button", { name: "Operational details" }).click();
+  await expect(operations.getByText("Three reserved spaces")).toBeVisible();
+  await expect(sidebar.getByText("Payment and paperwork")).toHaveCount(0);
+
+  await page.goto(
+    `${presentationFixture}&operations-missing=1&status-conflict=1`,
+  );
+  await page.getByRole("tab", { name: "Event operations" }).click();
+  await expect(
+    operations.getByText("No operational information is recorded."),
+  ).toBeVisible();
   await status.click();
   await sidebar.getByText("In review", { exact: true }).click();
   await expect(sidebar.getByRole("alert")).toContainText(

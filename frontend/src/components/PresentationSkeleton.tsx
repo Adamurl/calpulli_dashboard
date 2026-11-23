@@ -111,6 +111,7 @@ export function PresentationSkeleton() {
         <div className="detail-tabs" aria-hidden="true">
           <Skeleton className="detail-skeleton-tab" />
           <Skeleton className="detail-skeleton-tab" />
+          <Skeleton className="detail-skeleton-tab" />
         </div>
         <div className="activity-pane" aria-hidden="true">
           <section className="timeline-section">
@@ -144,14 +145,6 @@ export function PresentationSkeleton() {
           <Skeleton className="detail-skeleton-value" />
           <Skeleton className="detail-skeleton-meta" />
         </section>
-        <FactsSkeleton
-          title="Payment and paperwork"
-          label="Loading operational information"
-        />
-        <div className="detail-skeleton-disclosures">
-          <Skeleton className="detail-skeleton-value" />
-          <Skeleton className="detail-skeleton-value" />
-        </div>
       </aside>
     </div>
   );

@@ -111,7 +111,7 @@
       secondPageFailure: new URLSearchParams(location.search).has(
         "page-failure",
       ),
-      operationsFailure: false,
+      operationsFailure: parameters.has("operations-failure"),
       emailFailure: false,
       conflict: parameters.has("status-conflict"),
       blockLoad: false,
@@ -122,7 +122,7 @@
       emailDelay: Number(parameters.get("email-delay") || 0),
       detailFailure: false,
       activitiesFailure: false,
-      operationsMissing: false,
+      operationsMissing: parameters.has("operations-missing"),
       logoutFailure: false,
       vendorFailure: false,
       activities,

@@ -40,17 +40,15 @@ test("direct details prioritize the record and progressively fill independent se
     "Fixture Contact",
   );
   await expect(
-    page.getByLabel("Loading operational information", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByLabel("Loading internal notes", { exact: true }),
+    page.getByRole("status", { name: "Loading activity" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Reload request" }),
   ).toHaveCount(0);
   await expect(
-    page.getByLabel("Loading internal notes", { exact: true }),
+    page.getByRole("status", { name: "Loading activity" }),
   ).toHaveCount(0);
+  await page.getByRole("tab", { name: "Event operations" }).click();
   await expect(
     page.getByLabel("Loading operational information", { exact: true }),
   ).toBeVisible();
@@ -61,7 +59,7 @@ test("direct details prioritize the record and progressively fill independent se
       .map((call) => call.path),
   );
   expect(
-    requests.filter((url) => url.startsWith("/api/v1/presentations")),
+    requests.filter((url) => url.startsWith(`/api/v1/presentations/${id}`)),
   ).toEqual([
     `/api/v1/presentations/${id}`,
     `/api/v1/presentations/${id}/activities`,
@@ -104,18 +102,18 @@ test("section retry preserves the loaded record and unsaved note", async ({
   await page.evaluate(() => {
     window.fixture.operationsFailure = true;
   });
-  await expect(page.locator(".detail-sections [role=alert]")).toBeVisible();
   await page
     .getByLabel("Internal note", { exact: true })
     .fill("Keep this unsaved note");
+  await page.getByRole("tab", { name: "Event operations" }).click();
+  const operations = page.getByRole("tabpanel", { name: "Event operations" });
+  await expect(operations.getByRole("alert")).toBeVisible();
   await page.evaluate(() => {
     window.fixture.operationsFailure = false;
   });
-  await page
-    .locator(".detail-sections [role=alert]")
-    .getByRole("button", { name: "Try again" })
-    .click();
+  await operations.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByText("1200.00", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Activity" }).click();
   await expect(page.getByLabel("Internal note", { exact: true })).toHaveValue(
     "Keep this unsaved note",
   );

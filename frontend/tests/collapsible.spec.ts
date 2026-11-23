@@ -18,6 +18,7 @@ test("disclosure and status choices support keyboard operation", async ({
   await page.goto(
     "/tests/live-fixture.html?path=/presentations/11111111-1111-4111-8111-111111111111",
   );
+  await page.getByRole("tab", { name: "Event operations" }).click();
   const operations = page.getByRole("button", {
     name: "Operational details",
     exact: true,
@@ -33,7 +34,9 @@ test("disclosure and status choices support keyboard operation", async ({
   await expect(
     page.getByRole("radio", { name: "Booked", exact: true }),
   ).toBeVisible();
-  await page.getByRole("radio", { name: "Booked", exact: true }).check();
+  const booked = page.getByRole("radio", { name: "Booked", exact: true });
+  await booked.focus();
+  await booked.press("Space");
   await expect(status).toContainText("Booked");
   await expect(status).toHaveAttribute("aria-expanded", "false");
 });

@@ -95,23 +95,23 @@
           cards.length === 2 &&
             cards[0].querySelectorAll(".fact-pair").length === 4 &&
             cards[1].querySelectorAll(".fact-pair").length === 6 &&
-            pending.querySelectorAll(".detail-tabs .skeleton").length === 2 &&
+            pending.querySelectorAll(".detail-tabs .skeleton").length === 3 &&
             pending
               .querySelector(".detail-tabs")
               .previousElementSibling.classList.contains(
                 "presentation-overview",
               ),
-          "Detail skeleton matches overview fields and two tabs",
+          "Detail skeleton matches overview fields and three tabs",
         );
         check(
-          pending
-            .querySelector(".client-sidebar .detail-facts")
-            .querySelectorAll(".fact-pair").length === 9 &&
+          pending.querySelector(".client-sidebar h2").textContent ===
+            "Status" &&
+            !pending.querySelector(".client-sidebar .avatar") &&
             !!pending.querySelector(".note-composer .avatar") &&
             [...pending.querySelectorAll(".skeleton")].every(
               (el) => el.getBoundingClientRect().height > 0,
             ),
-          "Detail skeleton includes payment, status and comment shapes with visible placeholders",
+          "Detail skeleton shows status first and includes comment placeholders",
         );
         const widths = cards.map((el) => el.getBoundingClientRect().width);
         await until(
@@ -255,7 +255,7 @@
           (el) => el.querySelector("h2")?.textContent === "Request details",
         );
         const client = doc().querySelector(
-          ".client-sidebar section:nth-child(2)",
+          ".client-sidebar section:last-child",
         );
         check(
           [...requestDetails.querySelectorAll("dt")]
@@ -278,6 +278,7 @@
             !event.closest(".record-details"),
           "Purpose and notes appear above the event and venue information",
         );
+        doc().querySelector('[role="tab"]:last-child').click();
         await until(
           () => doc().body.textContent.includes("1200.00"),
           "payment facts",
@@ -299,6 +300,8 @@
             !doc().body.textContent.includes("fictional-operations.csv"),
           "Operations collapsed and provenance clutter removed",
         );
+        doc().querySelector('[role="tab"]:first-child').click();
+        await until(() => doc().querySelector(".note-composer"), "activity");
         const composer = doc().querySelector(".note-composer"),
           avatar = composer.querySelector(".avatar"),
           note = composer.querySelector("textarea");

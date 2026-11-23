@@ -4525,7 +4525,10 @@ input[type="checkbox"]:indeterminate::after {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 20px 0 0;
 }
-.live-detail .presentation-overview--stacked .detail-facts :is(dd, .muted) {
+.live-detail
+  :is(.presentation-overview--stacked, .event-operations)
+  .detail-facts
+  :is(dd, .muted) {
   color: inherit;
   font-size: 13px;
 }
@@ -4606,6 +4609,17 @@ input[type="checkbox"]:indeterminate::after {
   width: var(--calendar-grid-width);
   height: 174px;
 }
+.event-operations {
+  display: grid;
+  gap: 12px;
+}
+.event-operations .disclosure-content {
+  display: grid;
+  gap: 12px;
+}
+.event-operations .disclosure-content[hidden] {
+  display: none;
+}
 .live-detail .presentation-status .status-picker-trigger {
   padding: 7px 10px;
   width: auto;
@@ -4641,6 +4655,9 @@ input[type="checkbox"]:indeterminate::after {
   flex-direction: row;
   justify-content: flex-start;
   text-align: start;
+}
+.live-detail .detail-tabs {
+  flex-wrap: wrap;
 }
 @media (min-width: 1001px) {
   .presentation-event-row:has(.event-reference-calendar) {
@@ -4725,9 +4742,6 @@ input[type="checkbox"]:indeterminate::after {
 }
 .detail-skeleton-entry .detail-skeleton-value {
   margin-top: 10px;
-}
-.detail-skeleton-disclosures .skeleton {
-  margin-block: 16px;
 }
 .presentation-skeleton .detail-title .skeleton {
   max-width: 100%;

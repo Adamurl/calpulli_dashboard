@@ -40,10 +40,7 @@ import {
   PresentationEditModal,
   type PresentationEditPayload,
 } from "./PresentationEditModal";
-const detailTabs: readonly ("Activity" | "Email thread")[] = [
-  "Activity",
-  "Email thread",
-];
+const detailTabs = ["Activity", "Email thread", "Event operations"] as const;
 
 const sourceLabels = {
   wix: "Website form",
@@ -388,7 +385,7 @@ export function LiveDetail({
     }
     observedSave.current = saved;
   }, [saved, recordResource.replace, activityResource.retry]);
-  const [tab, setTab] = useState<"Activity" | "Email thread">("Activity");
+  const [tab, setTab] = useState<(typeof detailTabs)[number]>("Activity");
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<SaveError | null>(null);
@@ -577,10 +574,12 @@ export function LiveDetail({
             role="tablist"
             aria-label="Presentation sections"
           >
-            {detailTabs.map((name) => (
+            {detailTabs.map((name, index) => (
               <button
                 key={name}
                 role="tab"
+                id={`presentation-tab-${index}`}
+                aria-controls={`presentation-panel-${index}`}
                 aria-selected={tab === name}
                 className={tab === name ? "selected" : ""}
                 onClick={() => setTab(name)}
@@ -589,86 +588,122 @@ export function LiveDetail({
               </button>
             ))}
           </div>
-          {tab === "Email thread" ? (
-            <PresentationEmailThread
-              id={id}
-              item={toInquiry(item)}
-              notify={notify}
-              onChanged={activityResource.retry}
-            />
-          ) : (
-            <div className="activity-pane">
-              <section className="timeline-section">
-                <h2>
-                  Activity{" "}
-                  <span className="muted">
-                    Only you and other staff can see comments
-                  </span>
-                </h2>
-                <CommentComposer
-                  staffName={staffName}
-                  value={text}
-                  onChange={setText}
-                  onPost={(comment) => void save({ internal_notes: comment })}
-                  saving={saving}
+          {detailTabs.map((name, index) => (
+            <div
+              key={name}
+              id={`presentation-panel-${index}`}
+              role="tabpanel"
+              aria-labelledby={`presentation-tab-${index}`}
+              hidden={tab !== name}
+            >
+              {tab !== name ? null : tab === "Event operations" ? (
+                <div className="event-operations">
+                  {operations.kind === "ready" ? (
+                    operations.data ? (
+                      <OperationsFacts data={operations.data} />
+                    ) : (
+                      <p>No operational information is recorded.</p>
+                    )
+                  ) : operations.kind === "loading" ? (
+                    <FactsSkeleton
+                      title="Payment and paperwork"
+                      label="Loading operational information"
+                    />
+                  ) : (
+                    <Failure
+                      message={operations.message}
+                      retry={operationsResource.retry}
+                    />
+                  )}
+                </div>
+              ) : tab === "Email thread" ? (
+                <PresentationEmailThread
+                  id={id}
+                  item={toInquiry(item)}
+                  notify={notify}
+                  onChanged={activityResource.retry}
                 />
-                {saveError?.area === "comment" && (
-                  <p className="error" role="alert">
-                    {saveError.message}
-                  </p>
-                )}
-                {activities.kind === "loading" ? (
-                  <HistorySkeleton label="Loading activity" />
-                ) : activities.kind === "error" ? (
-                  <Failure
-                    message={activities.message}
-                    retry={activityResource.retry}
-                  />
-                ) : activities.data.length ? (
-                  <div className="shopify-timeline">
-                    <div className="timeline-day">
-                      {new Date(
-                        activities.data[0].created_at,
-                      ).toLocaleDateString([], {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </div>
-                    {activities.data.map((entry) => (
-                      <article
-                        className={`shopify-activity activity-${entry.kind}`}
-                        key={entry.id}
-                      >
-                        <span className="shopify-activity-dot" />
-                        <div className="shopify-activity-copy">
-                          <header>
-                            <strong>{activityTitle(entry.kind)}</strong>
-                            <time>
-                              {new Date(entry.created_at).toLocaleTimeString(
-                                [],
-                                { hour: "numeric", minute: "2-digit" },
-                              )}
-                            </time>
-                          </header>
-                          <p>
-                            {entry.note ||
-                              entry.summary ||
-                              (entry.new_status
-                                ? `${entry.previous_status ? humanize(entry.previous_status) + " → " : ""}${humanize(entry.new_status)}`
-                                : "Request recorded")}
-                          </p>
-                          {entry.actor_id && <small>{entry.actor_id}</small>}
+              ) : (
+                <div className="activity-pane">
+                  <section className="timeline-section">
+                    <h2>
+                      Activity{" "}
+                      <span className="muted">
+                        Only you and other staff can see comments
+                      </span>
+                    </h2>
+                    <CommentComposer
+                      staffName={staffName}
+                      value={text}
+                      onChange={setText}
+                      onPost={(comment) =>
+                        void save({ internal_notes: comment })
+                      }
+                      saving={saving}
+                    />
+                    {saveError?.area === "comment" && (
+                      <p className="error" role="alert">
+                        {saveError.message}
+                      </p>
+                    )}
+                    {activities.kind === "loading" ? (
+                      <HistorySkeleton label="Loading activity" />
+                    ) : activities.kind === "error" ? (
+                      <Failure
+                        message={activities.message}
+                        retry={activityResource.retry}
+                      />
+                    ) : activities.data.length ? (
+                      <div className="shopify-timeline">
+                        <div className="timeline-day">
+                          {new Date(
+                            activities.data[0].created_at,
+                          ).toLocaleDateString([], {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
                         </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty-activity">No activity is recorded.</p>
-                )}
-              </section>
+                        {activities.data.map((entry) => (
+                          <article
+                            className={`shopify-activity activity-${entry.kind}`}
+                            key={entry.id}
+                          >
+                            <span className="shopify-activity-dot" />
+                            <div className="shopify-activity-copy">
+                              <header>
+                                <strong>{activityTitle(entry.kind)}</strong>
+                                <time>
+                                  {new Date(
+                                    entry.created_at,
+                                  ).toLocaleTimeString([], {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  })}
+                                </time>
+                              </header>
+                              <p>
+                                {entry.note ||
+                                  entry.summary ||
+                                  (entry.new_status
+                                    ? `${entry.previous_status ? humanize(entry.previous_status) + " → " : ""}${humanize(entry.new_status)}`
+                                    : "Request recorded")}
+                              </p>
+                              {entry.actor_id && (
+                                <small>{entry.actor_id}</small>
+                              )}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-activity">No activity is recorded.</p>
+                    )}
+                  </section>
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
         <aside className="client-sidebar">
           <section className="presentation-status">
@@ -707,23 +742,6 @@ export function LiveDetail({
               </a>
             )}
           </section>
-          {operations.kind === "ready" ? (
-            operations.data ? (
-              <OperationsFacts data={operations.data} />
-            ) : (
-              <p>No operational information is recorded.</p>
-            )
-          ) : operations.kind === "loading" ? (
-            <FactsSkeleton
-              title="Payment and paperwork"
-              label="Loading operational information"
-            />
-          ) : (
-            <Failure
-              message={operations.message}
-              retry={operationsResource.retry}
-            />
-          )}
         </aside>
       </div>
       {editOpen && (
