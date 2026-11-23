@@ -1782,7 +1782,8 @@ tbody tr:hover {
   font-size: 11px;
   margin: 28px 0;
 }
-.detail-facts dt {
+.detail-facts dt,
+.live-detail .venue-time-zone {
   color: #a6a6a6;
 }
 .detail-facts dd {
@@ -4493,8 +4494,6 @@ input[type="checkbox"]:indeterminate::after {
 .date-picker-calendar {
   margin-top: 8px;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
   background: #fff;
   color: #111;
   color-scheme: light;
@@ -4508,7 +4507,7 @@ input[type="checkbox"]:indeterminate::after {
   gap: 16px;
   margin: 20px 0;
 }
-.presentation-overview .detail-facts {
+.presentation-overview :is(.detail-facts, .event-reference-calendar) {
   padding: 20px;
 }
 .presentation-overview--stacked {
@@ -4535,6 +4534,82 @@ input[type="checkbox"]:indeterminate::after {
 }
 .presentation-request-facts .fact-full-width dd {
   line-height: 1.5;
+}
+.presentation-event-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.venue-time-zone {
+  display: block;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.venue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+}
+.venue-tags li {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.event-reference-calendar {
+  --calendar-grid-width: 168px;
+  justify-self: start;
+  max-width: 100%;
+  color: inherit;
+}
+.event-reference-calendar .rdp-month {
+  display: flex;
+  flex-direction: column;
+  width: var(--calendar-grid-width);
+  gap: 6px;
+}
+.event-reference-calendar .rdp-month_grid {
+  table-layout: fixed;
+}
+:is(.event-reference-calendar, .date-picker-calendar) .rdp-caption_label {
+  color: var(--muted);
+  font-size: 10px;
+}
+.event-reference-calendar :is(.rdp-weekday, .rdp-day) {
+  width: auto;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  line-height: normal;
+  text-align: center;
+  vertical-align: middle;
+}
+.event-reference-calendar tbody tr:hover {
+  background: transparent;
+}
+.event-reference-calendar .rdp-day[data-selected="true"] {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.event-calendar-skeleton {
+  width: var(--calendar-grid-width);
+  height: 174px;
+}
+@media (min-width: 1001px) {
+  .presentation-event-row:has(.event-reference-calendar) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }
 .live-detail .client-sidebar .detail-facts {
   border: 0;

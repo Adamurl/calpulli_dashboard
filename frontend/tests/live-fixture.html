@@ -20,6 +20,7 @@
     const id = "11111111-1111-4111-8111-111111111111";
     const stamp = new Date().toISOString();
     const parameters = new URLSearchParams(location.search);
+    const eventDetails = parameters.has("event-details");
     const summary = {
       id,
       source: parameters.get("presentation-source") ?? "legacy_csv",
@@ -30,17 +31,17 @@
         : (parameters.get("received-at") ?? stamp),
       created_at: stamp,
       updated_at: stamp,
-      event_date: null,
-      start_time: null,
-      end_time: null,
-      event_timezone: null,
+      event_date: parameters.get("event-date"),
+      start_time: parameters.get("start-time"),
+      end_time: parameters.get("end-time"),
+      event_timezone: eventDetails ? "America/Los_Angeles" : null,
       organization_name:
         parameters.get("organization-name") ?? "Fictional Operations School",
       contact_full_name: "Fixture Contact",
       contact_email: parameters.has("outlook")
         ? "presentation@example.invalid"
         : null,
-      event_types: [],
+      event_types: eventDetails ? ["k12_school", "Community celebration"] : [],
       venue_address: "Fixture Hall",
       estimated_guests: null,
     };
@@ -50,11 +51,11 @@
       external_id: "fixture-row",
       import_batch_id: null,
       source_row_number: 1,
-      event_access: null,
-      event_setting: null,
+      event_access: eventDetails ? "public" : null,
+      event_setting: eventDetails ? "outdoor" : null,
       event_purpose: "A fictional cultural education request",
-      audience_distance_12ft: null,
-      unavailable_logistics: null,
+      audience_distance_12ft: eventDetails ? "yes" : null,
+      unavailable_logistics: eventDetails ? "Microphone stand" : null,
       contact_first_name: "Fixture",
       contact_last_name: "Contact",
       contact_phone: "+1 555 0100",
@@ -669,6 +670,10 @@
         if (patch.status) {
           detail.status = patch.status;
           summary.status = patch.status;
+        }
+        if ("event_date" in patch) {
+          detail.event_date = patch.event_date;
+          summary.event_date = patch.event_date;
         }
         if (patch.internal_notes) {
           detail.internal_notes = patch.internal_notes;

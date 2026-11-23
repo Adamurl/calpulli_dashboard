@@ -28,6 +28,15 @@ test.describe("presentation overview", () => {
       has: page.getByRole("heading", { name: "Event and venue", exact: true }),
     });
     await expect(request.getByText("Fixture form notes")).toBeVisible();
+    await expect(venue.locator("dt")).toHaveText([
+      "Date",
+      "Time",
+      "Location",
+      "Expected guests",
+      "Audience distance",
+      "Unavailable logistics",
+    ]);
+    await expect(page.getByLabel("Event calendar")).toHaveCount(0);
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 844 });
       const requestBox = await request.boundingBox();
@@ -49,6 +58,106 @@ test.describe("presentation overview", () => {
     ).toBeVisible();
     await expect(page.getByText("CSV import", { exact: true })).toBeVisible();
   });
+});
+
+for (const timezoneId of ["America/Los_Angeles", "Pacific/Auckland"]) {
+  test.describe(`calendar in ${timezoneId}`, () => {
+    test.use({ timezoneId, viewport: { width: 1280, height: 900 } });
+
+    test(`event schedule, pills and read-only calendar fit desktop and mobile in ${timezoneId}`, async ({
+      page,
+    }) => {
+      await page.goto(
+        `${presentationFixture}&event-details&event-date=2026-11-29&start-time=15:00:00&end-time=16:00:00`,
+      );
+      const calendar = page.getByRole("region", { name: "Event calendar" });
+      await expect(calendar.getByText("November 2026")).toBeVisible();
+      await expect(
+        calendar.getByRole("gridcell", { selected: true }),
+      ).toHaveText("29");
+      await expect(calendar.getByRole("button")).toHaveCount(0);
+      await expect(calendar.getByRole("combobox")).toHaveCount(0);
+      await expect(page.getByText("3:00 – 4:00 PM")).toBeVisible();
+      await expect(
+        page.getByText("America/Los_Angeles", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText("Time", { exact: true })).toHaveCSS(
+        "color",
+        "rgb(166, 166, 166)",
+      );
+      const zone = page.getByText("America/Los_Angeles", { exact: true });
+      await expect(zone).toHaveCSS("color", "rgb(166, 166, 166)");
+      await expect(zone).toHaveCSS("font-size", "10px");
+      await expect(
+        page
+          .getByRole("list", { name: "Event types and setting" })
+          .getByRole("listitem"),
+      ).toHaveText([
+        "K-12 school",
+        "Community celebration",
+        "Public",
+        "Outdoor",
+      ]);
+      const venue = page.locator(".presentation-venue-facts");
+      await expect(venue.getByText("Audience distance")).toBeVisible();
+      await expect(venue.getByText("Microphone stand")).toBeVisible();
+      await expect(calendar).toHaveClass(/\bcard\b/);
+      await expect(venue.getByLabel("Event calendar")).toHaveCount(0);
+      const desktopVenue = await venue.boundingBox();
+      const desktopCalendar = await calendar.boundingBox();
+      const monthGrid = await calendar.getByRole("grid").boundingBox();
+      if (!desktopVenue || !desktopCalendar || !monthGrid)
+        throw new Error("Desktop event details are missing");
+      expect(desktopCalendar.x).toBeGreaterThan(
+        desktopVenue.x + desktopVenue.width,
+      );
+      expect(desktopCalendar.y).toBeCloseTo(desktopVenue.y);
+      await expect(calendar).toHaveCSS("padding", "20px");
+      expect(monthGrid.width).toBeCloseTo(168);
+      expect(desktopCalendar.width - monthGrid.width).toBeCloseTo(42);
+      expect(desktopCalendar.height).toBeLessThanOrEqual(240);
+      await page.setViewportSize({ width: 390, height: 844 });
+      const mobileVenue = await venue.boundingBox();
+      const mobileCalendar = await calendar.boundingBox();
+      if (!mobileVenue || !mobileCalendar)
+        throw new Error("Mobile event details are missing");
+      expect(mobileCalendar.y).toBeGreaterThan(
+        mobileVenue.y + mobileVenue.height,
+      );
+      expect(mobileCalendar.width).toBeCloseTo(desktopCalendar.width);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
+    });
+  });
+}
+
+test("schedule local times and the event calendar follow saved event dates", async ({
+  page,
+}) => {
+  await page.goto(
+    `${presentationFixture}&event-date=2026-11-30&start-time=11:30:00&end-time=12:15:00`,
+  );
+  await expect(page.getByText("11:30 AM – 12:15 PM")).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const editor = page.getByRole("dialog", {
+    name: "Edit presentation details",
+  });
+  const date = editor.getByRole("button", { name: /Event date/ });
+  await date.click();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(date).toContainText("December 1st, 2026");
+  await editor.getByRole("button", { name: "Save changes" }).click();
+  const calendar = page.getByRole("region", { name: "Event calendar" });
+  await expect(calendar.getByText("December 2026")).toBeVisible();
+  await expect(calendar.getByRole("gridcell", { selected: true })).toHaveText(
+    "1",
+  );
+  await page.goto(`${presentationFixture}&end-time=00:15:00`);
+  await expect(page.getByText("End time", { exact: true })).toBeVisible();
+  await expect(page.getByText("12:15 AM")).toBeVisible();
+  await expect(calendar).toHaveCount(0);
 });
 
 test("reopening and saving an email draft preserves placeholders", async ({
@@ -99,7 +208,7 @@ test("calendar keyboard selection, clearing and Escape preserve the editor", asy
   await page.goto(
     "/tests/live-fixture.html?path=/presentations/11111111-1111-4111-8111-111111111111",
   );
-  for (const field of ["Website", "Expected guests", "Event types"]) {
+  for (const field of ["Website", "Expected guests"]) {
     const fact = page.locator(".fact-pair").filter({
       has: page.getByText(field, { exact: true }),
     });
@@ -111,6 +220,9 @@ test("calendar keyboard selection, clearing and Escape preserve the editor", asy
   });
   const trigger = editor.getByRole("button", { name: /Event date/ });
   await trigger.click();
+  const calendar = editor.getByRole("region", { name: "Event date calendar" });
+  await expect(calendar.getByRole("navigation")).toHaveCount(0);
+  await expect(calendar.getByRole("combobox")).toHaveCount(2);
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("Enter");
   await expect(trigger).toHaveAttribute("aria-expanded", "false");

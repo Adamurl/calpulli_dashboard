@@ -1,6 +1,7 @@
 import { optionalText } from "../display";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { isValid, parseISO } from "date-fns";
 import {
   ArrowLeft,
   ChevronDown,
@@ -27,6 +28,7 @@ import {
 import type { LoadState, Operations, Presentation } from "../presentations";
 import { dateLabel } from "../data";
 import { Avatar, Badge } from "./ui";
+import { Calendar } from "./ui/calendar";
 import { Skeleton } from "./Skeleton";
 import {
   PresentationSkeleton,
@@ -63,6 +65,18 @@ const organizationPlaceholders = new Set([
   "no organization",
   "unknown",
 ]);
+const eventTypeLabels = new Map([
+  ["k12_school", "K-12 school"],
+  ["college_university", "College / university"],
+  ["nonprofit", "Nonprofit"],
+  ["government", "City / government"],
+  ["corporate", "Corporate event"],
+  ["cultural_organization", "Cultural organization"],
+  ["funeral", "Funeral"],
+  ["grand_opening", "Grand opening"],
+  ["other", "Other"],
+]);
+
 type DetailPatch =
   | { internal_notes: string }
   | {
@@ -146,6 +160,126 @@ function Facts({
         ))}
       </dl>
     </section>
+  );
+}
+
+function clockTime(value: string | null) {
+  const match = value?.match(
+    /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/,
+  );
+  if (!match) return null;
+  const hours = Number(match[1]);
+  return {
+    clock: `${hours % 12 || 12}:${match[2]}`,
+    period: hours < 12 ? "AM" : "PM",
+  };
+}
+
+function EventAndVenue({ item }: { item: Presentation }) {
+  const parsedDate = item.event_date ? parseISO(item.event_date) : null;
+  const date = parsedDate && isValid(parsedDate) ? parsedDate : null;
+  const start = clockTime(item.start_time);
+  const end = clockTime(item.end_time);
+  const time =
+    start && end
+      ? `${start.clock}${start.period === end.period ? "" : ` ${start.period}`} – ${end.clock} ${end.period}`
+      : start
+        ? `${start.clock} ${start.period}`
+        : end
+          ? `${end.clock} ${end.period}`
+          : null;
+  const timeLabel =
+    start && !end ? "Start time" : end && !start ? "End time" : "Time";
+  const zone = optionalText(item.event_timezone);
+  const access = optionalText(item.event_access);
+  const setting = optionalText(item.event_setting);
+  const eventTypes = item.event_types.flatMap((value) => {
+    const type = optionalText(value);
+    return type ? [eventTypeLabels.get(type) ?? type] : [];
+  });
+  const tags = new Set([
+    ...eventTypes,
+    ...(access ? [humanize(access)] : []),
+    ...(setting
+      ? [setting === "unsure" ? "Not sure yet" : humanize(setting)]
+      : []),
+  ]);
+  return (
+    <div className="presentation-event-row">
+      <section className="card detail-facts presentation-venue-facts">
+        <h2>Event and venue</h2>
+        <dl>
+          <div className="fact-pair">
+            <dt>Date</dt>
+            <dd>{valueText(date ? dateLabel(item.event_date) : null)}</dd>
+          </div>
+          <div className="fact-pair">
+            <dt>{timeLabel}</dt>
+            <dd>
+              {valueText(time)}
+              {zone && <small className="venue-time-zone">{zone}</small>}
+            </dd>
+          </div>
+          <div className="fact-pair">
+            <dt>Location</dt>
+            <dd>{valueText(item.venue_address)}</dd>
+          </div>
+          <div className="fact-pair">
+            <dt>Expected guests</dt>
+            <dd>{valueText(item.estimated_guests)}</dd>
+          </div>
+          <div className="fact-pair">
+            <dt>Audience distance</dt>
+            <dd>
+              {valueText(
+                item.audience_distance_12ft &&
+                  humanize(item.audience_distance_12ft),
+              )}
+            </dd>
+          </div>
+          <div className="fact-pair">
+            <dt>Unavailable logistics</dt>
+            <dd>{valueText(item.unavailable_logistics)}</dd>
+          </div>
+        </dl>
+        {tags.size > 0 && (
+          <ul
+            className="venue-tags"
+            aria-label="Event types and setting"
+            role="list"
+          >
+            {[...tags].map((tag) => (
+              <li key={tag}>{tag}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+      {date && (
+        <div
+          role="region"
+          aria-label="Event calendar"
+          className="card event-reference-calendar"
+        >
+          <Calendar
+            className="p-0 bg-transparent"
+            month={date}
+            hideNavigation
+            disableNavigation
+            showOutsideDays={false}
+            modifiers={{ selected: date }}
+            classNames={{
+              month: "rdp-month",
+              caption_label: "rdp-caption_label",
+              weekdays: "rdp-weekdays",
+              weekday: "rdp-weekday",
+              week: "rdp-week",
+              day: "rdp-day",
+              today: "",
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -418,20 +552,7 @@ export function LiveDetail({
                 ["Additional notes", item.additional_notes, "full"],
               ]}
             />
-            <Facts
-              title="Event and venue"
-              rows={[
-                ["Date", item.event_date ? dateLabel(item.event_date) : null],
-                ["Location", item.venue_address],
-                ["Expected guests", item.estimated_guests],
-                ["Start time", item.start_time],
-                ["End time", item.end_time],
-                ["Time zone", item.event_timezone],
-                ["Event types", item.event_types],
-                ["Public or private", item.event_access],
-                ["Indoor or outdoor", item.event_setting],
-              ]}
-            />
+            <EventAndVenue item={item} />
           </div>
           <div
             className="detail-tabs"
@@ -583,15 +704,6 @@ export function LiveDetail({
               retry={operationsResource.retry}
             />
           )}
-          <Disclosure title="Event logistics">
-            <Facts
-              title="Event logistics"
-              rows={[
-                ["Audience distance", item.audience_distance_12ft],
-                ["Unavailable logistics", item.unavailable_logistics],
-              ]}
-            />
-          </Disclosure>
         </aside>
       </div>
       {editOpen && (

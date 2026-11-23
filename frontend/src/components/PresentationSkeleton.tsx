@@ -97,11 +97,16 @@ export function PresentationSkeleton() {
             count={4}
             fullWidthRows={[2, 3]}
           />
-          <FactsSkeleton
-            title="Event and venue"
-            label="Loading event and venue"
-            count={9}
-          />
+          <div className="presentation-event-row">
+            <FactsSkeleton
+              title="Event and venue"
+              label="Loading event and venue"
+              count={6}
+            />
+            <div className="card event-reference-calendar" aria-hidden="true">
+              <Skeleton className="event-calendar-skeleton" />
+            </div>
+          </div>
         </div>
         <div className="detail-tabs" aria-hidden="true">
           <Skeleton className="detail-skeleton-tab" />

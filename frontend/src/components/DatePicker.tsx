@@ -83,6 +83,7 @@ export function DatePicker({
           selected={selected}
           defaultMonth={selected}
           captionLayout="dropdown"
+          hideNavigation
           formatters={{ formatMonthDropdown: (date) => format(date, "MMM") }}
           startMonth={new Date(1900, 0)}
           endMonth={new Date(new Date().getFullYear() + 50, 11)}
