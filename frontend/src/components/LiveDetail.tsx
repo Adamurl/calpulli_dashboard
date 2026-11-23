@@ -27,7 +27,7 @@ import {
 } from "../presentations";
 import type { LoadState, Operations, Presentation } from "../presentations";
 import { dateLabel } from "../data";
-import { Avatar, Badge } from "./ui";
+import { Badge } from "./ui";
 import { Calendar } from "./ui/calendar";
 import { Skeleton } from "./Skeleton";
 import {
@@ -175,6 +175,16 @@ function clockTime(value: string | null) {
     clock: `${hours % 12 || 12}:${match[2]}`,
     period: hours < 12 ? "AM" : "PM",
   };
+}
+
+function formatClientPhone(phone: string) {
+  if (!/^\+?[\d().\s-]+$/.test(phone)) return phone;
+
+  const digits = phone.replace(/\D/g, "");
+  const number = digits.match(/^(?:1)?(\d{3})(\d{3})(\d{4})$/);
+  if (!number || (phone.startsWith("+") && digits.length !== 11)) return phone;
+
+  return `+1 (${number[1]}) ${number[2]} - ${number[3]}`;
 }
 
 function EventAndVenue({ item }: { item: Presentation }) {
@@ -677,14 +687,14 @@ export function LiveDetail({
           </section>
           <section>
             <h2>Client</h2>
-            {clientName && <Avatar name={clientName} />}
             <h3>{clientName || "-"}</h3>
             {clientEmail && (
               <a
                 className="contact-link"
                 href={`mailto:${encodeURIComponent(clientEmail).replace(/%40/g, "@")}`}
               >
-                <Mail size={14} aria-hidden="true" /> {clientEmail}
+                <Mail size={14} aria-hidden="true" />{" "}
+                {clientEmail.toLowerCase()}
               </a>
             )}
             {clientPhone && (
@@ -692,7 +702,8 @@ export function LiveDetail({
                 className="contact-link"
                 href={`tel:${clientPhone.replace(/[^+\d]/g, "")}`}
               >
-                <Phone size={14} aria-hidden="true" /> {clientPhone}
+                <Phone size={14} aria-hidden="true" />{" "}
+                {formatClientPhone(clientPhone)}
               </a>
             )}
           </section>

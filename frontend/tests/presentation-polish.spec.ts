@@ -161,13 +161,22 @@ test("schedule local times and the event calendar follow saved event dates", asy
 });
 
 test("sidebar status saves through the workspace", async ({ page }) => {
-  await page.goto(presentationFixture);
+  await page.goto(
+    `${presentationFixture}&client-phone=%2B14155550134&client-email=Fixture%40EXAMPLE.INVALID`,
+  );
   const sidebar = page.locator(".client-sidebar");
   const status = sidebar.getByRole("button", { name: /Request status/ });
   await expect(status).toHaveText("Unknown");
   expect((await status.boundingBox())?.y).toBeLessThan(
     (await sidebar.getByRole("heading", { name: "Client" }).boundingBox())!.y,
   );
+  await expect(sidebar.locator(".avatar")).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("link", { name: "+1 (415) 555 - 0134" }),
+  ).toHaveAttribute("href", "tel:+14155550134");
+  await expect(
+    sidebar.getByRole("link", { name: "fixture@example.invalid", exact: true }),
+  ).toHaveAttribute("href", "mailto:Fixture@EXAMPLE.INVALID");
   await status.press("Enter");
   const reviewing = sidebar.getByRole("radio", { name: "In review" });
   const option = sidebar.locator("label").filter({ hasText: "In review" });

@@ -138,10 +138,11 @@ export function PresentationSkeleton() {
         </section>
         <section>
           <h2>Client</h2>
-          <Skeleton className="detail-skeleton-avatar" />
           <h3>
             <Skeleton className="detail-skeleton-value" />
           </h3>
+          <Skeleton className="detail-skeleton-value" />
+          <Skeleton className="detail-skeleton-meta" />
         </section>
         <FactsSkeleton
           title="Payment and paperwork"

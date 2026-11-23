@@ -38,9 +38,9 @@
       organization_name:
         parameters.get("organization-name") ?? "Fictional Operations School",
       contact_full_name: "Fixture Contact",
-      contact_email: parameters.has("outlook")
-        ? "presentation@example.invalid"
-        : null,
+      contact_email:
+        parameters.get("client-email") ??
+        (parameters.has("outlook") ? "presentation@example.invalid" : null),
       event_types: eventDetails ? ["k12_school", "Community celebration"] : [],
       venue_address: "Fixture Hall",
       estimated_guests: null,
@@ -58,7 +58,7 @@
       unavailable_logistics: eventDetails ? "Microphone stand" : null,
       contact_first_name: "Fixture",
       contact_last_name: "Contact",
-      contact_phone: "+1 555 0100",
+      contact_phone: parameters.get("client-phone") ?? "+1 555 0100",
       organization_website: " n/A ",
       referral_sources: [],
       referral_reference: null,
