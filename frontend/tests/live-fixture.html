@@ -21,6 +21,7 @@
     const stamp = new Date().toISOString();
     const parameters = new URLSearchParams(location.search);
     const eventDetails = parameters.has("event-details");
+    const unavailable = parameters.get("required-logistics");
     const summary = {
       id,
       source: parameters.get("presentation-source") ?? "legacy_csv",
@@ -54,8 +55,13 @@
       event_access: eventDetails ? "public" : null,
       event_setting: eventDetails ? "outdoor" : null,
       event_purpose: "A fictional cultural education request",
-      audience_distance_12ft: eventDetails ? "yes" : null,
-      unavailable_logistics: eventDetails ? "Microphone stand" : null,
+      audience_distance_12ft:
+        eventDetails && unavailable === null ? "yes" : null,
+      unavailable_logistics:
+        eventDetails && unavailable === null ? "Microphone stand" : null,
+      ...(unavailable !== null && {
+        required_logistics: unavailable ? unavailable.split(",") : [],
+      }),
       contact_first_name: "Fixture",
       contact_last_name: "Contact",
       contact_phone: parameters.get("client-phone") ?? "+1 555 0100",
@@ -663,6 +669,7 @@
       if (url.pathname.endsWith("/workspace")) {
         if (window.fixture.conflict) return reply(409, {});
         const patch = JSON.parse(options.body);
+        window.fixture.lastWorkspacePatch = patch;
         if (patch.internal_notes && window.fixture.noteDelay)
           await new Promise((resolve) =>
             setTimeout(resolve, window.fixture.noteDelay),

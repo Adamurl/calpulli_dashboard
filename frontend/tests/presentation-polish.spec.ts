@@ -160,6 +160,43 @@ test("schedule local times and the event calendar follow saved event dates", asy
   await expect(calendar).toHaveCount(0);
 });
 
+test("unavailable logistics checklist replaces legacy fields on new requests", async ({
+  page,
+}) => {
+  const fixture = `${presentationFixture}&presentation-source=wix&event-details`;
+  await page.goto(
+    `${fixture}&required-logistics=nearby_parking,private_changing_area,audience_distance_12ft,microphone_and_stand,small_table`,
+  );
+  const venue = page.locator(".presentation-venue-facts");
+  const checklist = venue.getByRole("list", { name: "Unavailable logistics" });
+  await expect(checklist.getByRole("listitem")).toHaveText([
+    "Nearby parking",
+    "Private changing area",
+    "12 ft audience clearance",
+    "Microphone & stand",
+    "Small table",
+  ]);
+  await expect(
+    venue.getByText("Audience distance", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const editor = page.getByRole("dialog", {
+    name: "Edit presentation details",
+  });
+  await expect(editor.getByLabel("Audience distance")).toHaveCount(0);
+  await expect(editor.getByLabel("Unavailable logistics")).toHaveCount(0);
+  await editor.getByRole("button", { name: "Save changes" }).click();
+  await expect(editor).toHaveCount(0);
+  const patch = await page.evaluate(() => window.fixture.lastWorkspacePatch);
+  expect(patch).toBeDefined();
+  expect(patch).not.toHaveProperty("audience_distance_12ft");
+  expect(patch).not.toHaveProperty("unavailable_logistics");
+  await expect(checklist.getByRole("listitem")).toHaveCount(5);
+  await page.goto(`${fixture}&required-logistics=`);
+  await expect(venue.getByText("None reported")).toBeVisible();
+  await expect(checklist).toHaveCount(0);
+});
+
 test("sidebar status and the operations tab preserve workspace actions", async ({
   page,
 }) => {

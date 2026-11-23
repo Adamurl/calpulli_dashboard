@@ -63,8 +63,6 @@ export type PresentationEditPayload = Pick<
   | "event_purpose"
   | "venue_address"
   | "estimated_guests"
-  | "audience_distance_12ft"
-  | "unavailable_logistics"
   | "organization_name"
   | "contact_first_name"
   | "contact_last_name"
@@ -74,7 +72,10 @@ export type PresentationEditPayload = Pick<
   | "referral_sources"
   | "referral_reference"
   | "additional_notes"
->;
+> &
+  Partial<
+    Pick<Presentation, "audience_distance_12ft" | "unavailable_logistics">
+  >;
 
 function initialValues(item: Presentation): EditForm {
   return {
@@ -121,6 +122,7 @@ export function PresentationEditModal({
   save: (values: PresentationEditPayload) => void;
 }) {
   const [form, setForm] = useState(() => initialValues(item));
+  const usesLegacyLogistics = item.required_logistics == null;
   function change<K extends keyof EditForm>(key: K, value: EditForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -139,8 +141,10 @@ export function PresentationEditModal({
       estimated_guests: form.estimated_guests
         ? Number(form.estimated_guests)
         : null,
-      audience_distance_12ft: optional(form.audience_distance_12ft),
-      unavailable_logistics: optional(form.unavailable_logistics),
+      ...(usesLegacyLogistics && {
+        audience_distance_12ft: optional(form.audience_distance_12ft),
+        unavailable_logistics: optional(form.unavailable_logistics),
+      }),
       organization_name: optional(form.organization_name),
       contact_first_name: optional(form.contact_first_name),
       contact_last_name: optional(form.contact_last_name),
@@ -303,20 +307,22 @@ export function PresentationEditModal({
                 <option value="unsure">Unsure</option>
               </select>
             </label>
-            <label>
-              Audience distance
-              <select
-                value={form.audience_distance_12ft}
-                onChange={(event) =>
-                  change("audience_distance_12ft", event.target.value)
-                }
-              >
-                <option value="">-</option>
-                <option value="yes">At least 12 feet</option>
-                <option value="no">Less than 12 feet</option>
-                <option value="unsure">Unsure</option>
-              </select>
-            </label>
+            {usesLegacyLogistics && (
+              <label>
+                Audience distance
+                <select
+                  value={form.audience_distance_12ft}
+                  onChange={(event) =>
+                    change("audience_distance_12ft", event.target.value)
+                  }
+                >
+                  <option value="">-</option>
+                  <option value="yes">At least 12 feet</option>
+                  <option value="no">Less than 12 feet</option>
+                  <option value="unsure">Unsure</option>
+                </select>
+              </label>
+            )}
           </section>
           <section className="edit-wide">
             <h3>Request details</h3>
@@ -352,17 +358,19 @@ export function PresentationEditModal({
                 }
               />
             </label>
-            <label>
-              Unavailable logistics
-              <textarea
-                rows={3}
-                maxLength={10000}
-                value={form.unavailable_logistics}
-                onChange={(event) =>
-                  change("unavailable_logistics", event.target.value)
-                }
-              />
-            </label>
+            {usesLegacyLogistics && (
+              <label>
+                Unavailable logistics
+                <textarea
+                  rows={3}
+                  maxLength={10000}
+                  value={form.unavailable_logistics}
+                  onChange={(event) =>
+                    change("unavailable_logistics", event.target.value)
+                  }
+                />
+              </label>
+            )}
             <label>
               Additional notes
               <textarea

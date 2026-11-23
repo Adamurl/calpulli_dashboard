@@ -73,6 +73,13 @@ const eventTypeLabels = new Map([
   ["grand_opening", "Grand opening"],
   ["other", "Other"],
 ]);
+const logisticsLabels = new Map([
+  ["nearby_parking", "Nearby parking"],
+  ["private_changing_area", "Private changing area"],
+  ["audience_distance_12ft", "12 ft audience clearance"],
+  ["microphone_and_stand", "Microphone & stand"],
+  ["small_table", "Small table"],
+]);
 
 type DetailPatch =
   | { internal_notes: string }
@@ -200,6 +207,7 @@ function EventAndVenue({ item }: { item: Presentation }) {
   const timeLabel =
     start && !end ? "Start time" : end && !start ? "End time" : "Time";
   const zone = optionalText(item.event_timezone);
+  const unavailable = item.required_logistics;
   const access = optionalText(item.event_access);
   const setting = optionalText(item.event_setting);
   const eventTypes = item.event_types.flatMap((value) => {
@@ -237,19 +245,44 @@ function EventAndVenue({ item }: { item: Presentation }) {
             <dt>Expected guests</dt>
             <dd>{valueText(item.estimated_guests)}</dd>
           </div>
-          <div className="fact-pair">
-            <dt>Audience distance</dt>
-            <dd>
-              {valueText(
-                item.audience_distance_12ft &&
-                  humanize(item.audience_distance_12ft),
-              )}
-            </dd>
-          </div>
-          <div className="fact-pair">
-            <dt>Unavailable logistics</dt>
-            <dd>{valueText(item.unavailable_logistics)}</dd>
-          </div>
+          {unavailable == null ? (
+            <>
+              <div className="fact-pair">
+                <dt>Audience distance</dt>
+                <dd>
+                  {valueText(
+                    item.audience_distance_12ft &&
+                      humanize(item.audience_distance_12ft),
+                  )}
+                </dd>
+              </div>
+              <div className="fact-pair">
+                <dt>Unavailable logistics</dt>
+                <dd>{valueText(item.unavailable_logistics)}</dd>
+              </div>
+            </>
+          ) : (
+            <div className="fact-pair fact-full-width">
+              <dt>Unavailable logistics</dt>
+              <dd>
+                {unavailable.length ? (
+                  <ul
+                    className="venue-tags"
+                    aria-label="Unavailable logistics"
+                    role="list"
+                  >
+                    {unavailable.map((item) => (
+                      <li key={item}>
+                        {logisticsLabels.get(item) ?? humanize(item)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  "None reported"
+                )}
+              </dd>
+            </div>
+          )}
         </dl>
         {tags.size > 0 && (
           <ul

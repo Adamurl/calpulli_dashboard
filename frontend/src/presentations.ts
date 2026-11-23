@@ -33,6 +33,7 @@ export const detailSchema = summarySchema.extend({
   event_purpose: nullableText,
   audience_distance_12ft: nullableText,
   unavailable_logistics: nullableText,
+  required_logistics: z.array(z.string()).nullish(),
   contact_first_name: nullableText,
   contact_last_name: nullableText,
   contact_phone: nullableText,

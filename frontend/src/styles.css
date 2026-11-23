@@ -4557,6 +4557,9 @@ input[type="checkbox"]:indeterminate::after {
   padding: 0;
   margin: 16px 0 0;
 }
+.fact-pair dd .venue-tags {
+  margin: 0;
+}
 .venue-tags li {
   max-width: 100%;
   overflow-wrap: anywhere;

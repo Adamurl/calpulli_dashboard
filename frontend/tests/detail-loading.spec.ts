@@ -12,6 +12,7 @@ declare global {
       detailDelay: number;
       noteDelay: number;
       operationsFailure: boolean;
+      lastWorkspacePatch?: Record<string, unknown>;
       signInAgain: () => void;
     };
   }
