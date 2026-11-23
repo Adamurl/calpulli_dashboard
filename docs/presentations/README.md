@@ -63,8 +63,7 @@ Historical records start with `status=unknown`. Submission time, event time, and
 | Purpose of the presentation | `event_purpose` | Yes. |
 | Venue address | `venue_address` | Yes. |
 | Estimated guests | `estimated_guests` | Yes, integer from 1 through 10,000,000. |
-| At least 12 feet from audience | `audience_distance_12ft` | Yes, `yes`, `no`, or `unsure`. |
-| Unavailable logistics | `unavailable_logistics` | Yes; use an explicit answer such as `None` when all are available. |
+| Required Logistics | `required_logistics` | Send the checked items the requester cannot accommodate. Use an empty array when no boxes are checked. |
 | Company or organization | `organization_name` | Optional. |
 | First and last name | `contact_first_name`, `contact_last_name` | Yes. |
 | Email and phone | `contact_email`, `contact_phone` | Yes. |
@@ -77,7 +76,7 @@ Event category values are `k12_school`, `college_university`, `nonprofit`, `gove
 
 Referral values are `website`, `instagram`, `facebook`, `tiktok`, `word_of_mouth`, `mexica_new_year`, `previous_performance`, `referral`, and `other`.
 
-The logistics list and final disclaimer are form copy, not additional submitted answer fields. This schema does not claim to capture consent acknowledgement or a versioned copy of the disclaimer. Add those fields only after reviewing the actual submission contract and the organization's requirements. The disclaimer does not record an acceptance checkbox, confirm a booking, or create payment records. Those workflows and tables are outside this scope.
+See the [logistics choices](wix-webhook.md#wix-choice-labels) for the checkbox labels and stored codes. Older clients can submit both `audience_distance_12ft` and `unavailable_logistics` in place of the array. The final disclaimer remains form copy.
 
 New input rejects unknown keys, blank required text, duplicate selections, invalid email shape, and timezone-bearing time values. An overnight presentation is not supported by this form contract. Add an explicit end date before accepting overnight scheduling. New records start with `status=new`.
 

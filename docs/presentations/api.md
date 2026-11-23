@@ -55,8 +55,9 @@ An empty successful response is:
 | `event_purpose` | string | Yes | min length `1`; max length `10000` |
 | `venue_address` | string | Yes | min length `1`; max length `500` |
 | `estimated_guests` | integer | Yes | minimum `1`; maximum `10000000` |
-| `audience_distance_12ft` | `yes`, `no`, `unsure` | Yes | — |
-| `unavailable_logistics` | string | Yes | min length `1`; max length `10000` |
+| `required_logistics` | array of [logistics codes](wix-webhook.md#wix-choice-labels) or null | See below | Up to five unique checked items |
+| `audience_distance_12ft` | `yes`, `no`, `unsure` or null | Legacy only | Send with `unavailable_logistics` |
+| `unavailable_logistics` | string or null | Legacy only | Send with `audience_distance_12ft`; 1–10,000 characters |
 | `organization_name` | string or null | No | min length `1`; max length `500`; default `null` |
 | `contact_first_name` | string | Yes | min length `1`; max length `500` |
 | `contact_last_name` | string | Yes | min length `1`; max length `500` |
@@ -73,6 +74,7 @@ Required keys and nullable values are separate concepts. These constraints come 
 - `start_time` and `end_time` are local times without UTC offsets. The end must follow the start on the same day. Overnight scheduling is unsupported.
 - `event_timezone` must resolve as an IANA timezone. The API does not require the event to be in the future.
 - `estimated_guests` requires a JSON integer, not a numeric string or boolean.
+- Supply either `required_logistics` or both legacy logistics answers. The array holds requirements the requester cannot accommodate. Send `[]` when no boxes are checked.
 - `event_types` has 1–9 unique, trimmed, nonblank text selections of up to 500 characters each. Standard presets are `k12_school`, `college_university`, `nonprofit`, `government`, `corporate`, `cultural_organization`, `funeral`, `grand_opening`, and `other`. Custom text such as `Other: Community celebration` is preserved. Presentation patches accept the same text values, including when editing an existing custom category. `referral_sources` defaults to an empty list and permits up to nine unique selections from its fixed vocabulary.
 - Blank optional organization, website, reference, and additional-note values normalize to null. The website field is text, not a URL-validated type.
 - Email uses the schema's shape check. Phone is trimmed text of 3–100 characters, not a verified telephone number.
@@ -94,8 +96,7 @@ A valid create body is:
   "event_purpose":"Cultural education",
   "venue_address":"Fictional community center",
   "estimated_guests":50,
-  "audience_distance_12ft":"yes",
-  "unavailable_logistics":"None",
+  "required_logistics":["small_table"],
   "contact_first_name":"Alex",
   "contact_last_name":"Example",
   "contact_email":"alex@example.org",
@@ -148,6 +149,7 @@ Create, detail, and patch return all summary fields plus these fields:
 | `event_purpose` | string or null | Yes | — |
 | `audience_distance_12ft` | string or null | Yes | — |
 | `unavailable_logistics` | string or null | Yes | — |
+| `required_logistics` | array of logistics codes or null | No | Null means the checkbox group was not collected |
 | `contact_first_name` | string or null | Yes | — |
 | `contact_last_name` | string or null | Yes | — |
 | `contact_phone` | string or null | Yes | — |

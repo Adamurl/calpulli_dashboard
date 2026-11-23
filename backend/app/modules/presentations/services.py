@@ -58,7 +58,12 @@ def create_presentation(
         raise ValueError("New presentations require a manual or Wix source")
     if source == "wix" and (not source_key or not external_id):
         raise ValueError("Wix submissions require source_key and external_id")
-    snapshot = payload.model_dump(mode="json")
+    logistics_fields_to_exclude = (
+        {"required_logistics"}
+        if payload.required_logistics is None
+        else {"audience_distance_12ft", "unavailable_logistics"}
+    )
+    snapshot = payload.model_dump(mode="json", exclude=logistics_fields_to_exclude)
     values = payload.model_dump()
     values.update(
         id=uuid4(),

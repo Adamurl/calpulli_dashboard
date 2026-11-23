@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.modules.presentations.logistics import LogisticsRequirement
 
 
 class PresentationImportBatch(Base):
@@ -64,6 +65,10 @@ class PresentationRequest(Base):
         ),
         CheckConstraint("jsonb_typeof(event_types) = 'array'", name="event_types_array"),
         CheckConstraint("jsonb_typeof(referral_sources) = 'array'", name="referral_sources_array"),
+        CheckConstraint(
+            "required_logistics IS NULL OR jsonb_typeof(required_logistics) = 'array'",
+            name="required_logistics_array",
+        ),
         CheckConstraint("jsonb_typeof(original_fields) = 'object'", name="original_fields_object"),
         Index("ix_presentation_requests_created_id", "created_at", "id"),
         Index("ix_presentation_requests_status", "status"),
@@ -98,6 +103,9 @@ class PresentationRequest(Base):
     estimated_guests: Mapped[int | None]
     audience_distance_12ft: Mapped[str | None] = mapped_column(String(20))
     unavailable_logistics: Mapped[str | None] = mapped_column(Text)
+    required_logistics: Mapped[list[LogisticsRequirement] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )
     organization_name: Mapped[str | None] = mapped_column(Text)
     contact_full_name: Mapped[str | None] = mapped_column(Text)
     contact_first_name: Mapped[str | None] = mapped_column(Text)

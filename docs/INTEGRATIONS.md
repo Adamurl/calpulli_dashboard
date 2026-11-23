@@ -46,8 +46,7 @@ The body has a flat field map inside `data`. This fictional example deliberately
     "event_purpose": "Fictional cultural education event",
     "venue_address": "Fictional venue, San Jose, CA",
     "estimated_guests": 100,
-    "audience_distance_12ft": "yes",
-    "unavailable_logistics": "None",
+    "required_logistics": ["1 Microphone & Stand", "1 Small Table"],
     "contact_first_name": "Sample",
     "contact_last_name": "Coordinator",
     "contact_email": "sample@example.org",
@@ -56,7 +55,11 @@ The body has a flat field map inside `data`. This fictional example deliberately
 }
 ```
 
-Dates use ISO format. Times are local values; timezone is a separate field. Checkbox values must become arrays of the documented tokens, not display labels or comma-separated text. `estimated_guests` must be a JSON integer. Confirm these conversions using Wix's preview rather than assuming the form emits the required types. If Wix cannot produce this contract, adapt the provider boundary only after inspecting a real fictional payload.
+Dates use ISO format. Times use local values with a separate timezone field. `estimated_guests` must be a JSON integer. Checkbox values must be JSON arrays. See the [Wix choice labels](presentations/wix-webhook.md#wix-choice-labels) for accepted display labels and codes.
+
+In **Send HTTP request** → **Choose fields**, add the key `required_logistics` and select the **Required Logistics** checkbox group as its value. Remove the `audience_distance_12ft` and `unavailable_logistics` mappings. In **Preview request body**, check both a submission with selections and one with zero selections, which should send `"required_logistics": []`. Apply Alembic revision `0011` and deploy the compatible backend before switching the live mapping.
+
+In the Wix **Send an email** action, replace both old logistics lines with **Required logistics you indicated you cannot accommodate** and insert the **Required Logistics** form value using the property picker. For email templates managed in Calpulli, use the [Required Logistics placeholder](email/templates.md#variable-contract).
 
 ## Persistence and recovery
 

@@ -40,8 +40,7 @@ A complete synthetic body is:
     "event_purpose":"Cultural education",
     "venue_address":"Fictional community center",
     "estimated_guests":50,
-    "audience_distance_12ft":"yes",
-    "unavailable_logistics":"None",
+    "required_logistics":["1 Microphone & Stand","1 Small Table"],
     "contact_first_name":"Alex",
     "contact_last_name":"Example",
     "contact_email":"alex@example.org",
@@ -60,11 +59,21 @@ The Wix adapter trims and compares choice labels without case sensitivity. It no
 | --- | --- | --- |
 | `event_access` | Public, Private | `public`, `private` |
 | `event_setting` | Indoor, Outdoor, Not sure yet | `indoor`, `outdoor`, `unsure` |
-| `audience_distance_12ft` | Yes, No, Not sure yet | `yes`, `no`, `unsure` |
+| Legacy `audience_distance_12ft` | Yes, No, Not sure yet | `yes`, `no`, `unsure` |
 | `event_types` | K-12 School, College / University, Non-Profit Organization, City / Government, Corporate Event, Cultural Organization, Funeral, Grand Opening, Other | `k12_school`, `college_university`, `nonprofit`, `government`, `corporate`, `cultural_organization`, `funeral`, `grand_opening`, `other` |
 | `referral_sources` | Website, Instagram, Facebook, Tik-Tok, Word of Mouth, Mexica New Year, Previous Performance, Referral, Other | `website`, `instagram`, `facebook`, `tiktok`, `word_of_mouth`, `mexica_new_year`, `previous_performance`, `referral`, `other` |
 
 Checkbox values must remain JSON arrays, even for one selection. Existing canonical codes also work. Unrecognized event-type text, including `Other: ...` descriptions, is preserved with surrounding whitespace removed. Event types permit at most nine unique, nonblank strings of up to 500 characters each; objects, numbers, and blank selections are rejected. Referral values remain restricted to the documented choices; use `referral_reference` for free-text referral details. Unknown radio choices remain invalid. The adapter does not invent missing required answers or change webhook credentials and form/submission IDs.
+
+Map the complete **Required Logistics** checkbox group to `data.required_logistics`. Each checked item identifies a requirement the requester cannot accommodate. Use `[]` when no boxes are checked. The receiver accepts the display labels or codes below and rejects unknown or repeated choices. For compatibility, the old mapping can still send both `audience_distance_12ft` and `unavailable_logistics` in place of the checkbox array.
+
+| Wix checkbox label | Stored code |
+| --- | --- |
+| Parking close to the dance area | `nearby_parking` |
+| A private dressing room or changing area | `private_changing_area` |
+| Allow dancers to be at least 12 feet away from audience | `audience_distance_12ft` |
+| 1 Microphone & Stand | `microphone_and_stand` |
+| 1 Small Table | `small_table` |
 
 Repeated event types are removed after normalization, preserving the first occurrence's order. For example, `["Cultural Organization", "cultural_organization"]` becomes `["cultural_organization"]`. Custom descriptions are also deduplicated after trimming. Non-string selections remain invalid, and manual API inputs retain their unique-selection validation.
 

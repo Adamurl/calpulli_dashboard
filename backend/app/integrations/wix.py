@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_session
 from app.modules.presentations.email_service import dispatch_automatic
+from app.modules.presentations.logistics import LOGISTICS_LABELS
 from app.modules.presentations.schemas import EventType, NewPresentation, ReferralSource
 from app.modules.presentations.services import PresentationConflict, create_presentation
 
@@ -37,6 +38,10 @@ REFERRAL_CHOICES = {
     "word of mouth": "word_of_mouth",
     "mexica new year": "mexica_new_year",
     "previous performance": "previous_performance",
+}
+LOGISTICS_CHOICES = {
+    **{value: value for value in LOGISTICS_LABELS},
+    **{label.casefold(): value for value, label in LOGISTICS_LABELS.items()},
 }
 
 
@@ -74,6 +79,13 @@ class WixFields(NewPresentation):
     def normalize_referrals(cls, value: Any) -> Any:
         if isinstance(value, list):
             return [normalize_choice(item, REFERRAL_CHOICES) for item in value]
+        return value
+
+    @field_validator("required_logistics", mode="before")
+    @classmethod
+    def normalize_logistics(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [normalize_choice(item, LOGISTICS_CHOICES) for item in value]
         return value
 
 

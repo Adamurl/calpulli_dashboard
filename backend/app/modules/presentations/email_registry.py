@@ -195,6 +195,7 @@ VARIABLES = frozenset(
         "Due Date",
         "Arrival Time",
         "Parking Instructions",
+        "Required Logistics",
         "Changing Room Information",
         "Day-of Contact",
         "Calpulli Contact",
@@ -219,6 +220,7 @@ AUTO_POPULATED_VARIABLES = frozenset(
         "Time",
         "Time Zone",
         "Presentation Details",
+        "Required Logistics",
     }
 )
 TOKEN = re.compile(r"\[([^\[\]]+)\]")

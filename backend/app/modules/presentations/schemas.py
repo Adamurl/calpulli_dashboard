@@ -12,6 +12,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.modules.presentations.logistics import LogisticsRequirement
+
 PresentationStatus = Literal[
     "unknown", "new", "reviewing", "proposal_sent", "booked", "completed", "declined", "cancelled"
 ]
@@ -55,8 +57,9 @@ class NewPresentation(BaseModel):
     event_purpose: LongText
     venue_address: ShortText
     estimated_guests: Annotated[int, Field(ge=1, le=10000000, strict=True)]
-    audience_distance_12ft: Literal["yes", "no", "unsure"]
-    unavailable_logistics: LongText
+    audience_distance_12ft: Literal["yes", "no", "unsure"] | None = None
+    unavailable_logistics: LongText | None = None
+    required_logistics: list[LogisticsRequirement] | None = Field(default=None, max_length=5)
     organization_name: ShortText | None = None
     contact_first_name: ShortText
     contact_last_name: ShortText
@@ -89,12 +92,21 @@ class NewPresentation(BaseModel):
             raise ValueError("Use an IANA timezone") from None
         return value
 
-    @field_validator("event_types", "referral_sources")
+    @field_validator("event_types", "referral_sources", "required_logistics")
     @classmethod
-    def unique_selections(cls, value: list[str]) -> list[str]:
-        if len(value) != len(set(value)):
+    def unique_selections(cls, value: list[str] | None) -> list[str] | None:
+        if value is not None and len(value) != len(set(value)):
             raise ValueError("Selections must be unique")
         return value
+
+    @model_validator(mode="after")
+    def require_logistics_answer(self) -> "NewPresentation":
+        if self.required_logistics is None:
+            if self.audience_distance_12ft is None or self.unavailable_logistics is None:
+                raise ValueError("Supply required_logistics or both legacy logistics answers")
+        elif self.audience_distance_12ft is not None or self.unavailable_logistics is not None:
+            raise ValueError("Supply required_logistics by itself when using the checkbox group")
+        return self
 
     @model_validator(mode="after")
     def ordered_local_times(self) -> "NewPresentation":
@@ -217,6 +229,7 @@ class PresentationRead(PresentationSummary):
     event_purpose: str | None
     audience_distance_12ft: str | None
     unavailable_logistics: str | None
+    required_logistics: list[LogisticsRequirement] | None = None
     contact_first_name: str | None
     contact_last_name: str | None
     contact_phone: str | None

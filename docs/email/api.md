@@ -89,7 +89,7 @@ Recipient email and template readiness are required in addition to the variables
 
 Creation and transitions to `new` map to `inquiry_created`; `declined` maps to `inquiry_declined`; `completed` maps to `presentation_completed`. Other inquiry states have no mapped event. Explicit events do not change inquiry state and are not restricted by the current state. Clients are responsible for recording the correct staff milestone.
 
-Inquiry-derived defaults are `Name` from first/full name, `Organization`, `Event Description`, `Requested Date`, `Time`, `Time Zone`, and `Location`. Caller variables override them, except the three call timestamp variables. Other values such as links, balances, deposit amounts, and logistics require explicit staff input. The registry does not calculate money, create contracts, book meetings, or infer dates from external services.
+Inquiry-derived defaults include `Name` from first/full name, `Organization`, `Event Description`, `Requested Date`, `Time`, `Time Zone`, `Location`, and `Required Logistics` from the checkbox response. Caller variables override them, except the three call timestamp variables. Links, balances, deposit amounts, and day-of logistics details require explicit staff input. The registry does not calculate money, create contracts, book meetings, or infer dates from external services.
 
 ## Draft input: DraftEdit
 
