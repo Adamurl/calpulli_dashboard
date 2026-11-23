@@ -78,6 +78,66 @@ def test_other_form_forbidden(webhook_client: TestClient) -> None:
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize(
+    ("selections", "expected"),
+    [
+        ([], []),
+        (
+            [
+                " Parking close to the dance area ",
+                "A private dressing room or changing area",
+                "Allow dancers to be at least 12 feet away from audience",
+                "1 Microphone & Stand",
+                "1 Small Table",
+            ],
+            [
+                "nearby_parking",
+                "private_changing_area",
+                "audience_distance_12ft",
+                "microphone_and_stand",
+                "small_table",
+            ],
+        ),
+    ],
+)
+def test_required_logistics_checkbox_group(
+    webhook_client: TestClient, monkeypatch: pytest.MonkeyPatch, selections, expected
+) -> None:
+    def store(session, submission):
+        assert submission.required_logistics == expected
+        assert submission.audience_distance_12ft is None
+        assert submission.unavailable_logistics is None
+        return uuid4(), True
+
+    monkeypatch.setattr(wix, "persist_submission", store)
+    monkeypatch.setattr(wix, "dispatch_automatic", lambda *args: None)
+    payload = fields()
+    del payload["audience_distance_12ft"], payload["unavailable_logistics"]
+    payload["required_logistics"] = selections
+    response = webhook_client.post("/api/v1/integrations/wix/presentations", json={"data": payload})
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "logistics",
+    [
+        {},
+        {"required_logistics": None},
+        {"required_logistics": "1 Small Table"},
+        {"required_logistics": ["Unknown choice"]},
+        {"required_logistics": ["1 Small Table", "small_table"]},
+        {"required_logistics": [], "audience_distance_12ft": "yes"},
+    ],
+)
+def test_invalid_required_logistics_rejected(webhook_client: TestClient, logistics: dict) -> None:
+    payload = fields()
+    del payload["audience_distance_12ft"], payload["unavailable_logistics"]
+    response = webhook_client.post(
+        "/api/v1/integrations/wix/presentations", json={"data": payload | logistics}
+    )
+    assert response.status_code == 422
+
+
 def test_new_and_duplicate_acknowledgements(
     webhook_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

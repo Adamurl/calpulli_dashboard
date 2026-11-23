@@ -670,13 +670,21 @@
           "title": "Additional Notes"
         },
         "audience_distance_12ft": {
-          "enum": [
-            "yes",
-            "no",
-            "unsure"
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "Audience Distance 12Ft",
-          "type": "string"
+          "default": null,
+          "title": "Audience Distance 12Ft"
         },
         "contact_email": {
           "maxLength": 320,
@@ -835,16 +843,47 @@
           "title": "Referral Sources",
           "type": "array"
         },
+        "required_logistics": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "nearby_parking",
+                  "private_changing_area",
+                  "audience_distance_12ft",
+                  "microphone_and_stand",
+                  "small_table"
+                ],
+                "type": "string"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Logistics"
+        },
         "start_time": {
           "format": "time",
           "title": "Start Time",
           "type": "string"
         },
         "unavailable_logistics": {
-          "maxLength": 10000,
-          "minLength": 1,
-          "title": "Unavailable Logistics",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable Logistics"
         },
         "venue_address": {
           "maxLength": 500,
@@ -861,8 +900,6 @@
         "event_purpose",
         "venue_address",
         "estimated_guests",
-        "audience_distance_12ft",
-        "unavailable_logistics",
         "contact_first_name",
         "contact_last_name",
         "contact_email",
@@ -1834,6 +1871,28 @@
           },
           "title": "Referral Sources",
           "type": "array"
+        },
+        "required_logistics": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "nearby_parking",
+                  "private_changing_area",
+                  "audience_distance_12ft",
+                  "microphone_and_stand",
+                  "small_table"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Logistics"
         },
         "source": {
           "enum": [
@@ -3093,13 +3152,21 @@
           "title": "Additional Notes"
         },
         "audience_distance_12ft": {
-          "enum": [
-            "yes",
-            "no",
-            "unsure"
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "unsure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "Audience Distance 12Ft",
-          "type": "string"
+          "default": null,
+          "title": "Audience Distance 12Ft"
         },
         "contact_email": {
           "maxLength": 320,
@@ -3264,6 +3331,29 @@
           "title": "Referral Sources",
           "type": "array"
         },
+        "required_logistics": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "nearby_parking",
+                  "private_changing_area",
+                  "audience_distance_12ft",
+                  "microphone_and_stand",
+                  "small_table"
+                ],
+                "type": "string"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Logistics"
+        },
         "start_time": {
           "format": "time",
           "title": "Start Time",
@@ -3276,10 +3366,18 @@
           "type": "string"
         },
         "unavailable_logistics": {
-          "maxLength": 10000,
-          "minLength": 1,
-          "title": "Unavailable Logistics",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable Logistics"
         },
         "venue_address": {
           "maxLength": 500,
@@ -3296,8 +3394,6 @@
         "event_purpose",
         "venue_address",
         "estimated_guests",
-        "audience_distance_12ft",
-        "unavailable_logistics",
         "contact_first_name",
         "contact_last_name",
         "contact_email",

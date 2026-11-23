@@ -15,8 +15,9 @@ from app.db.session import build_engine, get_session
 from app.integrations.wix import WixFields, persist_submission
 from app.main import create_app
 from app.modules.presentations.email_models import EmailMessage, EmailStaffTask
+from app.modules.presentations.email_registry import render_template
 from app.modules.presentations.models import PresentationActivity, PresentationRequest
-from app.modules.presentations.schemas import NewPresentation, PresentationPatch
+from app.modules.presentations.schemas import NewPresentation, PresentationPatch, PresentationRead
 from app.modules.presentations.services import (
     PresentationConflict,
     create_presentation,
@@ -46,6 +47,7 @@ def test_wix_choices_and_custom_event_types_persist_and_replay(pg_session, paylo
     assert record.event_access == "public"
     assert record.event_setting == "unsure"
     assert record.audience_distance_12ft == "yes"
+    assert "required_logistics" not in record.original_fields
     duplicate_choices = values | {
         "event_types": [
             "Cultural Organization",
@@ -71,6 +73,44 @@ def test_wix_choices_and_custom_event_types_persist_and_replay(pg_session, paylo
     changed = values | {"event_types": ["Other: Different celebration"]}
     with pytest.raises(PresentationConflict):
         persist_submission(pg_session, WixFields.model_validate(changed))
+
+
+@pytest.mark.parametrize(
+    ("labels", "codes", "email_value"),
+    [
+        (
+            ["1 Small Table", "Allow dancers to be at least 12 feet away from audience"],
+            ["small_table", "audience_distance_12ft"],
+            "• 1 Small Table\n• Allow dancers to be at least 12 feet away from audience",
+        ),
+        ([], [], "All five requirements can be accommodated."),
+    ],
+)
+def test_wix_required_logistics_persist_replay_and_render(
+    pg_session, payload, labels, codes, email_value
+):
+    values = payload.model_dump(exclude={"audience_distance_12ft", "unavailable_logistics"}) | {
+        "form_id": "fictional-form",
+        "submission_id": "required-logistics-submission",
+        "required_logistics": labels,
+    }
+    request_id, created = persist_submission(pg_session, WixFields.model_validate(values))
+    assert created
+    pg_session.expire_all()
+    record = pg_session.get(PresentationRequest, request_id)
+    assert PresentationRead.model_validate(record).required_logistics == codes
+    assert record.original_fields["required_logistics"] == codes
+    assert "audience_distance_12ft" not in record.original_fields
+    assert persist_submission(
+        pg_session, WixFields.model_validate(values | {"required_logistics": codes})
+    ) == (request_id, False)
+    message = pg_session.scalar(select(EmailMessage).where(EmailMessage.inquiry_id == request_id))
+    _, body, _ = render_template(
+        "Presentation inquiry",
+        "Required logistics you indicated you cannot accommodate\n[Required Logistics]",
+        message.variables,
+    )
+    assert body.endswith("\n" + email_value)
 
 
 @pytest.fixture

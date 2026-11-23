@@ -19,6 +19,7 @@ from app.modules.presentations.email_registry import (
     template_variables,
 )
 from app.modules.presentations.email_schemas import DraftEdit, EventInput, TemplateEdit
+from app.modules.presentations.logistics import LOGISTICS_LABELS
 from app.modules.presentations.models import PresentationActivity, PresentationRequest
 
 ACTOR = "internal-staff"
@@ -77,11 +78,20 @@ def task(session: Session, message: EmailMessage, code: str, summary: str) -> No
 
 def inquiry_variables(inquiry: PresentationRequest) -> dict[str, str]:
     presentation_details = inquiry.event_purpose or ", ".join(inquiry.event_types)
+    if inquiry.required_logistics is None:
+        required_logistics = "No checkbox response was recorded."
+    elif not inquiry.required_logistics:
+        required_logistics = "All five requirements can be accommodated."
+    else:
+        required_logistics = "\n".join(
+            f"• {LOGISTICS_LABELS[requirement]}" for requirement in inquiry.required_logistics
+        )
     values = {
         "Name": inquiry.contact_first_name or inquiry.contact_full_name,
         "Organization": inquiry.organization_name,
         "Event Description": inquiry.event_purpose,
         "Presentation Details": presentation_details,
+        "Required Logistics": required_logistics,
         "Requested Date": str(inquiry.event_date) if inquiry.event_date else None,
         "Time": str(inquiry.start_time) if inquiry.start_time else None,
         "Time Zone": inquiry.event_timezone,
