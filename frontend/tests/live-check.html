@@ -276,7 +276,7 @@
             !doc().querySelector(".app-shell"),
           "Same-user login verifies staff access again after losing the session",
         );
-        frame.src = "/tests/live-fixture.html?page-failure";
+        frame.src = "/tests/live-fixture.html?page-failure&path=/inbox";
         await until(
           () =>
             frame.contentWindow.fixture?.secondPageFailure === true &&
@@ -284,9 +284,9 @@
           "second page error",
         );
         check(
-          !text().includes("Recent requests") &&
-            !text().includes("Fictional Operations School"),
-          "A failed table request never displays stale rows as complete",
+          !text().includes("Fictional Operations School") &&
+            text().includes("Outlook email"),
+          "A failed presentation fetch leaves Outlook visible without stale presentation rows",
         );
         results.insertAdjacentHTML(
           "afterbegin",

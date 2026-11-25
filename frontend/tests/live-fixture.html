@@ -26,7 +26,7 @@
       id,
       source: parameters.get("presentation-source") ?? "legacy_csv",
       form_version: "legacy_v1",
-      status: "unknown",
+      status: parameters.has("home-mailbox") ? "new" : "unknown",
       received_at: parameters.has("missing-received")
         ? null
         : (parameters.get("received-at") ?? stamp),
@@ -138,6 +138,7 @@
         ? summary
         : {
             ...summary,
+            status: "unknown",
             id: `22222222-2222-4222-8222-${String(index).padStart(12, "0")}`,
             organization_name:
               index === 1
@@ -157,7 +158,7 @@
       id: `33333333-3333-4333-8333-${String(index).padStart(12, "0")}`,
       event_year: 2027,
       source: "form_csv",
-      stage: index === 2 ? "accepted" : index === 3 ? "paid" : "applied",
+      stage: index === 2 ? "accepted" : index === 3 ? "declined" : "applied",
       business_name: index ? `Sample Vendor ${index}` : "Fixture Artisan",
       category: "Craft",
       submitted_at: stamp,
@@ -172,7 +173,7 @@
       id: "44444444-4444-4444-8444-444444444444",
       event_year: 2026,
       source: "legacy_vendor",
-      stage: "spot_assigned",
+      stage: "unknown",
       business_name: "Archived Vendor",
       requested_spot_count: 2,
       submitted_at: null,
@@ -335,10 +336,32 @@
         authorization: headers.get("Authorization"),
         body: options.body,
       });
+      if (url.pathname === "/api/v1/outlook/statistics") {
+        const days = Number(url.searchParams.get("days") || 30);
+        const received = days === 7 ? 4 : days === 30 ? 12 : 16;
+        return parameters.has("home-mailbox")
+          ? reply(200, {
+              received,
+              previously_received: 8,
+              awaiting_reply: 3,
+              daily_received: Array(days - 1)
+                .fill(0)
+                .concat(received),
+            })
+          : reply(503, {});
+      }
       if (url.pathname.startsWith("/api/v1/outlook/"))
         return parameters.has("outlook")
           ? browserFetch(input, options)
           : reply(200, { mailbox_available: false, test_mode: true });
+      if (url.pathname === "/api/v1/contact-messages")
+        return parameters.has("contact-messages")
+          ? browserFetch(input, options)
+          : reply(200, {
+              messages: [],
+              previous_offset: null,
+              next_offset: null,
+            });
       if (url.pathname === "/api/v1/presentations/email-templates") {
         await delay(
           Number(parameters.get("template-delay") || 0),
@@ -419,6 +442,44 @@
             assigned_spots: historic ? 2 : null,
           });
         }
+        if (url.pathname === `${vendorsPath}/activity`) {
+          const days = Number(url.searchParams.get("days") || 30);
+          return reply(200, {
+            current: Array(days - 1)
+              .fill(0)
+              .concat(historic ? 0 : days === 7 ? 7 : days === 30 ? 21 : 25),
+            previous: Array(days - 1)
+              .fill(0)
+              .concat(historic ? 0 : 10),
+          });
+        }
+        if (url.pathname === `${vendorsPath}/categories`)
+          return reply(200, ["Craft", "A&C", "FOOD"]);
+        if (
+          url.pathname === `${vendorsPath}/bulk-edit` &&
+          options.method === "POST"
+        ) {
+          const { items } = JSON.parse(options.body);
+          for (const item of items) {
+            const row = candidates.find(
+              (candidate) => candidate.id === item.id,
+            );
+            if (
+              !row ||
+              row.stage !== item.expected_stage ||
+              row.category !== item.expected_category
+            )
+              return reply(409, { detail: "Vendor changed" });
+          }
+          for (const item of items) {
+            const row = candidates.find(
+              (candidate) => candidate.id === item.id,
+            );
+            if ("stage" in item) row.stage = item.stage;
+            if ("category" in item) row.category = item.category;
+          }
+          return reply(200, { updated: items.length });
+        }
         if (window.fixture.vendorFailure) return reply(503, {});
         if (url.pathname === vendorsPath) {
           const query = (url.searchParams.get("q") || "").toLowerCase();
@@ -426,13 +487,7 @@
           const sort = url.searchParams.get("sort");
           const direction =
             url.searchParams.get("direction") === "desc" ? -1 : 1;
-          const stageOrder = [
-            "applied",
-            "accepted",
-            "paid",
-            "spot_assigned",
-            "unknown",
-          ];
+          const stageOrder = ["applied", "accepted", "declined", "unknown"];
           const rows = candidates.filter(
             (vendor) =>
               (!stage || vendor.stage === stage) &&

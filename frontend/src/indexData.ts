@@ -3,12 +3,7 @@ import { apiFetch } from "./api";
 import { summarySchema, toInquiry } from "./presentations";
 import type { Inquiry } from "./domain";
 
-export const statisticsDays = z.union([
-  z.literal(1),
-  z.literal(7),
-  z.literal(30),
-]);
-export type StatisticsDays = z.infer<typeof statisticsDays>;
+export type StatisticsDays = 1 | 7 | 30;
 export const metricKeys = [
   "presentations",
   "reviewing",
@@ -17,7 +12,7 @@ export const metricKeys = [
 ] as const;
 export const analyticsSchema = z
   .object({
-    days: statisticsDays,
+    days: z.number().int().min(1).max(92),
     timezone: z.literal("America/Los_Angeles"),
     start_date: z.string(),
     end_date: z.string(),
@@ -82,7 +77,7 @@ export async function fetchPresentationIndex(
   return { ...page, items: page.items.map(toInquiry) };
 }
 export async function fetchPresentationStatistics(
-  days: StatisticsDays,
+  days: number,
   signal: AbortSignal,
 ): Promise<Analytics> {
   const response = await apiFetch(

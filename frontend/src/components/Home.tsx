@@ -1,243 +1,278 @@
-import {
-  ArrowUpRight,
-  ArrowRight,
-  Mail,
-  Clock3,
-  CalendarDays,
-  ChevronRight,
-  Plus,
-  Sparkles,
-  MessageSquare,
-  Check,
-  Inbox,
-  Search,
-} from "lucide-react";
-import type { Draft, Inquiry, Page } from "../domain";
-import { dateLabel } from "../data";
-import logo from "../assets/Calpulli_Logo.png";
-import { Badge, Avatar } from "./ui";
-export function Home({
-  items,
-  drafts,
-  navigate,
-  open,
-  compose,
-  search,
+import { ArrowUpRight, ChevronDown, Search } from "lucide-react";
+import type { ReactNode } from "react";
+import type { Inquiry, Page } from "../domain";
+import type { LoadState } from "../presentations";
+import { pacificDateKey } from "../lib/reporting";
+import { Skeleton } from "./Skeleton";
+import "./home.css";
+
+const number = new Intl.NumberFormat("en-US");
+const percentage = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 1,
+  signDisplay: "exceptZero",
+});
+const homePeriods = ["Last 7 days", "Last 30 days", "This quarter"] as const;
+export type HomePeriod = (typeof homePeriods)[number];
+
+export function homePeriodDays(period: HomePeriod, now = new Date()) {
+  if (period === "Last 7 days") return 7;
+  if (period === "Last 30 days") return 30;
+  const today = new Date(`${pacificDateKey(now)}T00:00:00Z`);
+  const quarterMonth = Math.floor(today.getUTCMonth() / 3) * 3;
+  const quarterStart = Date.UTC(today.getUTCFullYear(), quarterMonth, 1);
+  return (today.getTime() - quarterStart) / 86_400_000 + 1;
+}
+
+type Count =
+  | { kind: "loading" | "unavailable" }
+  | {
+      kind: "ready";
+      value: number;
+      comparison?: { daily: number[]; previous: number };
+    };
+
+export function homeCount(value: number | null): Count {
+  return value === null ? { kind: "unavailable" } : { kind: "ready", value };
+}
+
+export function homeActivity(current: number[], previous: number[]): Count {
+  const sum = (values: number[]) =>
+    values.reduce((total, value) => total + value, 0);
+  return {
+    kind: "ready",
+    value: sum(current),
+    comparison: { daily: current, previous: sum(previous) },
+  };
+}
+
+function CountValue({ count }: { count: Count }) {
+  if (count.kind === "loading") {
+    return (
+      <span role="status" aria-label="Loading count">
+        <Skeleton className="home-count-skeleton" />
+      </span>
+    );
+  }
+  return count.kind === "ready" ? (
+    number.format(count.value)
+  ) : (
+    <span className="home-unavailable">
+      <span aria-hidden="true">-</span>
+      <span className="sr-only">Unavailable</span>
+    </span>
+  );
+}
+
+function Change({
+  current,
+  previous,
+  daily,
 }: {
-  items: Inquiry[];
-  drafts: Draft[];
-  navigate: (page: Page) => void;
-  open: (id: string) => void;
-  compose: () => void;
-  search: () => void;
+  current: number;
+  previous: number;
+  daily: number[];
 }) {
-  const newCount = items.filter((i) => i.status === "new").length;
+  const difference = current - previous;
+  const label = previous
+    ? percentage.format(difference / previous)
+    : current
+      ? "New"
+      : "";
+  const trend = difference > 0 ? "up" : difference < 0 ? "down" : "flat";
+  const description = previous
+    ? `${label} vs. the previous ${daily.length} days`
+    : current
+      ? `${number.format(current)} new in this period, zero in the previous period`
+      : "No activity in either period";
+  const pointCount = Math.min(6, daily.length);
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const start = Math.floor((index * daily.length) / pointCount);
+    const end = Math.floor(((index + 1) * daily.length) / pointCount);
+    const segment = daily.slice(start, end);
+    return segment.reduce((sum, value) => sum + value, 0) / segment.length;
+  });
+  if (points.length === 1) points.push(points[0]);
+  const maximum = Math.max(...points) || 1;
+  const line = points
+    .map(
+      (value, index) =>
+        `${1 + (index * 20) / (points.length - 1)},${10 - (value / maximum) * 8}`,
+    )
+    .join(" ");
   return (
-    <div className="home-content">
-      <div className="home-period">
-        <span>Workspace overview</span>
-        <span>
-          <span className="tiny-dot" /> Preview workspace · Fictional data
-        </span>
-      </div>
-      <div className="hero">
-        <button className="home-search-card" onClick={search}>
-          <span>Find a client, presentation, or conversation…</span>
-          <span>
-            <Search size={16} />
-            <kbd>⌘ K</kbd>
-          </span>
-        </button>
-        <div className="hero-actions">
-          <button className="button primary" onClick={compose}>
-            <Plus size={15} /> New email
-          </button>
-          <button className="button" onClick={() => navigate("Presentations")}>
-            View presentations
-            <ArrowUpRight size={14} />
-          </button>
-        </div>
-      </div>
-      <div className="metric-strip">
-        {[
-          {
-            label: "New inquiries",
-            value: newCount,
-            sub: "Ready for a warm welcome",
-            icon: Inbox,
-            page: "Presentations",
-          },
-          {
-            label: "Unread conversations",
-            value: items.filter((i) => i.unread).length,
-            sub: "Keep the conversation going",
-            icon: MessageSquare,
-            page: "Inbox",
-          },
-          {
-            label: "Upcoming presentations",
-            value: items.filter((i) => i.status === "booked").length,
-            sub: "Moments to look forward to",
-            icon: CalendarDays,
-            page: "Presentations",
-          },
-          {
-            label: "Email drafts",
-            value: drafts.length,
-            sub: "A little thought, ready to share",
-            icon: Mail,
-            page: "Drafts",
-          },
-        ].map(({ label, value, sub, icon: Icon, page }) => (
-          <button
-            className="metric"
-            key={label}
-            onClick={() =>
-              navigate(
-                page === "Presentations"
-                  ? "Presentations"
-                  : page === "Inbox"
-                    ? "Inbox"
-                    : "Drafts",
-              )
-            }
+    <span
+      className="home-change"
+      data-trend={trend}
+      title={description}
+      aria-label={description}
+      role="img"
+    >
+      <svg width="22" height="12" viewBox="0 0 22 12" aria-hidden="true">
+        <polyline
+          points={line}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
+export function Home({
+  search,
+  period,
+  changePeriod,
+  metrics,
+  tasks,
+  navigate,
+  newRequests,
+  replyDescription,
+  extra,
+}: {
+  search: ReactNode;
+  period: HomePeriod;
+  changePeriod: (period: HomePeriod) => void;
+  metrics: { label: string; page: Page; count: Count; scope?: string }[];
+  tasks: { awaitingReply: Count; newRequests: Count };
+  navigate: (page: Page) => void;
+  newRequests: () => void;
+  replyDescription?: string;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="home-overview">
+      <div className="home-summary">
+        <label className="home-period">
+          <span className="sr-only">Analytics period</span>
+          <select
+            value={period}
+            onChange={(event) => {
+              const selected = homePeriods.find(
+                (option) => option === event.target.value,
+              );
+              if (selected) changePeriod(selected);
+            }}
           >
-            <div>
-              <span>{label}</span>
-              <Icon size={15} />
-            </div>
-            <strong>{value}</strong>
-            <small>{sub}</small>
-          </button>
-        ))}
-      </div>
-      <div className="home-grid">
-        <section className="card attention-card">
-          <div className="section-head">
-            <h2>
-              Needs your attention{" "}
-              <span className="count">
-                {items.filter((i) => i.unread).length}
-              </span>
-            </h2>
-            <button className="text-button" onClick={() => navigate("Inbox")}>
-              View inbox
-              <ArrowUpRight size={13} />
-            </button>
-          </div>
-          {items
-            .filter((i) => i.unread)
-            .map((i) => (
-              <button
-                className="attention-row"
-                key={i.id}
-                onClick={() => open(i.id)}
-              >
-                <Avatar name={i.name} />
-                <div>
-                  <strong>{i.organization}</strong>
-                  <p>{i.preview}</p>
-                  <small>
-                    {i.name} · {i.title}
-                  </small>
-                </div>
-                <ChevronRight size={16} />
-              </button>
+            {homePeriods.map((option) => (
+              <option key={option}>{option}</option>
             ))}
-          <div className="card-footer">
-            <Clock3 size={13} /> A thoughtful reply goes a long way.
-          </div>
-        </section>
-        <section className="community-card">
-          <div className="community-art">
-            <img
-              className="community-logo"
-              src={logo}
-              alt="Calpulli Tonalehqueh"
-            />
-          </div>
-          <div className="community-copy">
-            <span className="eyebrow">A LITTLE MORE HUMAN</span>
-            <h2>Start with a hello.</h2>
-            <p>
-              Make every client feel welcome with a personal message, written in
-              your voice.
-            </p>
-            <button className="button" onClick={compose}>
-              Write a personal email
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </section>
-        <section className="card upcoming-card">
-          <div className="section-head">
-            <h2>Coming together soon</h2>
+          </select>
+          <ChevronDown size={12} aria-hidden="true" />
+        </label>
+        <section className="home-analytics" aria-label="Workspace analytics">
+          {metrics.map(({ label, page, count, scope }) => (
             <button
-              className="text-button"
-              onClick={() => navigate("Presentations")}
+              className="home-analytics-item"
+              key={page}
+              type="button"
+              onClick={() => navigate(page)}
             >
-              View all
-              <ArrowUpRight size={13} />
+              <span className="home-analytics-label">
+                {label}
+                {scope && <span> · {scope}</span>}
+              </span>
+              <span className="home-analytics-value">
+                <strong>
+                  <CountValue count={count} />
+                </strong>
+                {count.kind === "ready" && count.comparison && (
+                  <Change current={count.value} {...count.comparison} />
+                )}
+              </span>
             </button>
-          </div>
-          {items
-            .filter((i) => i.status === "booked")
-            .map((i) => (
-              <button
-                className="upcoming-row"
-                key={i.id}
-                onClick={() => open(i.id)}
-              >
-                <div className="date-tile">
-                  <small>
-                    {new Date(i.date + "T12:00:00").toLocaleString("en-US", {
-                      month: "short",
-                    })}
-                  </small>
-                  <b>{i.date.slice(-2)}</b>
-                </div>
-                <div>
-                  <strong>{i.organization}</strong>
-                  <p>
-                    {i.title} · {i.location}
-                  </p>
-                </div>
-                <Badge status={i.status} />
-              </button>
-            ))}
-        </section>
-        <section className="card quick-card">
-          <div className="section-head">
-            <h2>A good place to start</h2>
-            <Sparkles size={16} />
-          </div>
-          <button onClick={() => navigate("Templates")}>
-            <span className="quick-icon">
-              <Mail size={17} />
-            </span>
-            <span>
-              <strong>Make it your own</strong>
-              <small>Explore your email templates</small>
-            </span>
-            <ChevronRight size={15} />
-          </button>
-          <button onClick={() => navigate("Settings")}>
-            <span className="quick-icon green">
-              <Check size={17} />
-            </span>
-            <span>
-              <strong>Your workspace, connected</strong>
-              <small>Review account and email settings</small>
-            </span>
-            <ChevronRight size={15} />
-          </button>
+          ))}
         </section>
       </div>
-      <div className="home-bottom">
-        <img className="footer-logo" src={logo} alt="Calpulli" /> Made for the
-        work that brings us together.
-        <span>Sample workspace · {dateLabel("2026-11-10")}</span>
-      </div>
+      <section
+        className="home-center"
+        aria-label="Workspace search and shortcuts"
+      >
+        {search}
+        <div
+          className="home-shortcuts"
+          role="group"
+          aria-label="Needs attention"
+        >
+          <button
+            className="home-shortcut"
+            type="button"
+            title={replyDescription}
+            aria-description={replyDescription}
+            onClick={() => navigate("Inbox")}
+          >
+            Reply to emails{" "}
+            <span className="home-shortcut-count">
+              <CountValue count={tasks.awaitingReply} />
+            </span>
+          </button>
+          <button className="home-shortcut" type="button" onClick={newRequests}>
+            New presentation requests{" "}
+            <span className="home-shortcut-count">
+              <CountValue count={tasks.newRequests} />
+            </span>
+          </button>
+          {extra}
+        </div>
+      </section>
     </div>
+  );
+}
+
+export function HomeSearch({
+  query,
+  change,
+  results,
+  open,
+}: {
+  query: string;
+  change: (query: string) => void;
+  results: LoadState<Inquiry[]>;
+  open: (id: string) => void;
+}) {
+  return (
+    <search className="home-search" aria-label="Search presentations">
+      <div className="search-field home-search-field">
+        <Search size={16} aria-hidden="true" />
+        <input
+          type="search"
+          aria-label="Search workspace records"
+          placeholder="Search presentations, clients, and organizations…"
+          value={query}
+          onChange={(event) => change(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") change("");
+          }}
+          maxLength={200}
+        />
+      </div>
+      {query.trim() && (
+        <div className="command-results home-search-results">
+          {results.kind === "loading" ? (
+            <p role="status">Searching presentations…</p>
+          ) : results.kind === "error" ? (
+            <p role="alert">{results.message}</p>
+          ) : results.data.length ? (
+            results.data.map((item) => (
+              <button key={item.id} type="button" onClick={() => open(item.id)}>
+                <span>
+                  {item.organization}
+                  <small>
+                    {item.name} · {item.title}
+                  </small>
+                </span>
+                <ArrowUpRight size={14} aria-hidden="true" />
+              </button>
+            ))
+          ) : (
+            <p role="status">No matching presentations.</p>
+          )}
+        </div>
+      )}
+    </search>
   );
 }

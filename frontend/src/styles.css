@@ -58,12 +58,6 @@ textarea {
   outline: none;
   color: #333333;
 }
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: #7c7c7c;
-  box-shadow: 0 0 0 3px #73737316;
-}
 input[type="checkbox"] {
   width: 14px;
   height: 14px;
@@ -990,7 +984,6 @@ small {
   border: 0;
   padding: 5px 0;
   font-size: 10px;
-  box-shadow: none !important;
   min-width: 0;
 }
 .search-field input::placeholder {
@@ -1126,13 +1119,6 @@ small {
   }
 }
 
-.table-tools .search-field:focus-within,
-.table-tools .search-field input:focus-visible {
-  outline: none;
-}
-.table-tools .search-field:focus-within {
-  background-color: #f5f5f5;
-}
 .table-scroll {
   overflow: auto;
 }
@@ -2781,16 +2767,10 @@ textarea {
   color: #171717;
   border-color: #d4d4d4;
 }
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #737373;
-  box-shadow: 0 0 0 3px #00000012;
-}
 input[type="checkbox"] {
   accent-color: #171717;
 }
-:focus-visible {
+:focus-visible:where(:not(input, select, textarea)) {
   outline: 2px solid #737373;
   outline-offset: 3px;
 }
@@ -2920,11 +2900,6 @@ input[type="checkbox"] {
 .search-field input {
   font-size: 12px;
   background: transparent;
-}
-.search-field:focus-within {
-  outline: 2px solid #737373;
-  outline-offset: 4px;
-  border-radius: 3px;
 }
 .table-scroll {
   max-height: 620px;
@@ -3629,6 +3604,26 @@ input[type="checkbox"]:indeterminate::after {
   color: var(--muted);
   margin-top: 4px;
 }
+.contact-messages details {
+  border-top: 1px solid var(--border);
+  padding-block: 12px;
+  overflow-wrap: anywhere;
+}
+.contact-messages summary {
+  cursor: pointer;
+}
+.contact-messages time {
+  margin-inline-start: 12px;
+  color: var(--muted);
+}
+.contact-message-body {
+  white-space: pre-wrap;
+}
+.contact-message-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .detail-sections {
   display: grid;
   gap: 16px;
@@ -4325,6 +4320,8 @@ input[type="checkbox"]:indeterminate::after {
 }
 .sidebar .nav-child.active {
   background: transparent;
+  box-shadow: none;
+  font-weight: 600;
 }
 .nav-child > span {
   flex: 1;
@@ -4445,15 +4442,6 @@ input[type="checkbox"]:indeterminate::after {
 .note-composer textarea {
   resize: none;
 }
-.note-composer textarea:focus,
-.note-composer textarea:focus-visible {
-  outline: none;
-  box-shadow: none;
-}
-.note-composer:has(textarea:focus),
-.note-composer textarea:focus {
-  background-color: #f5f5f5;
-}
 .presentation-edit-form .event-type-chip {
   display: inline-flex;
   width: auto;
@@ -4471,8 +4459,6 @@ input[type="checkbox"]:indeterminate::after {
   background: #eaf2ff;
   color: #204f8e;
 }
-.event-type-chip:focus-visible,
-.date-picker-field button:focus-visible,
 .template-table button:focus-visible {
   outline: 2px solid #3874cb;
   outline-offset: 3px;
@@ -4902,8 +4888,11 @@ input[type="checkbox"]:indeterminate::after {
   text-align: right;
 }
 
+.vendor-detail .detail-tabs {
+  border-bottom: 0;
+}
+
 .vendor-activity {
-  border-top: 1px solid var(--line);
   padding-top: 14px;
   margin-bottom: 20px;
 }
@@ -4952,10 +4941,15 @@ input[type="checkbox"]:indeterminate::after {
   margin: 0;
   accent-color: #333;
 }
-[data-slot="collapsible-trigger"]:focus-visible,
-.status-picker-content label:focus-within {
+[data-slot="collapsible-trigger"]:focus-visible {
   outline: 2px solid #3874cb;
   outline-offset: 3px;
+}
+.event-type-chip:focus-visible,
+.date-picker-controls button:focus-visible,
+.period-menu > button:focus-visible,
+.status-picker .status-picker-trigger:focus-visible {
+  outline: none;
 }
 [data-slot="collapsible-content"][hidden] {
   display: none;
@@ -5014,4 +5008,123 @@ input[type="checkbox"]:indeterminate::after {
 
 .dropdown-menu-item[data-highlighted] {
   background: #f5f5f5;
+}
+
+.workspace-table {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+.workspace-table .table-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.workspace-table .table-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  width: auto;
+  padding: 4px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.workspace-table .table-filter-trigger:hover {
+  background: #f2f2f2;
+}
+.workspace-table .table-filter-bar .search-field {
+  flex: 1;
+}
+.workspace-table .table-scroll {
+  max-height: min(65vh, 850px);
+  overflow: auto;
+}
+.workspace-table .table-scroll::-webkit-scrollbar-track:vertical {
+  margin-top: 39px;
+}
+.workspace-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.workspace-table thead th:first-child {
+  border-radius: 9px 0 0 9px;
+}
+.workspace-table thead th:last-child {
+  border-radius: 0 9px 9px 0;
+}
+.workspace-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f3f3f3;
+}
+.workspace-table .data-pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: white;
+}
+.workspace-table .column-settings-trigger {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.vendor-table input[type="checkbox"] {
+  box-sizing: border-box;
+  inline-size: 14px;
+  block-size: 14px;
+  min-inline-size: 14px;
+  min-block-size: 14px;
+  padding: 0;
+}
+.vendor-header-hidden {
+  visibility: hidden;
+}
+.workspace-table th.vendor-selection-header {
+  z-index: 2;
+}
+.vendor-selection-bar {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 8px;
+  white-space: nowrap;
+}
+.vendor-selection-bar .button {
+  min-height: 28px;
+  padding: 4px 8px;
+}
+.workspace-table .table-filter-bar .search-field {
+  min-width: 0;
+}
+.vendor-bulk-content {
+  padding: 18px;
+}
+.vendor-bulk-scroll {
+  overflow: auto;
+  max-height: 55vh;
+  margin-top: 16px;
+}
+.vendor-bulk-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.vendor-bulk-table :is(th, td) {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.vendor-bulk-table select {
+  max-width: 100%;
 }

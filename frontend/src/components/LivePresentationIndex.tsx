@@ -20,6 +20,7 @@ export function LivePresentationIndex({
   notify,
   exportTarget,
   revision = 0,
+  initialStatus = null,
   visibleIdsChanged,
   detailMode,
 }: {
@@ -27,12 +28,13 @@ export function LivePresentationIndex({
   notify: (message: string) => void;
   exportTarget: HTMLElement | null;
   revision?: number;
+  initialStatus?: IndexQuery["status"];
   visibleIdsChanged: (ids: string[]) => void;
   detailMode: boolean;
 }) {
   const [filters, setFilters] = useState<IndexQuery>({
     query: "",
-    status: null,
+    status: initialStatus,
     ascending: false,
     index: 0,
     size: 10,

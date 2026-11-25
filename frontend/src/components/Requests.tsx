@@ -7,6 +7,7 @@ import { errorMessage } from "../presentations";
 import { TableColumnsMenu, useTableColumns } from "./TableColumnsMenu";
 import type { SortOption, TableSort } from "./TableColumnsMenu";
 import { TablePagination } from "./TablePagination";
+import { TableStatusFilter } from "./TableStatusFilter";
 import { Skeleton } from "./Skeleton";
 import { createPortal } from "react-dom";
 import type { Inquiry } from "../domain";
@@ -141,6 +142,7 @@ export function Requests({
   notify,
   exportTarget,
   live = false,
+  initialStatus = null,
   remote,
   statistics,
 }: {
@@ -149,10 +151,11 @@ export function Requests({
   notify: (message: string) => void;
   exportTarget?: HTMLElement | null;
   live?: boolean;
+  initialStatus?: IndexQuery["status"];
   remote?: RemoteRequests;
   statistics?: ReactNode;
 }) {
-  const [localStatus, setStatus] = useState<Inquiry["status"] | null>(null);
+  const [localStatus, setStatus] = useState(initialStatus);
   const [localQuery, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   useEffect(() => setSelected([]), [remote?.selectionRevision]);
@@ -334,46 +337,36 @@ export function Requests({
       )}
       {statistics ?? <RequestStats items={items} />}
       <section
-        className="card table-card"
+        className="card table-card workspace-table"
         aria-label="Presentations"
         aria-busy={loading}
       >
-        <div className="table-tabs" role="group" aria-label="Filter by status">
-          {tabs.map((tab) => (
-            <button
-              key={tab.label}
-              className={status === tab.status ? "selected" : ""}
-              aria-pressed={status === tab.status}
-              onClick={() => {
-                if (remote)
-                  remote.change({
-                    ...remote.filters,
-                    status: tab.status,
-                    index: 0,
-                  });
-                else {
-                  setStatus(tab.status);
-                  setPage(0);
-                }
-                setSelected([]);
-              }}
-            >
-              {tab.label}
-              {!tab.status && (
-                <span>
-                  {loading ? (
-                    <Skeleton className="skeleton-count" />
-                  ) : remote ? (
-                    remote.totalAll
-                  ) : (
-                    items.length
-                  )}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="table-tools">
+        <div className="table-tools table-filter-bar">
+          <TableStatusFilter
+            label="Filter by status"
+            value={status ?? ""}
+            options={tabs.map((tab) => ({
+              label: tab.label,
+              value: tab.status ?? "",
+            }))}
+            onChange={(value) => {
+              const tab = tabs.find(
+                (option) => (option.status ?? "") === value,
+              );
+              if (!tab) return;
+              if (remote)
+                remote.change({
+                  ...remote.filters,
+                  status: tab.status,
+                  index: 0,
+                });
+              else {
+                setStatus(tab.status);
+                setPage(0);
+              }
+              setSelected([]);
+            }}
+          />
           <label className="search-field">
             <Search size={15} />
             <input

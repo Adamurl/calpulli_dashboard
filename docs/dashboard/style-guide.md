@@ -163,7 +163,7 @@ Use native controls where possible. A component earns a separate module when mul
 
 ## Screen composition
 
-Home has a command card, quick actions, and an operational metric strip. The large greeting is removed. A large command/search card points to real navigation and tasks. Below it, action chips lead to approvals and follow-ups. Cards show upcoming presentations, recent inquiries, and the email workflow. Avoid invented revenue, growth percentages, or live visitor counts.
+Home starts with a compact analytics row for new email, presentation requests, and MNY vendor applications. Choose **Last 7 days**, **Last 30 days**, or **This quarter**. Counts compare with the preceding period of equal length in Pacific time. Vendor counts include dated submissions for the selected event year. A centered search field finds presentation requests by client, organization, or event details. Below it, two count shortcuts open Outlook Inbox and the New view of Presentations.
 
 The presentation index fills the available workspace width. A Today, Last 7 days, or Last 30 days selector controls event-date statistics with minimal solid current-period and dashed previous-period lines. Checkboxes have 4px corners. The presentation index follows Image 2. Keep its title and primary action small. Place views, search, and filters directly above the table. Use light dividers and a subdued header. Show status badges at a consistent size. Avoid wrapping every row in a separate rounded card on desktop.
 

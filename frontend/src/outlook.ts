@@ -99,6 +99,21 @@ export async function getOutlookCapabilities(signal: AbortSignal) {
   return capabilitiesSchema.parse(await response.json());
 }
 
+export async function getOutlookStatistics(days: number, signal: AbortSignal) {
+  const response = await apiFetch(`${base}/statistics?days=${days}`, {
+    signal,
+  });
+  const count = z.number().int().nonnegative();
+  return z
+    .object({
+      received: count,
+      previously_received: count,
+      awaiting_reply: count,
+      daily_received: z.array(count).length(days),
+    })
+    .parse(await response.json());
+}
+
 export async function previewOutlookMessage(
   body: string,
   format: EmailFormat,

@@ -7,6 +7,7 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Inquiry } from "../domain";
 import type { Analytics, StatisticsDays } from "../indexData";
+import { pacificDateKey } from "../lib/reporting";
 import type { LoadState } from "../presentations";
 import { Skeleton } from "./Skeleton";
 
@@ -29,20 +30,8 @@ const metrics = [
   { label: "Booked", key: "booked" },
   { label: "Completed", key: "completed" },
 ] as const;
-const calendar = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Los_Angeles",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-function dateKey(date: Date) {
-  const parts = calendar.formatToParts(date);
-  return ["year", "month", "day"]
-    .map((type) => parts.find((part) => part.type === type)?.value)
-    .join("-");
-}
-function localAnalytics(items: Inquiry[], days: StatisticsDays): Analytics {
-  const today = dateKey(new Date());
+export function localAnalytics(items: Inquiry[], days: number): Analytics {
+  const today = pacificDateKey(new Date());
   const dates = Array.from({ length: days * 2 }, (_, index) => {
     const date = new Date(`${today}T12:00:00Z`);
     date.setUTCDate(date.getUTCDate() - (days * 2 - 1 - index));
@@ -58,7 +47,7 @@ function localAnalytics(items: Inquiry[], days: StatisticsDays): Analytics {
     if (!item.receivedAt) continue;
     const date = new Date(item.receivedAt);
     if (!Number.isFinite(date.getTime())) continue;
-    const bucket = buckets.get(dateKey(date));
+    const bucket = buckets.get(pacificDateKey(date));
     if (!bucket) continue;
     bucket.presentations++;
     if (

@@ -20,7 +20,7 @@ import { supabase, demoEnabled, passwordRecovery } from "./auth";
 import { apiFetch, ApiError } from "./api";
 import { inquiries } from "./data";
 import { emptyWorkspace, workspaceSchema } from "./domain";
-import type { Draft, Page, Workspace } from "./domain";
+import type { Draft, Inquiry, Page, Workspace } from "./domain";
 import {
   pages,
   mexicaNewYearPages,
@@ -35,7 +35,7 @@ import type { VendorRoute } from "./navigation";
 import { Sidebar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { PasswordReset, ForgotPassword } from "./components/PasswordReset";
-import { Home } from "./components/Home";
+import { DemoHome } from "./components/DemoHome";
 import { Requests } from "./components/Requests";
 import { Inbox } from "./components/Inbox";
 import { Detail } from "./components/Detail";
@@ -94,6 +94,9 @@ function WorkspaceApp() {
     () => vendorFromLocation() ?? defaultVendorRoute,
   );
   const [storageError, setStorageError] = useState(false);
+  const [demoInitialStatus, setDemoInitialStatus] = useState<
+    Inquiry["status"] | null
+  >(null);
   const [exportTarget, setExportTarget] = useState<HTMLDivElement | null>(null);
   const [apiAccess, setApiAccess] = useState<ApiAccess>({ kind: "checking" });
   const [accessAttempt, setAccessAttempt] = useState(0);
@@ -211,7 +214,11 @@ function WorkspaceApp() {
   const activeItems = items.filter((i) => !workspace.archived.includes(i.id));
   const name = session?.user.email?.split("@")[0] ?? "Alex";
   const email = session?.user.email ?? "alex@example.org";
-  function navigate(next: Page) {
+  function navigate(
+    next: Page,
+    initialStatus: Inquiry["status"] | null = null,
+  ) {
+    setDemoInitialStatus(initialStatus);
     if (next === "Vendors") {
       navigateVendor({ year: vendor.year, id: null });
       return;
@@ -370,21 +377,27 @@ function WorkspaceApp() {
             >
               <Menu size={18} />
             </button>
-            <h1 className="page-title">
-              <PageIcon size={17} aria-hidden="true" />
-              {selected ? `Presentation #${selected.id}` : page}
-            </h1>
+            {page === "Home" ? (
+              <h1 className="sr-only">Home</h1>
+            ) : (
+              <h1 className="page-title">
+                <PageIcon size={17} aria-hidden="true" />
+                {selected ? `Presentation #${selected.id}` : page}
+              </h1>
+            )}
           </div>
           <div>
             <span className="pill">Demo</span>
             <div className="header-export" ref={setExportTarget} />
-            <button
-              className="icon-button"
-              onClick={() => setSearch(true)}
-              aria-label="Search workspace"
-            >
-              <Search size={17} />
-            </button>
+            {page !== "Home" && (
+              <button
+                className="icon-button"
+                onClick={() => setSearch(true)}
+                aria-label="Search workspace"
+              >
+                <Search size={17} />
+              </button>
+            )}
             <button
               className="icon-button notification-button"
               aria-label="Notifications"
@@ -438,16 +451,17 @@ function WorkspaceApp() {
             }}
           />
         ) : page === "Home" ? (
-          <Home
+          <DemoHome
             items={activeItems}
-            drafts={workspace.drafts}
+            vendorYear={vendor.year}
             navigate={navigate}
             open={open}
             compose={() => compose()}
-            search={() => setSearch(true)}
+            newRequests={() => navigate("Presentations", "new")}
           />
         ) : page === "Presentations" ? (
           <Requests
+            initialStatus={demoInitialStatus}
             items={items}
             open={open}
             notify={setToast}

@@ -29,6 +29,8 @@ import { LiveDetail } from "./LiveDetail";
 import { Clients, LiveTemplates } from "./WorkspacePages";
 import { Modal } from "./ui";
 import { OutlookMailbox } from "./OutlookMailbox";
+import { ContactMessages } from "./ContactMessages";
+import { LiveHome } from "./LiveHome";
 
 const icons = {
   Home,
@@ -78,7 +80,8 @@ export function LiveWorkspace({
   const [searchRecords, setSearchRecords] = useState<LoadState<Inquiry[]>>({
     kind: "loading",
   });
-  const needsOverview = !detail && (page === "Home" || page === "Inbox");
+  const needsOverview = !detail && page === "Inbox";
+  const [newRequestsOnly, setNewRequestsOnly] = useState(false);
   const [exportTarget, setExportTarget] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!needsOverview) return;
@@ -153,6 +156,7 @@ export function LiveWorkspace({
   const nextId =
     currentIndex >= 0 ? (indexOrder[currentIndex + 1] ?? null) : null;
   function go(next: Page) {
+    if (next !== "Presentations") setNewRequestsOnly(false);
     setMobile(false);
     navigate(next);
   }
@@ -215,7 +219,7 @@ export function LiveWorkspace({
       />
       <main className="workspace">
         <header
-          className={`topbar ${!detail && page === "Templates" ? "templates-topbar" : ""}`}
+          className={`topbar ${!detail && page === "Templates" ? "templates-topbar" : ""}${page === "Home" ? " home-topbar" : ""}`}
         >
           <div>
             <button
@@ -236,6 +240,8 @@ export function LiveWorkspace({
                   presentation.
                 </p>
               </div>
+            ) : page === "Home" ? (
+              <h1 className="sr-only">Home</h1>
             ) : (
               <h1 className="page-title">
                 <Icon size={17} aria-hidden="true" />
@@ -249,7 +255,7 @@ export function LiveWorkspace({
           </div>
           <div>
             <div className="header-export" ref={setExportTarget} />
-            {!detail && (
+            {!detail && page !== "Home" && (
               <button
                 className="icon-button"
                 aria-label="Search workspace"
@@ -265,6 +271,8 @@ export function LiveWorkspace({
             {indexVisited && (
               <div hidden={Boolean(detail)}>
                 <LivePresentationIndex
+                  key={newRequestsOnly ? "new" : "all"}
+                  initialStatus={newRequestsOnly ? "new" : null}
                   open={open}
                   notify={setToast}
                   exportTarget={detail ? null : exportTarget}
@@ -278,101 +286,55 @@ export function LiveWorkspace({
           </>
         ) : detail ? (
           detailView
-        ) : needsOverview && records.kind === "loading" ? (
-          <div className="list-page" role="status">
-            Loading presentations…
-          </div>
-        ) : needsOverview && records.kind === "error" ? (
-          <div className="list-page">
-            <section className="card data-error" role="alert">
-              <p>{records.message}</p>
-              <button
-                className="button"
-                onClick={() => setAttempt((value) => value + 1)}
-              >
-                <RefreshCw size={14} />
-                Try again
-              </button>
-            </section>
-          </div>
         ) : page === "Clients" ? (
           <Clients items={items} open={open} live />
         ) : page === "Home" ? (
-          <div className="list-page">
-            <section className="live-overview">
-              <div>
-                <h2>Presentation workspace</h2>
-                <p>Your requests and recorded operational information.</p>
-              </div>
-              <button className="button" onClick={() => go("Presentations")}>
-                View presentations
-                <ArrowUpRight size={14} />
-              </button>
-            </section>
-            <div className="metric-strip">
-              {[
-                { label: "Total requests", value: items.length },
-                {
-                  label: "New inquiries",
-                  value: items.filter((item) => item.status === "new").length,
-                },
-                {
-                  label: "In review",
-                  value: items.filter((item) => item.status === "reviewing")
-                    .length,
-                },
-                {
-                  label: "Booked",
-                  value: items.filter((item) => item.status === "booked")
-                    .length,
-                },
-              ].map((metric) => (
-                <button
-                  className="metric"
-                  key={metric.label}
-                  onClick={() => go("Presentations")}
-                >
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                </button>
-              ))}
-            </div>
-            <section className="card live-request-list">
-              <h2>Recent requests</h2>
-              {items.length ? (
-                items.slice(0, 8).map((item) => (
-                  <button key={item.id} onClick={() => open(item.id)}>
-                    <span>
-                      <strong>{item.organization}</strong>
-                      <small>{item.name}</small>
-                    </span>
-                    <span>{item.title}</span>
-                    <ArrowUpRight size={14} />
-                  </button>
-                ))
-              ) : (
-                <p>No presentation requests found.</p>
-              )}
-            </section>
-          </div>
+          <LiveHome
+            key={vendor.year}
+            vendorYear={vendor.year}
+            navigate={(next) => {
+              setNewRequestsOnly(false);
+              go(next);
+            }}
+            newRequests={() => {
+              setNewRequestsOnly(true);
+              go("Presentations");
+            }}
+            open={open}
+          />
         ) : page === "Inbox" ? (
           <div className="list-page">
             <OutlookMailbox />
+            <ContactMessages />
             <section className="card live-request-list">
               <h2>Presentation conversations</h2>
               <p>
                 Open a request to view its stored conversation. Historical
                 submissions may have no email history.
               </p>
-              {items.slice(0, 20).map((item) => (
-                <button key={item.id} onClick={() => open(item.id)}>
-                  <span>
-                    <strong>{item.organization}</strong>
-                    <small>{item.name}</small>
-                  </span>
-                  <ArrowUpRight size={14} />
-                </button>
-              ))}
+              {records.kind === "loading" ? (
+                <p role="status">Loading presentations…</p>
+              ) : records.kind === "error" ? (
+                <>
+                  <p role="alert">{records.message}</p>
+                  <button
+                    className="button"
+                    onClick={() => setAttempt((value) => value + 1)}
+                  >
+                    <RefreshCw size={14} aria-hidden="true" /> Try again
+                  </button>
+                </>
+              ) : (
+                items.slice(0, 20).map((item) => (
+                  <button key={item.id} onClick={() => open(item.id)}>
+                    <span>
+                      <strong>{item.organization}</strong>
+                      <small>{item.name}</small>
+                    </span>
+                    <ArrowUpRight size={14} />
+                  </button>
+                ))
+              )}
               <button
                 className="text-button"
                 onClick={() => go("Presentations")}
