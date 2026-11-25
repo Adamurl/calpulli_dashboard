@@ -1,6 +1,7 @@
 import base64
 import json
 from collections.abc import Callable
+from datetime import datetime
 from urllib.parse import parse_qs
 
 import httpx
@@ -374,3 +375,69 @@ def test_download_bounds_stream_even_with_false_metadata(graph):
     with pytest.raises(ProviderError) as error:
         adapter.download("message", "file")
     assert error.value.code == "graph_attachment_too_large"
+
+
+@pytest.mark.parametrize(
+    ("days", "earliest", "previous", "active_days"),
+    [
+        (30, "2026-09-24T07:00:00+00:00", 2, {0, 21, 22, 27}),
+        (7, "2026-10-24T07:00:00+00:00", 2, {4}),
+    ],
+)
+def test_mailbox_statistics_count_messages_and_unanswered_threads_across_pages(
+    graph, days, earliest, previous, active_days
+):
+    def incoming(message_id, thread, at):
+        return {"id": message_id, "conversationId": thread, "receivedDateTime": at}
+
+    def sent(message_id, thread, at):
+        return {"id": message_id, "conversationId": thread, "sentDateTime": at}
+
+    def handler(request):
+        params = request.url.params
+        if request.url.path.endswith("/inbox/messages"):
+            if params.get("$skiptoken") == "page-2":
+                return httpx.Response(
+                    200,
+                    json={
+                        "value": [
+                            incoming("1", "reopened", "2026-11-14T12:00:00Z"),
+                            incoming("2", "answered", "2026-11-15T12:00:00Z"),
+                            incoming("3", "reopened", "2026-11-20T12:00:00Z"),
+                            incoming("4", "previous", "2026-10-24T06:59:59Z"),
+                            incoming("5", "previous", "2026-09-24T07:00:00Z"),
+                        ]
+                    },
+                )
+            assert params["$select"] == "id,conversationId,receivedDateTime"
+            assert params["$filter"] == f"receivedDateTime ge {earliest}"
+            return httpx.Response(
+                200,
+                json={
+                    "value": [
+                        incoming("1", "reopened", "2026-11-14T12:00:00Z"),
+                        incoming("6", "new", "2026-10-24T07:00:00Z"),
+                    ],
+                    "@odata.nextLink": f"{GRAPH}/mailFolders/inbox/messages?$skiptoken=page-2",
+                },
+            )
+        assert request.url.path.endswith("/sentitems/messages")
+        assert params["$select"] == "id,conversationId,sentDateTime"
+        assert params["$filter"] == "sentDateTime ge 2026-10-24T07:00:00+00:00"
+        return httpx.Response(
+            200,
+            json={
+                "value": [
+                    sent("7", "reopened", "2026-11-16T12:00:00Z"),
+                    sent("8", "answered", "2026-11-16T12:00:00Z"),
+                ]
+            },
+        )
+
+    adapter, _ = graph(handler)
+    assert adapter.statistics(now=datetime.fromisoformat("2026-11-22T18:00:00Z"), days=days) == {
+        "received": len(active_days),
+        "previously_received": previous,
+        "awaiting_reply": 2,
+        "daily_received": [int(day in active_days) for day in range(days)],
+    }

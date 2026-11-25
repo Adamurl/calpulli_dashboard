@@ -1,5 +1,6 @@
 """Microsoft Graph transport for a single Exchange Online mailbox."""
 
+from datetime import UTC, datetime, time, timedelta
 from html.parser import HTMLParser
 from threading import Lock
 from time import monotonic
@@ -7,8 +8,9 @@ from typing import Literal, TypedDict
 from urllib.parse import quote
 
 import httpx
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import AwareDatetime, BaseModel, Field, ValidationError
 
+from app.core.reporting import REPORTING_ZONE
 from app.integrations.gmail import ProviderError, SendResult
 
 GRAPH_ORIGIN = "https://graph.microsoft.com"
@@ -40,6 +42,13 @@ class MailboxMessage(TypedDict):
 class MailboxPage(TypedDict):
     messages: list[MailboxMessage]
     next_skip: int | None
+
+
+class MailboxStatistics(TypedDict):
+    received: int
+    previously_received: int
+    awaiting_reply: int
+    daily_received: list[int]
 
 
 class MailboxAttachment(TypedDict):
@@ -82,6 +91,14 @@ class _Body(BaseModel):
 class _MessageIdentity(BaseModel):
     id: str = Field(min_length=1)
     conversationId: str = Field(min_length=1)
+
+
+class _InboxActivity(_MessageIdentity):
+    receivedDateTime: AwareDatetime
+
+
+class _SentActivity(_MessageIdentity):
+    sentDateTime: AwareDatetime
 
 
 class _Message(_MessageIdentity):
@@ -430,6 +447,59 @@ class MicrosoftGraph:
         raise ProviderError(
             "graph_result_limit", "Outlook returned more results than can be displayed", False
         )
+
+    def statistics(self, *, now: datetime, days: int = 30) -> MailboxStatistics:
+        zone = REPORTING_ZONE
+        today = now.astimezone(zone).date()
+        start_day = today - timedelta(days=days - 1)
+        start = datetime.combine(start_day, time.min, tzinfo=zone)
+        previous = datetime.combine(start_day - timedelta(days=days), time.min, tzinfo=zone)
+        reply_start = datetime.combine(today - timedelta(days=29), time.min, tzinfo=zone)
+        earliest = min(previous, reply_start).astimezone(UTC)
+        inbox = self._collection(
+            f"{self.mailbox_url}/mailFolders/inbox/messages",
+            _InboxActivity,
+            params={
+                "$select": "id,conversationId,receivedDateTime",
+                "$filter": f"receivedDateTime ge {earliest.isoformat()}",
+                "$top": 200,
+            },
+        )
+        received = {message.id: message for message in inbox}
+        latest_incoming: dict[str, datetime] = {}
+        daily_received = [0] * days
+        previous_count = 0
+        for message in received.values():
+            at = message.receivedDateTime
+            if previous <= at < start:
+                previous_count += 1
+            elif start <= at <= now:
+                daily_received[(at.astimezone(zone).date() - start_day).days] += 1
+            if reply_start <= at <= now:
+                key = message.conversationId
+                latest_incoming[key] = max(latest_incoming.get(key, at), at)
+
+        awaiting_reply = set(latest_incoming)
+        if awaiting_reply:
+            sent = self._collection(
+                f"{self.mailbox_url}/mailFolders/sentitems/messages",
+                _SentActivity,
+                params={
+                    "$select": "id,conversationId,sentDateTime",
+                    "$filter": f"sentDateTime ge {reply_start.astimezone(UTC).isoformat()}",
+                    "$top": 200,
+                },
+            )
+            for message in sent:
+                inbound = latest_incoming.get(message.conversationId)
+                if inbound is not None and inbound < message.sentDateTime <= now:
+                    awaiting_reply.discard(message.conversationId)
+        return {
+            "received": sum(daily_received),
+            "previously_received": previous_count,
+            "awaiting_reply": len(awaiting_reply),
+            "daily_received": daily_received,
+        }
 
     def conversation(self, conversation_id: str) -> list[MailboxMessage]:
         escaped_id = conversation_id.replace("'", "''")

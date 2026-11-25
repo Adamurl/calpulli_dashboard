@@ -25,11 +25,14 @@ All routes under `/api/v1/outlook` require an approved staff account. The backen
 | Method and route | Purpose |
 | --- | --- |
 | `GET /capabilities` | Check whether a mailbox is configured and whether test routing is on |
+| `GET /statistics?days=30` | Count incoming messages over two equal Pacific calendar periods and return the current period's `daily_received` series. `days` accepts 1 through 92 and defaults to 30. The reply count always covers the last 30 days of inbox threads with no later message in Sent Items. |
 | `GET /messages` | Page through `folder=inbox` or `folder=sentitems`, optionally filtering each page by `contact` |
 | `GET /conversations/{id}` | Read mailbox messages in an Outlook conversation |
 | `GET /messages/{id}/attachments` | List the file attachments on a message |
 | `GET /messages/{id}/attachments/{attachment_id}` | Download one file |
 | `POST /preview` | Render the supplied `body_text` and `format` to HTML |
 | `POST /send` | Review and submit a message with a caller-generated `request_id`, recipient, subject, body, format, and optional files or reply target |
+
+Home uses the statistics endpoint for its email metric and reply shortcut. The reply count covers inbox conversations that received a message in the last 30 days. It estimates follow-up from Inbox and Sent Items, so automated mail can count and moving mail out of those folders can change the total.
 
 Reuse the same request ID when repeating an unchanged submission. A confirmed repeat returns the original receipt. A conflict indicates that the existing attempt needs reconciliation or the same ID was used with changed inputs.

@@ -41,6 +41,15 @@ class FakeGraph:
             "next_skip": 20,
         }
 
+    def statistics(self, *, now, days):
+        assert now.utcoffset().total_seconds() == 0
+        return {
+            "received": 12,
+            "previously_received": 8,
+            "awaiting_reply": 3,
+            "daily_received": [0] * (days - 1) + [12],
+        }
+
     def conversation(self, conversation_id):
         assert conversation_id == MESSAGE["conversation_id"]
         return [MESSAGE, {**MESSAGE, "id": "sent", "sender": MAILBOX, "recipients": [OUTSIDE]}]
@@ -105,7 +114,17 @@ def test_mailbox_is_staff_only_and_supports_contact_threads_and_downloads(staff_
         assert (
             client.get(f"{API}/capabilities", headers=HEADERS).json()["mailbox_available"] is False
         )
+        assert client.get(f"{API}/statistics").status_code == 401
+        assert client.get(f"{API}/statistics", headers=HEADERS).status_code == 503
         app.state.outlook_delivery = OutlookDelivery(config, FakeGraph())
+        statistics = client.get(f"{API}/statistics", headers=HEADERS)
+        assert statistics.json() == {
+            "received": 12,
+            "previously_received": 8,
+            "awaiting_reply": 3,
+            "daily_received": [0] * 29 + [12],
+        }
+        assert "no-store" in statistics.headers["cache-control"]
         response = client.get(
             f"{API}/messages", params={"skip": 11, "contact": OUTSIDE.upper()}, headers=HEADERS
         )

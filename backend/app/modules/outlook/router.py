@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Annotated, Literal
 from urllib.parse import quote
@@ -12,9 +13,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.email_address import valid_recipient
+from app.core.reporting import MAX_REPORTING_DAYS
 from app.core.security import require_staff_access
 from app.db.session import get_session
 from app.integrations.gmail import ProviderError
+from app.integrations.microsoft_graph import MailboxStatistics
 from app.integrations.outlook_delivery import OutlookDelivery
 from app.integrations.supabase_auth import AuthenticatedUser
 from app.modules.outlook.models import OutlookSendAttempt
@@ -92,6 +95,14 @@ def messages(
             if address in {value.casefold() for value in [item["sender"], *item["recipients"]]}
         ]
     return page
+
+
+@router.get("/statistics", response_model=MailboxStatistics)
+def statistics(
+    request: Request, days: Annotated[int, Query(ge=1, le=MAX_REPORTING_DAYS)] = 30
+) -> MailboxStatistics:
+    with graph_errors():
+        return delivery(request).available_graph().statistics(now=datetime.now(UTC), days=days)
 
 
 @router.get("/conversations/{conversation_id:path}", response_model=list[MailboxMessage])
