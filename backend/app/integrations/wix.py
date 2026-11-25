@@ -7,12 +7,14 @@ from typing import Annotated, Any, Literal, get_args
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import Field, ValidationError, field_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_session
+from app.modules.contact_messages.schemas import ContactMessageFields, ContactText
+from app.modules.contact_messages.service import SubmissionConflict, save_contact_message
 from app.modules.presentations.email_service import dispatch_automatic
 from app.modules.presentations.logistics import LOGISTICS_LABELS
 from app.modules.presentations.schemas import EventType, NewPresentation, ReferralSource
@@ -89,8 +91,18 @@ class WixFields(NewPresentation):
         return value
 
 
+class WixContactFields(ContactMessageFields):
+    form_id: ContactText = Field(min_length=1, max_length=200)
+    submission_id: ContactText = Field(min_length=1, max_length=200)
+
+
 def rejection(
-    request: Request, status: int, reason: str, validation: ValidationError | None = None
+    request: Request,
+    status: int,
+    reason: str,
+    validation: ValidationError | None = None,
+    *,
+    known_fields: type[WixFields] | type[WixContactFields] = WixFields,
 ) -> HTTPException:
     details: dict[str, object] = {
         "request_id": request.state.request_id,
@@ -104,7 +116,7 @@ def rejection(
             location = error["loc"]
             field = "<model>"
             if location:
-                field = location[0] if location[0] in WixFields.model_fields else "<unknown>"
+                field = location[0] if location[0] in known_fields.model_fields else "<unknown>"
             safe_errors.append({"field": f"data.{field}", "code": error["type"]})
         details["validation_errors"] = safe_errors
         details["validation_error_count"] = len(errors)
@@ -128,13 +140,7 @@ def persist_submission(session: Session, submission: WixFields) -> tuple[UUID, b
     return record.id, created
 
 
-@router.post("/presentations", status_code=201)
-async def receive_presentation(
-    request: Request, response: Response, session: Annotated[Session, Depends(get_session)]
-) -> dict[str, UUID | Literal["created", "duplicate"]]:
-    config = request.app.state.settings
-    if config.wix_webhook_token is None or config.wix_form_id is None:
-        raise rejection(request, 503, "webhook_not_configured")
+async def read_webhook_data(request: Request, secret: SecretStr) -> dict[str, Any]:
     body = bytearray()
     async for chunk in request.stream():
         if len(body) + len(chunk) > MAX_BODY_BYTES:
@@ -142,16 +148,27 @@ async def receive_presentation(
         body.extend(chunk)
     try:
         envelope = json.loads(body)
-    except (ValueError, UnicodeError):
+    except (ValueError, RecursionError):
         raise rejection(request, 400, "invalid_json") from None
     data = envelope.get("data") if isinstance(envelope, dict) else None
     if not isinstance(data, dict):
         raise rejection(request, 422, "expected_data_object")
     token = data.pop("webhook_token", None)
     if not isinstance(token, str) or not compare_digest(
-        token.encode(), config.wix_webhook_token.get_secret_value().encode()
+        token.encode(errors="surrogatepass"), secret.get_secret_value().encode()
     ):
         raise rejection(request, 401, "invalid_webhook_token")
+    return data
+
+
+@router.post("/presentations", status_code=201)
+async def receive_presentation(
+    request: Request, response: Response, session: Annotated[Session, Depends(get_session)]
+) -> dict[str, UUID | Literal["created", "duplicate"]]:
+    config = request.app.state.settings
+    if config.wix_webhook_token is None or config.wix_form_id is None:
+        raise rejection(request, 503, "webhook_not_configured")
+    data = await read_webhook_data(request, config.wix_webhook_token)
     try:
         submission = WixFields.model_validate(data)
     except ValidationError as exc:
@@ -170,3 +187,34 @@ async def receive_presentation(
         )
     response.status_code = 201 if created else 200
     return {"id": request_id, "status": "created" if created else "duplicate"}
+
+
+@router.post("/contact", status_code=201)
+async def receive_contact_message(
+    request: Request, response: Response, session: Annotated[Session, Depends(get_session)]
+) -> dict[str, UUID | Literal["created", "duplicate"]]:
+    config = request.app.state.settings
+    if config.wix_contact_webhook_token is None or config.wix_contact_form_id is None:
+        raise rejection(request, 503, "webhook_not_configured")
+    data = await read_webhook_data(request, config.wix_contact_webhook_token)
+    try:
+        submission = WixContactFields.model_validate(data)
+    except ValidationError as exc:
+        raise rejection(
+            request, 422, "invalid_submission", exc, known_fields=WixContactFields
+        ) from None
+    if submission.form_id != config.wix_contact_form_id:
+        raise rejection(request, 403, "unexpected_form")
+    answers = ContactMessageFields.model_validate(
+        submission.model_dump(exclude={"form_id", "submission_id"})
+    )
+    try:
+        message_id, created = await run_in_threadpool(
+            save_contact_message, session, submission.form_id, submission.submission_id, answers
+        )
+    except SubmissionConflict:
+        raise rejection(request, 409, "submission_conflict") from None
+    except SQLAlchemyError:
+        raise rejection(request, 503, "database_unavailable") from None
+    response.status_code = 201 if created else 200
+    return {"id": message_id, "status": "created" if created else "duplicate"}

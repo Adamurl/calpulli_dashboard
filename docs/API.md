@@ -55,6 +55,7 @@ The current application has 33 JSON operations. `{request_id}` and `{inquiry_id}
 | PATCH | `/api/v1/mny/vendors/{vendor_id}` | 200, updated vendor detail | [Vendors](mny/vendors.md#staff-api) |
 | POST | `/api/v1/mny/vendors/{vendor_id}/comments` | 201, saved staff comment | [Vendors](mny/vendors.md#staff-api) |
 | GET | `/api/v1/mny/vendors/statistics` | 200, full-year vendor totals | [Vendors](mny/vendors.md#staff-api) |
+| GET | `/api/v1/mny/vendors/activity?event_year=2027&days=30` | 200, daily submission counts for two equal Pacific calendar periods for the selected event year. `days` accepts 1 through 92. | [Vendors](mny/vendors.md#staff-api) |
 | GET | `/api/v1/mny/spots` | 200, year-scoped booth inventory | [Vendors](mny/vendors.md#staff-api) |
 | GET | `/api/v1/presentations` | 200, paginated summaries | [Presentations](presentations/api.md) |
 | GET | `/api/v1/presentations/index` | 200, receipt-sorted page and total counts | [Presentation index](presentations/api.md#presentation-index-and-statistics) |
@@ -78,6 +79,8 @@ The current application has 33 JSON operations. `{request_id}` and `{inquiry_id}
 | POST | `/api/v1/presentations/{inquiry_id}/emails/{message_id}/retry` | 200, email record, possibly FAILED | [Emails](email/api.md#action-eligibility-and-side-effects) |
 | POST | `/api/v1/presentations/{inquiry_id}/emails/{message_id}/send-again` | 200, new review draft | [Emails](email/api.md#action-eligibility-and-side-effects) |
 | POST | `/api/v1/integrations/wix/presentations` | 201 created or 200 duplicate | [Wix](presentations/wix-webhook.md) |
+| POST | `/api/v1/integrations/wix/contact` | 201 created or 200 duplicate | [Wix Contact Us](INTEGRATIONS.md#wix-contact-us-automation) |
+| GET | `/api/v1/contact-messages?offset=0` | 200, staff-only page of up to 20 messages with navigation offsets | [Wix Contact Us](INTEGRATIONS.md#wix-contact-us-automation) |
 
 `GET /staff/presentations/{inquiry_id}` serves the [staff HTML shell](email/api.md#staff-html-route). It is excluded from OpenAPI and is not counted among JSON operations.
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.auth import router as auth_router
 from app.integrations.wix import router as wix_router
+from app.modules.contact_messages.router import router as contact_messages_router
 from app.modules.health.router import router as health_router
 from app.modules.mny.router import router as mny_router
 from app.modules.mny.spots import router as mny_spots_router
@@ -15,4 +16,5 @@ router.include_router(presentations_router)
 router.include_router(mny_router)
 router.include_router(mny_spots_router)
 router.include_router(wix_router)
+router.include_router(contact_messages_router)
 router.include_router(outlook_router)

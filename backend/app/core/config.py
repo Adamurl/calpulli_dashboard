@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     staff_user_ids: frozenset[UUID] = frozenset()
     wix_webhook_token: SecretStr | None = Field(default=None, min_length=32)
     wix_form_id: str | None = Field(default=None, min_length=1, max_length=200)
+    wix_contact_webhook_token: SecretStr | None = Field(default=None, min_length=32)
+    wix_contact_form_id: str | None = Field(default=None, min_length=1, max_length=200)
     email_provider: Literal["mock", "gmail", "microsoft"] = "mock"
     email_test_mode: bool = True
     email_test_recipient: str | None = None

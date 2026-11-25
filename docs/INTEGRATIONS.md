@@ -4,9 +4,32 @@ Detailed wire contracts are in the [Wix webhook reference](presentations/wix-web
 
 ## Current state
 
-A normalized Wix receiver is implemented locally. Its real Automation mapping and delivery have not been verified. The Gmail sending adapter and environment-based refresh-token support are implemented locally; see [Email workflow](email/README.md). OAuth consent setup, live sending, Pub/Sub, and background synchronization remain unactivated or planned. No integration has been activated and no hosted receiver URL exists yet.
+The Wix Contact Us receiver and its Inbox section are implemented locally. The Contact Us automation still needs a review of its Wix request preview and a live delivery test. See the [presentation webhook reference](presentations/wix-webhook.md) for the presentation receiver. The Gmail sending adapter and environment-based refresh-token support are implemented locally. See [Email workflow](email/README.md).
 
-## Wix Automation target
+## Wix Contact Us automation
+
+1. Apply Alembic revision `0012` to the reviewed dashboard database. Vercel does not run Alembic migrations. Use the existing [Supabase migration procedure](presentations/operations-import.md#local-configuration-and-target).
+2. In the Vercel dashboard project, open **Settings → Environment Variables**. Add `WIX_CONTACT_FORM_ID` with the Contact Us form ID and `WIX_CONTACT_WEBHOOK_TOKEN` with a new secret generated with `openssl rand -hex 32`. Set both on the **Production** environment and deploy the updated code. The existing Vercel rewrite serves this endpoint. [Vercel environment variables](https://vercel.com/docs/environment-variables/managing-environment-variables)
+3. In Wix Automations, create a **Form submitted** trigger scoped to **Contact Us**. Add **Send HTTP request** and set the method to **POST**. Use the production dashboard URL followed by `/api/v1/integrations/wix/contact`.
+4. Enable **Nest request body under data** and select **Choose fields**. Add the mappings below. [Wix HTTP request setup](https://support.wix.com/en/article/the-new-automation-builder-sending-data-via-webhook)
+5. Preview the request with fictional answers. Confirm that `form_id` matches the Vercel setting and `submission_id` identifies the individual submission. Test delivery and look for the message under **Inbox → Website contact messages** before enabling the automation for real submissions.
+
+| Key | Wix value |
+| --- | --- |
+| `webhook_token` | Static value matching `WIX_CONTACT_WEBHOOK_TOKEN` |
+| `form_id` | Form ID from the trigger, or the exact Contact Us form ID as a static value |
+| `submission_id` | Submission ID from the trigger |
+| `first_name` | First Name |
+| `last_name` | Last Name |
+| `email` | Email |
+| `phone` | Phone, as text with country code when supplied |
+| `message` | Message, required |
+
+Names, email, and phone may be blank, null, or omitted. If Wix supplies an email, it must be valid.
+
+The receiver returns **201** for a saved submission and **200** for an identical retry. Reusing a submission ID for different answers returns **409**. The Inbox lists the latest submissions first for approved staff. The contact receiver stores the submission only. Existing Outlook and presentation workflows use their own routes.
+
+## Wix presentation automation target
 
 The intended flow is Wix Forms, then **Send HTTP request**, then FastAPI, then PostgreSQL. The target is the hosted backend route:
 

@@ -116,8 +116,10 @@ Compose overrides `DATABASE_URL` to use its `db` service; the example URL uses `
 | `SUPABASE_URL` | HTTPS origin for the same Supabase Auth project as the frontend; unset disables protected APIs. |
 | `SUPABASE_PUBLISHABLE_KEY` | Project publishable key used to validate user JWTs with Supabase Auth. No signing secret or service-role key is needed. |
 | `STAFF_USER_IDS` | JSON array of approved Supabase user UUIDs; defaults to `[]`, which denies all staff access. |
-| `WIX_WEBHOOK_TOKEN` | Separate optional secret, at least 32 characters; unset disables Wix ingestion. |
-| `WIX_FORM_ID` | Expected form ID; required with the webhook secret to enable the receiver. |
+| `WIX_WEBHOOK_TOKEN` | Optional presentation webhook secret, at least 32 characters. |
+| `WIX_FORM_ID` | Expected Wix presentation form ID. |
+| `WIX_CONTACT_WEBHOOK_TOKEN` | Optional Contact Us webhook secret, at least 32 characters. |
+| `WIX_CONTACT_FORM_ID` | Expected Wix Contact Us form ID. See the [setup guide](docs/INTEGRATIONS.md#wix-contact-us-automation). |
 | `DOCS_ENABLED` | Optional boolean; defaults to enabled only in development. |
 | `LOG_LEVEL` | `INFO`; supports DEBUG, INFO, WARNING, ERROR, CRITICAL. |
 | `CORS_ORIGINS` | JSON array, default `[]`; exact HTTP(S) origins only. |
