@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.reporting import MAX_REPORTING_DAYS
 from app.modules.presentations.schemas import PresentationSummary
 
 PresentationSort = Literal[
@@ -31,12 +32,12 @@ class PresentationIndex(BaseModel):
 
 class StatisticSeries(BaseModel):
     key: Literal["presentations", "reviewing", "booked", "completed"]
-    current: list[int] = Field(min_length=1, max_length=30)
-    previous: list[int] = Field(min_length=1, max_length=30)
+    current: list[int] = Field(min_length=1, max_length=MAX_REPORTING_DAYS)
+    previous: list[int] = Field(min_length=1, max_length=MAX_REPORTING_DAYS)
 
 
 class PresentationStatistics(BaseModel):
-    days: Literal[1, 7, 30]
+    days: int = Field(ge=1, le=MAX_REPORTING_DAYS)
     timezone: Literal["America/Los_Angeles"] = "America/Los_Angeles"
     start_date: date
     end_date: date

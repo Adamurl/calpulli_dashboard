@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
+from app.core.reporting import MAX_REPORTING_DAYS
 from app.core.security import require_staff_access
 from app.db.session import get_session
 from app.integrations.supabase_auth import AuthenticatedUser
@@ -81,10 +82,8 @@ def presentation_index(
 
 @router.get("/statistics", response_model=PresentationStatistics)
 def presentation_statistics(
-    session: DbSession, days: Annotated[int, Query(ge=1, le=30)] = 1
+    session: DbSession, days: Annotated[int, Query(ge=1, le=MAX_REPORTING_DAYS)] = 1
 ) -> PresentationStatistics:
-    if days not in {1, 7, 30}:
-        raise HTTPException(422, "Choose 1, 7, or 30 days")
     return index_service.read_statistics(session, days=days)
 
 

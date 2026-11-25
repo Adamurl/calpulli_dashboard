@@ -1,9 +1,9 @@
 from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import Date, Text, cast, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.reporting import REPORTING_ZONE
 from app.modules.presentations.index_schemas import (
     PresentationIndex,
     PresentationSort,
@@ -12,8 +12,6 @@ from app.modules.presentations.index_schemas import (
 )
 from app.modules.presentations.models import PresentationRequest
 from app.modules.presentations.schemas import PresentationStatus, PresentationSummary
-
-ZONE = ZoneInfo("America/Los_Angeles")
 
 
 def read_index(
@@ -84,11 +82,11 @@ def read_index(
 def read_statistics(
     session: Session, *, days: int, today: date | None = None
 ) -> PresentationStatistics:
-    end_date = today if today is not None else datetime.now(ZONE).date()
+    end_date = today if today is not None else datetime.now(REPORTING_ZONE).date()
     first_day = end_date - timedelta(days=days * 2 - 1)
-    lower = datetime.combine(first_day, time.min, tzinfo=ZONE)
-    upper = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=ZONE)
-    local_day = cast(func.timezone("America/Los_Angeles", PresentationRequest.received_at), Date)
+    lower = datetime.combine(first_day, time.min, tzinfo=REPORTING_ZONE)
+    upper = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=REPORTING_ZONE)
+    local_day = cast(func.timezone(REPORTING_ZONE.key, PresentationRequest.received_at), Date)
     rows = session.execute(
         select(local_day, PresentationRequest.status, func.count())
         .where(PresentationRequest.received_at >= lower, PresentationRequest.received_at < upper)

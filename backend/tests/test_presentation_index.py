@@ -188,9 +188,8 @@ def test_index_and_statistics_have_separate_authenticated_contracts(staff_auth, 
             "/index?limit=101",
             "/index?offset=-1",
             "/index?q=" + "a" * 201,
-            "/statistics?days=2",
             "/statistics?days=0",
-            "/statistics?days=31",
+            "/statistics?days=93",
         ]:
             assert client.get("/api/v1/presentations" + path, headers=headers).status_code == 422
         assert len(calls) == 2
