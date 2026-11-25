@@ -15,16 +15,16 @@ test("the vendor table paginates and searches independently of year totals", asy
   await expect(stats.getByText("$0.00", { exact: true })).toBeVisible();
   await expect(stats.getByText("0", { exact: true })).toBeVisible();
   await expect(stats.getByText("-", { exact: true })).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /^All\b/ })).toHaveText(
-    /All\s*21/,
-  );
-  await expect(table.getByRole("checkbox")).toHaveCount(0);
-  await expect(table.getByRole("columnheader").first()).toHaveAttribute(
+  await expect(
+    page.getByRole("button", { name: "Filter by application status" }),
+  ).toHaveText("All");
+  await expect(table.getByRole("checkbox")).toHaveCount(22);
+  await expect(table.getByRole("columnheader").nth(1)).toHaveAttribute(
     "aria-sort",
     "descending",
   );
   const status = table.getByRole("columnheader").last();
-  await expect(status).toHaveText("Status");
+  await expect(status).toHaveText("Application status");
   await expect(status).toHaveCSS("text-align", "left");
   await expect(status.getByRole("button")).toHaveCount(0);
   await expect(
@@ -32,19 +32,17 @@ test("the vendor table paginates and searches independently of year totals", asy
       .getByRole("row")
       .filter({ hasText: "Fixture Artisan" })
       .getByRole("cell")
-      .nth(4),
+      .nth(5),
   ).toHaveText("-");
-  await expect(page.getByLabel("Rows per page")).toHaveValue("10");
-  await expect(table.getByRole("row")).toHaveCount(11);
-  await expect(page.getByText("Page 1 of 3")).toBeVisible();
-  await page.getByRole("button", { name: "Last page", exact: true }).click();
-  await expect(table.getByRole("link")).toHaveText(["Sample Vendor 20"]);
+  await expect(page.getByLabel("Rows per page")).toHaveValue("25");
+  await expect(table.getByRole("row")).toHaveCount(22);
+  await expect(page.getByText("Page 1 of 1")).toBeVisible();
   await page.getByRole("textbox", { name: "Search vendors" }).fill("Fixture");
   await expect(table.getByRole("link")).toHaveText(["Fixture Artisan"]);
   await expect(stats.getByText("21", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Fixture Artisan" }).press("Enter");
   await expect(page.getByText("Handmade baskets")).toBeVisible();
-  await expect(page.getByText("About 5k")).toBeVisible();
+  await expect(page.getByText("5,000", { exact: true })).toBeVisible();
   const payment = page.getByRole("region", { name: "Payment" });
   await expect(
     payment
@@ -62,6 +60,7 @@ test("the vendor table paginates and searches independently of year totals", asy
   await page.getByRole("menuitemradio", { name: "2026" }).click();
   await expect(page).toHaveURL(`${index}?event_year=2026`);
   await expect(table.getByRole("row").last().getByRole("cell")).toHaveText([
+    "",
     "-",
     "Archived Vendor",
     "Fixture Vendor Contact",
@@ -69,7 +68,7 @@ test("the vendor table paginates and searches independently of year totals", asy
     "2",
     "f14, 15",
     "Yes",
-    "Spot assigned",
+    "-",
   ]);
   await expect(
     page
@@ -105,7 +104,6 @@ test("an archived vendor keeps its year through login, refresh, and return to li
   await page.reload();
   await expect(page).toHaveURL(historical);
   await expect(page.getByText("A fictional note.")).toBeVisible();
-  await expect(page.getByText("Spot assigned", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Payment" }).getByText("$125.50"),
   ).toHaveCount(2);
@@ -162,6 +160,8 @@ test("a vendor profile keeps edits and notes when browsing neighboring records",
   await expect(payment.getByText("Zelle", { exact: true })).toBeVisible();
   await expect(payment.getByText("Total paid", { exact: true })).toBeVisible();
   await expect(payment.getByText("1", { exact: true })).toBeVisible();
+  await expect(overview.getByText("5,000", { exact: true })).toBeVisible();
+  await expect(overview.getByText("About 5k", { exact: true })).toHaveCount(0);
   await expect(overview.getByText("Fixture community")).toBeVisible();
   await expect(overview.getByText("Handmade baskets")).toBeVisible();
   await expect(
@@ -215,12 +215,17 @@ test("vendor stage filters and sorting cover the complete year", async ({
 }) => {
   await page.goto(`/tests/live-fixture.html?path=${encodeURIComponent(index)}`);
   const table = page.getByRole("table", { name: "Vendor applications" });
-  const stage = page.getByRole("group", { name: "Filter by vendor stage" });
-  await stage.getByRole("button", { name: "Accepted", exact: true }).click();
+  const stage = page.getByRole("button", {
+    name: "Filter by application status",
+  });
+  await stage.click();
+  await page.getByRole("menuitemradio", { name: "Accepted" }).click();
   await expect(table.getByRole("link")).toHaveText(["Sample Vendor 2"]);
-  await stage.getByRole("button", { name: "Paid", exact: true }).click();
+  await stage.click();
+  await page.getByRole("menuitemradio", { name: "Denied" }).click();
   await expect(table.getByRole("link")).toHaveText(["Sample Vendor 3"]);
-  await stage.getByRole("button", { name: /^All\b/ }).click();
+  await stage.click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
   await page.getByLabel("Rows per page").selectOption("5");
   await expect(table.getByRole("link")).toHaveCount(5);
   await expect(page.getByText("Page 1 of 5")).toBeVisible();
@@ -228,18 +233,86 @@ test("vendor stage filters and sorting cover the complete year", async ({
   await page.getByRole("button", { name: "Sort by vendor" }).click();
   await expect(table.getByRole("link").first()).toHaveText("Sample Vendor 20");
   await page.getByRole("button", { name: "Columns", exact: true }).click();
-  await page.getByRole("button", { name: "Reorder Status" }).press("ArrowUp");
+  await page
+    .getByRole("button", { name: "Reorder Application status" })
+    .press("ArrowUp");
   await expect(table.getByRole("columnheader").last()).toHaveText(
     "Paid before deadline",
   );
-  await page.getByRole("button", { name: "Show Category column" }).click();
+  await page.getByRole("button", { name: "Show Vendor type column" }).click();
   await expect(
-    table.getByRole("columnheader", { name: "Category" }),
+    table.getByRole("columnheader", { name: "Vendor type" }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Sort by, Vendor" }).click();
   await page
-    .getByRole("menuitemradio", { name: "Status", exact: true })
+    .getByRole("menuitemradio", { name: "Application status", exact: true })
     .click();
-  await page.getByRole("menuitemradio", { name: "Assigned to new" }).click();
+  await page.getByRole("menuitemradio", { name: "Denied to applied" }).click();
   await expect(table.getByRole("link").first()).toHaveText("Sample Vendor 3");
+});
+
+test("the select-all checkbox clears the vendor selection", async ({
+  page,
+}) => {
+  await page.goto(`/tests/live-fixture.html?path=${encodeURIComponent(index)}`);
+  const selectAll = page.getByRole("checkbox", {
+    name: "Select all vendors on this page",
+  });
+  const checkboxSize = await selectAll.boundingBox();
+  const firstRow = page
+    .getByRole("table", { name: "Vendor applications" })
+    .getByRole("row")
+    .nth(1);
+  const cellPositions = await firstRow.getByRole("cell").evaluateAll((cells) =>
+    cells.map((cell) => ({
+      x: cell.getBoundingClientRect().x,
+      width: cell.getBoundingClientRect().width,
+    })),
+  );
+  await selectAll.check();
+  expect(await selectAll.boundingBox()).toEqual(checkboxSize);
+  expect(
+    await firstRow.getByRole("cell").evaluateAll((cells) =>
+      cells.map((cell) => ({
+        x: cell.getBoundingClientRect().x,
+        width: cell.getBoundingClientRect().width,
+      })),
+    ),
+  ).toEqual(cellPositions);
+  await expect(page.getByText("21 selected", { exact: true })).toBeVisible();
+  await selectAll.uncheck();
+  await expect(selectAll).not.toBeChecked();
+  await expect(page.getByText("21 selected", { exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Bulk edit" })).toBeHidden();
+});
+
+test("selected vendors can be edited together", async ({ page }) => {
+  await page.goto(`/tests/live-fixture.html?path=${encodeURIComponent(index)}`);
+  await page
+    .getByRole("checkbox", { name: "Select vendor Fixture Artisan" })
+    .check();
+  await page
+    .getByRole("checkbox", { name: "Select vendor Sample Vendor 1" })
+    .check();
+  await expect(page.getByText("2 selected", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Bulk edit" }).click();
+  const editor = page.getByRole("dialog", { name: "Bulk edit 2 vendors" });
+  await editor
+    .getByLabel("Set application status for all selected")
+    .selectOption("accepted");
+  await editor
+    .getByLabel("Vendor category for Fixture Artisan")
+    .selectOption("ARTS_CRAFTS");
+  await editor.getByRole("button", { name: "Save changes" }).click();
+  await expect(editor).toBeHidden();
+  await expect(
+    page.getByRole("row").filter({ hasText: "Fixture Artisan" }),
+  ).toContainText("Arts & Crafts");
+  await page
+    .getByRole("button", { name: "Filter by application status" })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Accepted" }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "Fixture Artisan" }),
+  ).toContainText("Accepted");
 });

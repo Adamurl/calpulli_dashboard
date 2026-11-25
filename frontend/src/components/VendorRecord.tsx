@@ -1,4 +1,4 @@
-import { optionalText } from "../display";
+import { formatClientPhone, optionalText } from "../display";
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
@@ -18,12 +18,12 @@ import {
   vendorCommentSchema,
   vendorDetailSchema,
   vendorStages,
+  vendorTypeLabel,
 } from "../vendorData";
 import type { VendorComment, VendorDetail } from "../vendorData";
 import { CommentComposer } from "./CommentComposer";
 import { OutlookMailbox } from "./OutlookMailbox";
-import { Avatar, Modal } from "./ui";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Modal } from "./ui";
 
 const profileFields = [
   ["business_name", "Business name"],
@@ -39,6 +39,11 @@ const profileFields = [
 type ProfileField = (typeof profileFields)[number][0];
 type Profile = Record<ProfileField, string | null>;
 type VendorPatch = Partial<Profile>;
+
+const submittedDateTime = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "long",
+  timeStyle: "short",
+});
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -353,12 +358,14 @@ export function VendorRecord({
   onSaved: () => void;
 }) {
   const [vendor, setVendor] = useState(initial);
-  const [view, setView] = useState<"details" | "email">("details");
+  const [view, setView] = useState<"Activity" | "Email thread">("Activity");
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const decision = record(vendor.responses.decision);
   const legacy = record(vendor.responses.legacy_vendor);
   const staff = record(vendor.responses.staff_details);
+  const submitted = timestamp(vendor.submitted_at ?? legacy.submitted_at);
   const accepted = timestamp(legacy.acceptance_email_sent_at);
   const hasAcceptance =
     Boolean(accepted) || legacy.acceptance_email_sent === true;
@@ -550,127 +557,145 @@ export function VendorRecord({
                   {vendor.stage === "unknown" ? "-" : stage.label}
                 </span>
               </h2>
-              <p>Mexica New Year {vendor.event_year}</p>
+              <p className="presentation-source">
+                {submitted ? (
+                  <>
+                    Submitted{" "}
+                    <time dateTime={submitted.toISOString()}>
+                      {submittedDateTime.format(submitted)}
+                    </time>{" "}
+                    from Mexica New Year {vendor.event_year}
+                  </>
+                ) : (
+                  <>Mexica New Year {vendor.event_year}</>
+                )}
+              </p>
             </div>
           </div>
-          <ToggleGroup<"details" | "email">
-            aria-label="Vendor record view"
-            value={[view]}
-            onValueChange={([next]) => {
-              if (next) setView(next);
-            }}
+          <div className="presentation-overview presentation-overview--stacked">
+            <section
+              className="card detail-facts"
+              aria-label="Business overview"
+            >
+              <h3>Business overview</h3>
+              <FactRows
+                rows={[
+                  ["Vendor type", vendorTypeLabel(vendor.category)],
+                  [
+                    "Social media followers",
+                    vendor.follower_count === null
+                      ? null
+                      : vendor.follower_count.toLocaleString("en-US"),
+                  ],
+                  [
+                    "Tribal affiliation",
+                    text(
+                      vendor.responses.tribal_affiliation ??
+                        legacy.tribal_affiliation,
+                    ),
+                  ],
+                  ...links.flatMap<[string, ReactNode]>(
+                    ({ label, Icon, value, href }) =>
+                      value
+                        ? [
+                            [
+                              label,
+                              <span className="vendor-link">
+                                <Icon size={14} aria-hidden="true" />
+                                {href ? (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {value}
+                                  </a>
+                                ) : (
+                                  value
+                                )}
+                              </span>,
+                            ],
+                          ]
+                        : [],
+                  ),
+                ]}
+              />
+              {merchandise && (
+                <dl className="vendor-merchandise">
+                  <div className="fact-pair">
+                    <dt>Merchandise</dt>
+                    <dd>{merchandise}</dd>
+                  </div>
+                </dl>
+              )}
+            </section>
+            <section className="card detail-facts" aria-label="Payment">
+              <h3>Payment</h3>
+              <FactRows rows={paymentRows} />
+              <h4 className="vendor-payment-methods">Payment methods</h4>
+              <FactRows rows={methodRows} />
+            </section>
+          </div>
+          <section
+            className="card detail-facts vendor-spots"
+            aria-label="Assigned spots"
           >
-            <ToggleGroupItem value="details">Details</ToggleGroupItem>
-            <ToggleGroupItem value="email">Email thread</ToggleGroupItem>
-          </ToggleGroup>
-          {view === "email" ? (
-            <OutlookMailbox
-              key={vendor.email}
-              contact={{ address: vendor.email ?? "", kind: "vendor" }}
-            />
-          ) : (
-            <>
-              <div className="presentation-overview">
-                <section
-                  className="card detail-facts"
-                  aria-label="Business overview"
-                >
-                  <h3>Business overview</h3>
-                  <FactRows
-                    rows={[
-                      ["Vendor type", vendor.category],
-                      [
-                        "Social media followers",
-                        vendor.follower_response ?? vendor.follower_count,
-                      ],
-                      [
-                        "Tribal affiliation",
-                        text(
-                          vendor.responses.tribal_affiliation ??
-                            legacy.tribal_affiliation,
-                        ),
-                      ],
-                      ...links.flatMap<[string, ReactNode]>(
-                        ({ label, Icon, value, href }) =>
-                          value
-                            ? [
-                                [
-                                  label,
-                                  <span className="vendor-link">
-                                    <Icon size={14} aria-hidden="true" />
-                                    {href ? (
-                                      <a
-                                        href={href}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                      >
-                                        {value}
-                                      </a>
-                                    ) : (
-                                      value
-                                    )}
-                                  </span>,
-                                ],
-                              ]
-                            : [],
-                      ),
-                    ]}
-                  />
-                  {merchandise && (
-                    <dl className="vendor-merchandise">
-                      <div className="fact-pair">
-                        <dt>Merchandise</dt>
-                        <dd>{merchandise}</dd>
-                      </div>
-                    </dl>
-                  )}
-                </section>
-                <section className="card detail-facts" aria-label="Payment">
-                  <h3>Payment</h3>
-                  <FactRows rows={paymentRows} />
-                  <h4 className="vendor-payment-methods">Payment methods</h4>
-                  <FactRows rows={methodRows} />
-                </section>
-              </div>
-              <section
-                className="card detail-facts vendor-spots"
-                aria-label="Assigned spots"
+            <h3>Assigned spots</h3>
+            <FactRows rows={[["Requested space", profile.requested_space]]} />
+            <div className="template-table-wrap">
+              <table className="template-table" aria-label="Assigned spots">
+                <thead>
+                  <tr>
+                    <th scope="col">Spot</th>
+                    <th scope="col">Ring</th>
+                    <th scope="col">Spot status</th>
+                    <th scope="col">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...spots].map(([label, spot]) => (
+                    <tr key={label}>
+                      <th scope="row">{label}</th>
+                      <td>
+                        {typeof spot.ring === "number"
+                          ? spot.ring
+                          : (optionalText(text(spot.ring)) ?? "-")}
+                      </td>
+                      <td>{optionalText(text(spot.status)) ?? "-"}</td>
+                      <td>{amount(spot.price) ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <div
+            className="detail-tabs"
+            role="tablist"
+            aria-label="Vendor sections"
+          >
+            {(["Activity", "Email thread"] as const).map((name, index) => (
+              <button
+                key={name}
+                role="tab"
+                id={`vendor-tab-${index}`}
+                aria-controls={`vendor-panel-${index}`}
+                aria-selected={view === name}
+                className={view === name ? "selected" : ""}
+                onClick={() => setView(name)}
               >
-                <h3>Assigned spots</h3>
-                <FactRows
-                  rows={[["Requested space", profile.requested_space]]}
-                />
-                <div className="template-table-wrap">
-                  <table className="template-table" aria-label="Assigned spots">
-                    <thead>
-                      <tr>
-                        <th scope="col">Spot</th>
-                        <th scope="col">Ring</th>
-                        <th scope="col">Spot status</th>
-                        <th scope="col">Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...spots].map(([label, spot]) => (
-                        <tr key={label}>
-                          <th scope="row">{label}</th>
-                          <td>
-                            {typeof spot.ring === "number"
-                              ? spot.ring
-                              : (optionalText(text(spot.ring)) ?? "-")}
-                          </td>
-                          <td>{optionalText(text(spot.status)) ?? "-"}</td>
-                          <td>{amount(spot.price) ?? "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                {name}
+              </button>
+            ))}
+          </div>
+          <div
+            role="tabpanel"
+            id={`vendor-panel-${view === "Activity" ? 0 : 1}`}
+            aria-labelledby={`vendor-tab-${view === "Activity" ? 0 : 1}`}
+          >
+            {view === "Activity" ? (
               <VendorActivity
-                submitted={timestamp(
-                  vendor.submitted_at ?? legacy.submitted_at,
-                )}
+                submitted={submitted}
                 created={timestamp(legacy.created_at)}
                 accepted={accepted}
                 comments={comments}
@@ -678,20 +703,34 @@ export function VendorRecord({
                 staffName={staffName}
                 commentPath={commentPath}
               />
-            </>
-          )}
+            ) : (
+              <OutlookMailbox
+                key={vendor.email}
+                contact={{ address: vendor.email ?? "", kind: "vendor" }}
+              />
+            )}
+          </div>
         </div>
         <aside className="client-sidebar vendor-sidebar">
+          {text(decision.status) && (
+            <section>
+              <h2>Application decision</h2>
+              <p>
+                {text(decision.status) === "accepted" ? "Accepted" : "Denied"}.
+                No email was sent by this action.
+              </p>
+            </section>
+          )}
           <section>
             <h2>Contact</h2>
-            {contactName && <Avatar name={contactName} />}
             <h3>{contactName ?? "-"}</h3>
             {contactEmail && (
               <a
                 className="contact-link"
                 href={`mailto:${encodeURIComponent(contactEmail).replace(/%40/g, "@")}`}
               >
-                <Mail size={14} aria-hidden="true" /> {contactEmail}
+                <Mail size={14} aria-hidden="true" />{" "}
+                {contactEmail.toLowerCase()}
               </a>
             )}
             {contactPhone && (
@@ -699,7 +738,8 @@ export function VendorRecord({
                 className="contact-link"
                 href={phoneLink ? `tel:${phoneLink}` : undefined}
               >
-                <Phone size={14} aria-hidden="true" /> {contactPhone}
+                <Phone size={14} aria-hidden="true" />{" "}
+                {formatClientPhone(contactPhone)}
               </a>
             )}
             {mailingAddress && <p>{mailingAddress}</p>}

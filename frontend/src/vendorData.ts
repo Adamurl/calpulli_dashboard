@@ -1,23 +1,60 @@
 import { z } from "zod";
+import { apiFetch } from "./api";
+import type { VendorYear } from "./navigation";
 
-const vendorStage = z.enum([
-  "applied",
-  "accepted",
-  "paid",
-  "spot_assigned",
-  "unknown",
-]);
+export const vendorCategoryOptions = [
+  ["FOOD", "Food"],
+  ["ARTS_CRAFTS", "Arts & Crafts"],
+  ["DANZANTE", "Danzante"],
+  ["NON_PROFIT", "Non-Profit"],
+  ["SCHOOL", "School"],
+  ["CORP", "Corporation"],
+  ["TRIBAL", "Tribal"],
+  ["SMALL", "Small"],
+  ["GOVT", "Government"],
+  ["OTHER", "Other"],
+] as const;
+
+export function vendorTypeLabel(category: string | null): string | null {
+  const value = category?.trim();
+  if (!value) return null;
+  if (value.toUpperCase() === "A&C") return "Arts & Crafts";
+  if (value === "DANZANTES") return "Danzante";
+  return vendorCategoryOptions.find(([key]) => key === value)?.[1] ?? value;
+}
+
+export const vendorIndexPath = "/api/v1/mny/vendors";
+
+export function vendorStatisticsPath(year: VendorYear) {
+  return `${vendorIndexPath}/statistics?event_year=${year}` as const;
+}
+
+const vendorStage = z.enum(["applied", "accepted", "declined", "unknown"]);
 export type VendorStage = z.infer<typeof vendorStage>;
 export const vendorStages = {
   applied: { label: "Applied", color: "new" },
   accepted: { label: "Accepted", color: "proposal_sent" },
-  paid: { label: "Paid", color: "completed" },
-  spot_assigned: { label: "Spot assigned", color: "booked" },
+  declined: { label: "Denied", color: "unknown" },
   unknown: { label: "Stage not recorded", color: "unknown" },
 } satisfies Record<VendorStage, { label: string; color: string }>;
 
 const count = z.number().int().nonnegative();
-const vendorSummarySchema = z.object({
+
+export async function fetchVendorActivity(
+  year: VendorYear,
+  days: number,
+  signal: AbortSignal,
+) {
+  const response = await apiFetch(
+    `${vendorIndexPath}/activity?event_year=${year}&days=${days}`,
+    { signal },
+  );
+  const series = z.array(count).length(days);
+  return z
+    .object({ current: series, previous: series })
+    .parse(await response.json());
+}
+export const vendorSummarySchema = z.object({
   id: z.guid(),
   event_year: z.number().int(),
   stage: vendorStage,
@@ -76,3 +113,6 @@ export function spotCountForSpace(space: string | null): number | null {
     ? count
     : null;
 }
+
+export type VendorSummary = z.infer<typeof vendorSummarySchema>;
+export const vendorCategoriesSchema = z.array(z.string());

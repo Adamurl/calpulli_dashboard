@@ -60,7 +60,7 @@ export function TablePagination({
           value={size}
           onChange={(event) => onSizeChange(Number(event.target.value))}
         >
-          {[5, 10, 20, 50].map((option) => (
+          {[5, 10, 20, 25, 50].map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
