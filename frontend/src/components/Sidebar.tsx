@@ -109,7 +109,7 @@ export function Sidebar({
           <Collapsible className="presentation-module" open={presentationOpen}>
             <div className="module-nav-row">
               <button
-                className={`nav-item ${presentationActive ? "active" : ""}`}
+                className={`nav-item ${page === "Presentations" ? "active" : ""}`}
                 aria-label="Presentations"
                 title="Presentations"
                 aria-current={page === "Presentations" ? "page" : undefined}
@@ -149,7 +149,7 @@ export function Sidebar({
           <Collapsible className="mny-module" open={mnyOpen}>
             <div className="module-nav-row">
               <button
-                className={`nav-item ${mnyActive ? "active" : ""}`}
+                className="nav-item"
                 aria-label="Mexica New Year"
                 title="Mexica New Year"
                 aria-expanded={mnyOpen}
@@ -174,11 +174,23 @@ export function Sidebar({
                 <button
                   key={child}
                   className={`nav-item nav-child ${page === child ? "active" : ""}`}
-                  aria-label={child}
+                  aria-label={
+                    child === "Vendors"
+                      ? "Vendor Applications"
+                      : child === "Assignments"
+                        ? "Spot Assignments"
+                        : child
+                  }
                   aria-current={page === child ? "page" : undefined}
                   onClick={() => navigate(child)}
                 >
-                  <span>{child}</span>
+                  <span>
+                    {child === "Vendors"
+                      ? "Vendor Applications"
+                      : child === "Assignments"
+                        ? "Spot Assignments"
+                        : child}
+                  </span>
                 </button>
               ))}
             </CollapsibleContent>

@@ -1,4 +1,4 @@
-import { optionalText } from "../display";
+import { formatClientPhone, optionalText } from "../display";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { isValid, parseISO } from "date-fns";
@@ -179,16 +179,6 @@ function clockTime(value: string | null) {
     clock: `${hours % 12 || 12}:${match[2]}`,
     period: hours < 12 ? "AM" : "PM",
   };
-}
-
-function formatClientPhone(phone: string) {
-  if (!/^\+?[\d().\s-]+$/.test(phone)) return phone;
-
-  const digits = phone.replace(/\D/g, "");
-  const number = digits.match(/^(?:1)?(\d{3})(\d{3})(\d{4})$/);
-  if (!number || (phone.startsWith("+") && digits.length !== 11)) return phone;
-
-  return `+1 (${number[1]}) ${number[2]} - ${number[3]}`;
 }
 
 function EventAndVenue({ item }: { item: Presentation }) {

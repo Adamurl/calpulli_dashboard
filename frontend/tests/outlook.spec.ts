@@ -265,7 +265,7 @@ test("presentation and vendor Outlook tabs query their own recorded email addres
       new URL(request.url()).searchParams.get("contact") ===
       "fixture@example.invalid",
   );
-  await page.getByRole("radio", { name: "Email thread" }).click();
+  await page.getByRole("tab", { name: "Email thread" }).click();
   await vendorMessages;
   await page.getByRole("button", { name: "New Outlook email" }).click();
   await expect(

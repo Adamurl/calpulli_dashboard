@@ -305,12 +305,18 @@
         const composer = doc().querySelector(".note-composer"),
           avatar = composer.querySelector(".avatar"),
           note = composer.querySelector("textarea");
+        const noteBackground = style(note).backgroundColor;
+        const composerBackground = style(composer).backgroundColor;
         note.focus();
         check(
-          style(note).resize === "none" &&
+          doc().activeElement === note &&
+            style(note).resize === "none" &&
             style(note).outlineStyle === "none" &&
-            style(composer).outlineStyle === "solid",
-          "Composer focus indicator replaces native textarea box",
+            style(note).boxShadow === "none" &&
+            style(note).backgroundColor === noteBackground &&
+            style(composer).outlineStyle === "none" &&
+            style(composer).backgroundColor === composerBackground,
+          "Composer focus leaves the field and container styling unchanged",
         );
         const avatarRect = avatar.getBoundingClientRect(),
           noteRect = note.getBoundingClientRect(),
