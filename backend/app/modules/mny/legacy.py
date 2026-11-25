@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
@@ -67,3 +68,24 @@ class LegacyVendorFacts:
         if self.requested_spot_count is not None:
             return self.requested_spot_count
         return self.assigned_count
+
+
+def requested_spot_count(responses: dict, recorded: int | None) -> int | None:
+    staff = responses.get("staff_details")
+    legacy = responses.get("legacy_vendor")
+    staff = staff if isinstance(staff, dict) else {}
+    legacy = legacy if isinstance(legacy, dict) else {}
+    space = (
+        staff.get("requested_space")
+        if "requested_space" in staff
+        else (responses.get("booth_size_requested") or legacy.get("requested_space"))
+    )
+    if isinstance(space, str):
+        match = re.fullmatch(
+            r"\s*(\d+)\s*(?:ft|['′])?\s*[x×]\s*(\d+)\s*(?:ft|['′])?\s*", space, re.I
+        )
+        if match:
+            width, depth = map(int, match.groups())
+            if 0 < width <= 10000 and 0 < depth <= 10000 and width % 10 == depth % 10 == 0:
+                return (width // 10) * (depth // 10)
+    return recorded

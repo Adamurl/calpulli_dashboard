@@ -1,5 +1,5 @@
 import csv
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from app.core.config import Settings
+from app.core.reporting import REPORTING_ZONE
 from app.db.session import get_session
 from app.imports.mny_vendors import (
     FORM_COLUMNS,
@@ -98,6 +99,13 @@ def test_vendor_routes_require_staff(staff_auth):
     detail = API + "/00000000-0000-4000-8000-000000000001"
     with TestClient(app) as client:
         assert client.get(API, params={"event_year": 2027}).status_code == 401
+        assert client.get(f"{API}/categories").status_code == 401
+        assert (
+            client.post(
+                f"{API}/bulk-edit", params={"event_year": 2027}, json={"items": []}
+            ).status_code
+            == 401
+        )
         assert client.get(detail, params={"event_year": 2026}).status_code == 401
         assert (
             client.post(
@@ -118,13 +126,13 @@ def test_vendor_filters_and_sort_apply_before_pagination(pg_session, database_ur
     examples = [
         ("Alpha", "form_csv", 4, {}, "applied"),
         ("Bravo", "legacy_vendor", 1, {"acceptance_email_sent": True}, "accepted"),
-        ("Charlie", "legacy_vendor", 3, {"payment_status": " Paid "}, "paid"),
+        ("Charlie", "legacy_vendor", 3, {"payment_status": " Paid "}, "unknown"),
         (
             "Delta",
             "legacy_vendor",
             2,
             {"payment_status": "paid", "spot_numbers": ["A3"]},
-            "spot_assigned",
+            "unknown",
         ),
         ("Echo", "legacy_vendor", 5, {"spot_numbers": [" "]}, "unknown"),
     ]
@@ -155,8 +163,8 @@ def test_vendor_filters_and_sort_apply_before_pagination(pg_session, database_ur
             return response.json()
 
         assert [item["stage"] for item in listed()["items"]] == [row[-1] for row in examples]
-        assert [item["business_name"] for item in listed(stage="paid", limit=1)["items"]] == [
-            "Charlie"
+        assert [item["business_name"] for item in listed(stage="accepted", limit=1)["items"]] == [
+            "Bravo"
         ]
         assert listed(stage="accepted", q="Charlie")["total"] == 0
         assert (
@@ -167,7 +175,7 @@ def test_vendor_filters_and_sort_apply_before_pagination(pg_session, database_ur
         )
         stage_page = listed(sort="stage", direction="desc", limit=2)
         assert stage_page["total"] == len(examples)
-        assert [item["business_name"] for item in stage_page["items"]] == ["Delta", "Charlie"]
+        assert [item["business_name"] for item in stage_page["items"]] == ["Bravo", "Alpha"]
 
 
 @pytest.mark.integration
@@ -341,11 +349,13 @@ def test_archive_preserves_legacy_spots_and_outcomes(pg_session):
 def test_vendor_statistics_cover_year_and_table_search_is_paginated(
     form_csv, pg_session, database_url, staff_auth
 ):
+    today = datetime.now(REPORTING_ZONE).replace(hour=12, minute=0, second=0, microsecond=0)
     historical = [
         {
             "event_year": 2026,
             "source": "legacy_vendor",
             "source_key": "first",
+            "submitted_at": today - timedelta(days=6),
             "business_name": "First 100% Crafts",
             "contact_name": "Drew",
             "responses": {
@@ -371,6 +381,7 @@ def test_vendor_statistics_cover_year_and_table_search_is_paginated(
         },
     ]
     current = read_csv(form_csv, event_year=2027, timezone="America/Los_Angeles")
+    current[0]["submitted_at"] = today
     assert apply_import(pg_session, [*historical, *current]) == 3
     app = create_app(
         Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
@@ -379,6 +390,12 @@ def test_vendor_statistics_cover_year_and_table_search_is_paginated(
     headers = {"Authorization": "Bearer vendor-test-token"}
     with TestClient(app) as client:
         stats_url = f"{API}/statistics"
+        activity_url = f"{API}/activity"
+        assert client.get(activity_url, params={"event_year": 2026}).status_code == 401
+        activity = client.get(activity_url, params={"event_year": 2026, "days": 7}, headers=headers)
+        assert activity.json() == {"current": [1, 0, 0, 0, 0, 0, 0], "previous": [0] * 7}
+        activity = client.get(activity_url, params={"event_year": 2026, "days": 1}, headers=headers)
+        assert activity.json() == {"current": [0], "previous": [0]}
         assert client.get(stats_url, params={"event_year": 2026}).status_code == 401
         page = client.get(API, params={"event_year": 2026, "limit": 1}, headers=headers).json()
         assert page["total"] == 2
@@ -405,3 +422,168 @@ def test_vendor_statistics_cover_year_and_table_search_is_paginated(
             "requested_spots": None,
             "assigned_spots": None,
         }
+
+
+@pytest.mark.integration
+def test_vendor_decision_is_recorded_without_sending_email(pg_session, database_url, staff_auth):
+    assert (
+        apply_import(
+            pg_session,
+            [
+                {
+                    "event_year": 2027,
+                    "source": "form_csv",
+                    "source_key": "decision-test",
+                    "responses": {},
+                }
+            ],
+        )
+        == 1
+    )
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
+    )
+    app.dependency_overrides[get_session] = lambda: pg_session
+    headers = {"Authorization": "Bearer vendor-test-token"}
+    with TestClient(app) as client:
+        vendor = client.get(API, params={"event_year": 2027}, headers=headers).json()["items"][0]
+        path = f"{API}/{vendor['id']}/decision"
+        result = client.post(
+            path, params={"event_year": 2027}, headers=headers, json={"status": "accepted"}
+        )
+        assert result.status_code == 200
+        assert result.json()["stage"] == "accepted"
+        assert result.json()["responses"]["decision"]["status"] == "accepted"
+        assert "acceptance_email_sent" not in result.json()["responses"]
+        retry = client.post(
+            path, params={"event_year": 2027}, headers=headers, json={"status": "accepted"}
+        )
+        assert retry.json()["responses"]["decision"] == result.json()["responses"]["decision"]
+        assert (
+            client.post(
+                path, params={"event_year": 2027}, headers=headers, json={"status": "declined"}
+            ).status_code
+            == 409
+        )
+        assert (
+            client.post(
+                path, params={"event_year": 2026}, headers=headers, json={"status": "accepted"}
+            ).status_code
+            == 404
+        )
+
+
+@pytest.mark.parametrize(
+    ("responses", "recorded", "expected"),
+    [
+        ({"booth_size_requested": "10 x 10"}, None, 1),
+        ({"booth_size_requested": "10 × 20 ft"}, None, 2),
+        ({"booth_size_requested": "12 x 10"}, None, None),
+        (
+            {"booth_size_requested": "10 x 10", "staff_details": {"requested_space": "20 x 20"}},
+            None,
+            4,
+        ),
+        ({"booth_size_requested": "unknown"}, 3, 3),
+    ],
+)
+def test_requested_spot_count(responses, recorded, expected):
+    from app.modules.mny.legacy import requested_spot_count
+
+    assert requested_spot_count(responses, recorded) == expected
+
+
+@pytest.mark.integration
+def test_bulk_edit_is_atomic_and_supports_reset_to_applied(pg_session, database_url, staff_auth):
+    assert (
+        apply_import(
+            pg_session,
+            [
+                {
+                    "event_year": 2027,
+                    "source": "form_csv",
+                    "source_key": "bulk-a",
+                    "business_name": "A",
+                    "category": "A&C",
+                    "responses": {},
+                },
+                {
+                    "event_year": 2027,
+                    "source": "form_csv",
+                    "source_key": "bulk-b",
+                    "business_name": "B",
+                    "category": "FOOD",
+                    "responses": {},
+                },
+            ],
+        )
+        == 2
+    )
+    app = create_app(
+        Settings(_env_file=None, database_url=database_url, **staff_auth("vendor-test-token"))
+    )
+    app.dependency_overrides[get_session] = lambda: pg_session
+    headers = {"Authorization": "Bearer vendor-test-token"}
+    params = {"event_year": 2027}
+    with TestClient(app) as client:
+        rows = client.get(API, params=params, headers=headers).json()["items"]
+        items = [
+            {
+                "id": row["id"],
+                "expected_stage": row["stage"],
+                "expected_category": row["category"],
+                "stage": "accepted",
+            }
+            for row in rows
+        ]
+        result = client.post(
+            f"{API}/bulk-edit", params=params, headers=headers, json={"items": items}
+        )
+        assert result.status_code == 200
+        assert result.json() == {"updated": 2}
+        assert {
+            row["stage"] for row in client.get(API, params=params, headers=headers).json()["items"]
+        } == {"accepted"}
+        stale = client.post(
+            f"{API}/bulk-edit", params=params, headers=headers, json={"items": items}
+        )
+        assert stale.status_code == 409
+        rows = client.get(API, params=params, headers=headers).json()["items"]
+        reset = [
+            {
+                "id": row["id"],
+                "expected_stage": "accepted",
+                "expected_category": row["category"],
+                "stage": "applied",
+                "category": "FOOD",
+            }
+            for row in rows
+        ]
+        assert (
+            client.post(
+                f"{API}/bulk-edit", params=params, headers=headers, json={"items": reset}
+            ).status_code
+            == 200
+        )
+        updated = client.get(API, params=params, headers=headers).json()["items"]
+        assert {row["stage"] for row in updated} == {"applied"}
+        assert {row["category"] for row in updated} == {"FOOD"}
+
+
+def test_bulk_edit_validates_records_and_rejects_duplicate_ids():
+    from pydantic import ValidationError
+
+    from app.modules.mny.router import VendorBulkEdit
+
+    vendor_id = "33333333-3333-4333-8333-000000000000"
+    item = {
+        "id": vendor_id,
+        "expected_stage": "applied",
+        "expected_category": None,
+        "stage": "accepted",
+    }
+    with pytest.raises(ValidationError):
+        VendorBulkEdit.model_validate({"items": [item, item]})
+    with pytest.raises(ValidationError):
+        VendorBulkEdit.model_validate({"items": [{**item, "stage": None}]})
+    assert VendorBulkEdit.model_validate({"items": [item]}).items[0].stage == "accepted"

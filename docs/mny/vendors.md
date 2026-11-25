@@ -1,8 +1,8 @@
 # Mexica New Year vendors
 
-Open **Mexica New Year → Vendors** in the staff workspace. Select 2027 for new applications or 2026 for the historical archive. The cards summarize the full year. Search narrows the table by business, contact, or category. Filter by workflow stage, sort from the Columns menu, and choose 5, 10, 20, or 50 rows per page. Select a vendor name to open their record. The arrows move through the selected year in business-name order. The stage badge uses recorded spot assignments, paid status, acceptance, or a submitted application. Staff can edit profile details and post private comments in Activity. Earlier notes appear in Activity without a date. The detail page calculates requested spots when both booth dimensions are multiples of 10 feet. Amount due appears once acceptance or paid status is recorded.
+Open **Mexica New Year → Vendors** in the staff workspace. Select 2027 for new applications or 2026 for the historical archive. The cards summarize the full year. Search narrows the table by business, contact, or category. Filter by workflow stage, sort from the Columns menu, and choose 5, 10, 20, 25, or 50 rows per page. Select a vendor name to open their record. The arrows move through the selected year in business-name order. Application status uses a recorded decision, a recorded acceptance email, or a submitted application. Payment and spot assignment do not change it. Older records without a recorded decision remain unknown. Staff can edit profile details and post private comments in Activity. Earlier notes appear in Activity without a date. The detail page calculates requested spots when both booth dimensions are multiples of 10 feet. Amount due appears once acceptance or paid status is recorded.
 
-The Assignments and Outreach links are reserved for future workflows. The spots API provides recorded booth inventory for a future map.
+The Spot Assignments and Outreach links are reserved for future workflows. Use the bulk editor to change application decisions for selected vendors. A decision does not send an email. The spots API provides recorded booth inventory for a future map.
 
 ## Staff API
 
@@ -13,11 +13,12 @@ Each route requires a Supabase access token for a server-allowlisted staff user 
 | GET | `/api/v1/mny/vendors?event_year=2027` | Vendor summaries sorted by business name and ID. Returns `items`, `total`, `limit`, and `offset`. `limit` defaults to 50 and caps at 100. `offset` defaults to 0. Optional `q` matches business name, contact name, or category. Use `stage` to filter and `sort` (`name`, `received`, `contact`, `category`, `stage`) with `direction` (`asc` or `desc`) to order the full result before pagination. |
 | GET | `/api/v1/mny/vendors/{vendor_id}?event_year=2027` | Vendor details and original responses, with nullable `previous_id` and `next_id`. Returns 404 if the ID does not belong to the requested year. |
 | PATCH | `/api/v1/mny/vendors/{vendor_id}?event_year=2027` | Updates the supplied profile or note fields and returns the vendor detail. Returns 404 for a different year. |
+| POST | `/api/v1/mny/vendors/{vendor_id}/decision?event_year=2027` | Records `status` as `accepted` or `declined` for an application awaiting a decision. Repeating the same decision is safe. A conflicting or inapplicable decision returns 409. This does not send email. |
 | POST | `/api/v1/mny/vendors/{vendor_id}/comments?event_year=2027` | Appends a staff comment. Returns 201 with its ID, body, and creation timestamp. |
 | GET | `/api/v1/mny/vendors/statistics?event_year=2027` | Full-year `total_vendors`, `total_paid`, `requested_spots`, and `assigned_spots`. |
 | GET | `/api/v1/mny/spots?event_year=2026` | `event_year`, `inventory_available`, and `spots`. Each spot includes its label as text when recorded, spot status, optional price, and linked vendor summaries. Includes free booths if the source inventory has them. |
 
-Vendor summaries include `stage`, `contact_name`, `requested_spot_count`, `assigned_spot_labels`, and `paid_before_deadline`. The table shows the recorded requested count when available. Historical labels come from the legacy vendor record where present and fall back to linked spot labels. The detail response preserves the original source records for both.
+Vendor summaries include `stage`, `contact_name`, `requested_spot_count`, `assigned_spot_labels`, and `paid_before_deadline`. The table calculates requested spots from booth dimensions when both dimensions are multiples of 10 feet, and otherwise shows the recorded requested count when available. Historical labels come from the legacy vendor record where present and fall back to linked spot labels. The detail response preserves the original source records for both.
 
 Statistics sum recorded payments and booth counts. The requested-spot total uses the assigned-label count when a requested count is absent. A form booth-size preference does not establish a count. Metrics with no recorded data return `null`. An explicit recorded zero counts as data.
 
@@ -51,3 +52,9 @@ After reviewing the target and preview totals, run `uv run alembic upgrade head`
 Each import is atomic. Reruns skip an application with the same event year, submission timestamp, email, and business name, or a legacy vendor with the same source ID. Keep the same source timezone on reruns. Store private exports in the ignored `TEMP/` directory.
 
 Revision 0008 adds year-scoped booth inventory. Rerun the 2026 archive after upgrading to capture inventory for an earlier vendor-only archive. The backfill records the inventory at the time of the rerun. Existing vendor detail snapshots retain their original archive dates. Until a year's inventory is loaded, the API returns `inventory_available: false`. The 2027 application CSV supplies no booth inventory.
+
+## Bulk editing
+
+Select vendors in the table and choose **Bulk edit** to change each vendor's category or application status. The status control above the grid sets one status for all selected vendors. Save up to 100 changed records at once. The server saves the group in one transaction and rejects it if a selected record has changed since selection. Refresh the list and select the records again after a conflict. Changing application status does not send email.
+
+`GET /api/v1/mny/vendors/categories` returns recorded category values. `POST /api/v1/mny/vendors/bulk-edit?event_year=2027` accepts `items` with each vendor's ID, expected stage and category, and the changed stage or category. The category options include values from the previous MNY vendor dashboard. Staff authorization is required for both endpoints.
